@@ -1,0 +1,61 @@
+# Test source and output
+**/test/
+**/tests/
+**/*.Test/
+**/*.Tests/
+**/*.test.*
+**/*.spec.*
+TestResults/
+coverage/
+.nyc_output/
+
+# Build output and dependencies
+**/bin/
+**/obj/
+**/dist/
+**/build/
+node_modules/
+.angular/
+.next/
+out/
+
+# Local tools and IDE state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+*.swo
+*~
+
+# Logs, caches, and operating system files
+*.log
+logs/
+tmp/
+temp/
+.cache/
+.DS_Store
+Thumbs.db
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+# Keys, certificates, and credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+credentials.json
+service-account*.json
