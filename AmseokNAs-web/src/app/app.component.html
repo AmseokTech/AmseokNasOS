@@ -1,0 +1,40 @@
+<div class="app-shell">
+  <header>
+    <mat-toolbar class="topbar">
+      <div class="brand" aria-label="AmseokNas">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <span class="brand-name">AmseokNas</span>
+      </div>
+
+      <mat-chip-set aria-label="API 连接状态">
+        <mat-chip class="api-state" [attr.data-state]="apiStatus()" role="status">
+          <span class="state-dot" aria-hidden="true"></span>
+          {{ apiStatusLabel() }}
+        </mat-chip>
+      </mat-chip-set>
+    </mat-toolbar>
+  </header>
+
+  <main class="workspace">
+    <section class="system-summary" aria-labelledby="system-summary-title">
+      <p class="section-label">SYSTEM CONSOLE</p>
+      <h1 id="system-summary-title">管理控制台</h1>
+      <dl class="runtime-list">
+        <div>
+          <dt>Web</dt>
+          <dd>Angular 22</dd>
+        </div>
+        <div>
+          <dt>API</dt>
+          <dd>ASP.NET Core 10</dd>
+        </div>
+        <div>
+          <dt>连接</dt>
+          <dd>{{ apiStatusLabel() }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <router-outlet />
+  </main>
+</div>

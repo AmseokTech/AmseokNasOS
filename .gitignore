@@ -5,6 +5,7 @@
 **/*.Tests/
 **/*.test.*
 **/*.spec.*
+!**/tsconfig.spec.json
 TestResults/
 coverage/
 .nyc_output/

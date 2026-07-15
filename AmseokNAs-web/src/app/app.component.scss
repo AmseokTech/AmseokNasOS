@@ -1,0 +1,152 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: #f4f6f7;
+  color: #172126;
+}
+
+.topbar {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 32px;
+  border-bottom: 1px solid #dce2e5;
+  background: #ffffff;
+  color: #172126;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 6px;
+  background: #172126;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.api-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #dce2e5;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #536269;
+  font-size: 13px;
+}
+
+.state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d39b2a;
+}
+
+.api-state[data-state='online'] .state-dot {
+  background: #238664;
+}
+
+.api-state[data-state='offline'] .state-dot {
+  background: #c34a43;
+}
+
+.workspace {
+  width: min(100% - 48px, 1120px);
+  margin: 0 auto;
+  padding: 56px 0;
+}
+
+.system-summary {
+  border-top: 3px solid #238664;
+  padding: 32px 0;
+}
+
+.section-label {
+  margin: 0 0 8px;
+  color: #5b6a70;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.runtime-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 32px 0 0;
+  border-block: 1px solid #d7dee1;
+}
+
+.runtime-list div {
+  min-width: 0;
+  padding: 20px 24px;
+  border-right: 1px solid #d7dee1;
+}
+
+.runtime-list div:last-child {
+  border-right: 0;
+}
+
+dt {
+  margin-bottom: 6px;
+  color: #617077;
+  font-size: 12px;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 0 20px;
+  }
+
+  .workspace {
+    width: min(100% - 32px, 1120px);
+    padding-top: 40px;
+  }
+
+  .runtime-list {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-list div {
+    border-right: 0;
+    border-bottom: 1px solid #d7dee1;
+  }
+
+  .runtime-list div:last-child {
+    border-bottom: 0;
+  }
+}

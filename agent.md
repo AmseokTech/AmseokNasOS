@@ -12,21 +12,29 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-13
+最后检查日期：2026-07-15
 
-当前状态：阶段 0 已完成，第一阶段准备中
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
 - 已配置本仓库提交身份为 `IwakuraTorei <IwakuraTorei@outlook.com>`
-- 远端当前包含 `93df2ae Initial commit` 和 `LICENSE`
-- 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录
-- 尚无 Angular 前端、ASP.NET Core 后端、privileged daemon、数据库、测试和部署文件
-- 第一阶段尚未开始
+- 当前开发基线提交为 `5c932a1 chore(project): establish development baseline`
+- 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNAs-<用途>` 命名
+- 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态和本地反向代理配置
+- Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
+- 已初始化 .NET 10 后端解决方案，建立 `Nas.Domain`、`Nas.Application`、`Nas.Infrastructure` 和 `Nas.Api` 项目及单向项目引用
+- 已提供匿名只读的 `GET /api/health` 健康接口，前端可通过开发代理访问
+- 已建立本地 Angular 组件测试和 xUnit API 测试；按仓库规则测试源码保持忽略，不进入提交范围
+- 已接入 Angular Material 22.0.4，启用官方 Azure Blue 预构建主题、异步动画 provider，并将顶部栏与 API 连接状态改为 Material Toolbar 和 Chip
+- 已验证 Angular 生产构建、Vitest 组件测试、ASP.NET Core 解决方案构建、xUnit 测试、API 直接请求和前端代理请求通过
+- Angular 22 工具链已在 Node.js 22.22.3 和 npm 10.9.8 下验证，当前系统默认的 Node.js 18 不满足运行要求
+- 前端生产依赖审计无漏洞；完整开发依赖审计仍有 3 个来自 Angular 构建器 Babel 和 Vite esbuild 的低危告警，当前无不降级 Angular 的自动修复方案
+- 尚无 privileged daemon、SQLite、认证授权、系统状态、物理磁盘查询和部署配置，第一阶段验收条件尚未满足
 
-下一建议工作项：初始化 Angular 与 ASP.NET Core 最小项目骨架，建立第一阶段需要的构建、测试和基础运行入口
+下一建议工作项：推进第一阶段第 2 项，为 Domain、Application、Infrastructure 和 Api 建立最小模块契约，并增加依赖方向测试
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
@@ -172,7 +180,7 @@ Debian 负责真正执行 SMB、NFS、mdadm、SMART、systemd、Docker、网络�
 推荐目录：
 
 ```text
-nas-web/
+AmseokNAs-web/
   src/app/
     core/
       auth/
@@ -231,7 +239,7 @@ SignalR 用于状态变化通知，REST API 是最终状态来源，断线重连
 推荐目录：
 
 ```text
-nas-server/
+AmseokNAs-server/
   src/
     Nas.Api/
       Controllers/
@@ -263,7 +271,7 @@ nas-server/
 推荐增加独立特权进程：
 
 ```text
-nas-privileged/
+AmseokNAs-privileged/
   src/
     Nas.Privileged/
       Protocol/
