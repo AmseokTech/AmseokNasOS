@@ -1,0 +1,20 @@
+<main class="login-page">
+  <section class="login-panel" aria-labelledby="login-title">
+    <p class="product-name">AmseokNas</p>
+    <h1 id="login-title" class="visually-hidden">管理员登录</h1>
+
+    <app-user-avatar class="login-avatar" />
+
+    <p class="username">admin</p>
+
+    <form class="login-form" (ngSubmit)="submitLogin()" novalidate>
+      <app-password-field [control]="passwordControl" />
+
+      <button class="login-button" mat-flat-button type="submit">登录</button>
+
+      @if (loginUnavailable()) {
+        <p class="login-message" role="status">登录服务尚未启用，请稍后再试</p>
+      }
+    </form>
+  </section>
+</main>
