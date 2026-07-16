@@ -1,0 +1,27 @@
+:host {
+  --user-avatar-size: 112px;
+
+  display: grid;
+  width: var(--user-avatar-size);
+  height: var(--user-avatar-size);
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #31464f 0%, #17252b 100%);
+  box-shadow:
+    0 14px 34px rgb(31 53 62 / 22%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+svg {
+  width: 62px;
+  height: 62px;
+  fill: #dfe9ec;
+}
+
+path {
+  stroke: #dfe9ec;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 7;
+}

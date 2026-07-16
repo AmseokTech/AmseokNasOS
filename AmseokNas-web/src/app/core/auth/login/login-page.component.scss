@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(255 255 255 / 92%) 0, transparent 34%),
+    linear-gradient(145deg, #eef3f5 0%, #e4ebee 100%);
+  color: #182328;
+}
+
+.login-panel {
+  width: min(100%, 360px);
+  padding: 42px 36px 38px;
+  border: 1px solid rgb(110 133 143 / 18%);
+  border-radius: 28px;
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 24px 70px rgb(42 66 76 / 14%);
+  text-align: center;
+  backdrop-filter: blur(18px);
+}
+
+.product-name {
+  margin: 0 0 32px;
+  color: #617178;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.login-avatar {
+  margin: 0 auto;
+}
+
+.username {
+  margin: 14px 0 28px;
+  color: #506168;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.login-form {
+  display: grid;
+  gap: 10px;
+}
+
+.login-button {
+  min-height: 48px;
+  border-radius: 14px;
+  font-weight: 650;
+}
+
+.login-message {
+  margin: 4px 0 0;
+  color: #9b3d38;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  margin: -1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .login-page {
+    padding: 20px 16px;
+  }
+
+  .login-panel {
+    padding: 36px 24px 32px;
+    border-radius: 24px;
+  }
+
+  .login-avatar {
+    --user-avatar-size: 100px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
