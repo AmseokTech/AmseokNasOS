@@ -12,29 +12,38 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-15
+最后检查日期：2026-07-17
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础已建立，但真实 PostgreSQL 部署、备份恢复和启动完整性验证尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
 - 已配置本仓库提交身份为 `IwakuraTorei <IwakuraTorei@outlook.com>`
-- 当前开发基线提交为 `5c932a1 chore(project): establish development baseline`
-- 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNAs-<用途>` 命名
-- 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态和本地反向代理配置
+- 当前开发基线提交为 `d540cd1 feat(project): initialize web and API skeleton`
+- 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
+- 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
 - 已初始化 .NET 10 后端解决方案，建立 `Nas.Domain`、`Nas.Application`、`Nas.Infrastructure` 和 `Nas.Api` 项目及单向项目引用
 - 已提供匿名只读的 `GET /api/health` 健康接口，前端可通过开发代理访问
 - 已建立本地 Angular 组件测试和 xUnit API 测试；按仓库规则测试源码保持忽略，不进入提交范围
 - 已接入 Angular Material 22.0.4，启用官方 Azure Blue 预构建主题、异步动画 provider，并将顶部栏与 API 连接状态改为 Material Toolbar 和 Chip
+- 已从测试机源码快照恢复管理员登录入口，包含密码必填校验、密码显隐控制、响应式布局和认证服务未启用提示；当前仅为前端入口，尚未实现真实认证
+- 已将管理员登录入口从根组件迁入 `core/auth`，根组件只承载路由内容，并将用户头像与密码输入框拆为可复用的 `shared` 组件
+- 已使用 Node.js 22.22.3 验证拆分后的 Angular 生产构建和 5 项组件测试通过
 - 已验证 Angular 生产构建、Vitest 组件测试、ASP.NET Core 解决方案构建、xUnit 测试、API 直接请求和前端代理请求通过
 - Angular 22 工具链已在 Node.js 22.22.3 和 npm 10.9.8 下验证，当前系统默认的 Node.js 18 不满足运行要求
 - 前端生产依赖审计无漏洞；完整开发依赖审计仍有 3 个来自 Angular 构建器 Babel 和 Vite esbuild 的低危告警，当前无不降级 Angular 的自动修复方案
-- 尚无 privileged daemon、SQLite、认证授权、系统状态、物理磁盘查询和部署配置，第一阶段验收条件尚未满足
+- 已确定数据库目标架构：对等 NAS 节点与动态控制面 Leader，节点本地使用 SQLite，集群全局数据使用 PostgreSQL HA，etcd 负责选举和租约，NATS JetStream 负责节点命令与事件
+- 已确定 Web 身份边界：ASP.NET Core Identity 在 PostgreSQL 中保存账户、密码哈希、角色和权限，Data Protection 保护 Cookie 与临时令牌，节点 SQLite 不保存全量账户密码哈希
+- 已建立 `ClusterDbContext` 与 PostgreSQL 初始迁移，覆盖 ASP.NET Core Identity 用户/角色、权限点、节点注册、全局 Operation、审计索引和 Data Protection 密钥表
+- 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
+- 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
+- 已验证 .NET 解决方案构建为 0 警告和 0 错误，NuGet 直接与传递依赖未发现已知漏洞
+- 当前环境未安装 Docker，尚未实际启动 Compose 或对真实 PostgreSQL 执行迁移；PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、真实认证授权、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：推进第一阶段第 2 项，为 Domain、Application、Infrastructure 和 Api 建立最小模块契约，并增加依赖方向测试
+下一建议工作项：回到第一阶段第 2 项，为 Domain、Application、Infrastructure 和 Api 补齐 `ClusterId`、`NodeId`、Operation、身份权限和双数据库事务边界的最小模块契约与依赖方向测试；随后在具备 Docker 的目标机实际启动单节点基础设施并应用 PostgreSQL 迁移
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
@@ -76,7 +85,15 @@ AI 可以执行只读 Git 命令，用于理解当前状态、差异和历史
 
 测试可以在本地临时创建和运行，但必须由 `.gitignore` 排除，并在提交前确认未进入暂存区
 
-### 4.1 提交前强制检查
+### 4.1 提交与交付语言
+
+Commit 标题与正文、PR 标题与正文、变更说明、发布说明和 AI 结束工作时的交付文案默认以中文为第一语言
+
+只有用户在当前任务中明确要求使用英文时，才对用户指定的 Commit、PR 或交付内容改用英文；该要求仅对当前任务和指定内容有效，不改变后续任务的中文默认规则
+
+Conventional Commit 的 `type`、`scope` 以及代码标识符、文件路径、命令、协议名和无法准确翻译的技术术语可以保留英文，不视为违反中文优先规则
+
+### 4.2 提交前强制检查
 
 任何提交或推送前必须逐项检查：
 
@@ -150,8 +167,11 @@ PR 内容必须至少包含以下部分：
 - 后端控制面：ASP.NET Core / C#
 - 特权执行面：独立 privileged daemon
 - 系统底层：Debian Linux + apt/deb 包
-- 实时通信：SignalR / WebSocket
-- 状态持久化：SQLite
+- 浏览器实时通信：SignalR / WebSocket
+- 节点命令与事件：NATS JetStream
+- 节点本地持久化：SQLite
+- 集群全局持久化：PostgreSQL HA
+- Leader 选举与租约：etcd
 - 部署方式：systemd 服务 + Nginx 反向代理
 - 应用中心：后续阶段可选 Docker，不属于第一阶段
 
@@ -161,10 +181,15 @@ PR 内容必须至少包含以下部分：
 浏览器
   -> Angular Web UI
     -> REST API / SignalR
-      -> ASP.NET Core Web API（普通系统用户）
-        -> Unix socket
-          -> privileged daemon（受限特权、结构化白名单动作）
-            -> Debian 系统工具和服务
+      -> 任意对等 NAS 的 ASP.NET Core Web API（普通系统用户）
+        -> 当前控制面 Leader
+          -> PostgreSQL HA（全局期望状态、身份和调度）
+          -> etcd（选举、租约和 fencing token）
+          -> NATS JetStream（节点命令与事件）
+            -> 目标 NAS 的 SQLite（本地实际状态和执行记录）
+              -> Unix socket
+                -> privileged daemon（受限特权、结构化白名单动作）
+                  -> Debian 系统工具和服务
 ```
 
 前端只负责展示和交互，不直接操作 Linux 系统
@@ -180,7 +205,7 @@ Debian 负责真正执行 SMB、NFS、mdadm、SMART、systemd、Docker、网络�
 推荐目录：
 
 ```text
-AmseokNAs-web/
+AmseokNas-web/
   src/app/
     core/
       auth/
@@ -239,7 +264,7 @@ SignalR 用于状态变化通知，REST API 是最终状态来源，断线重连
 推荐目录：
 
 ```text
-AmseokNAs-server/
+AmseokNas-server/
   src/
     Nas.Api/
       Controllers/
@@ -271,7 +296,7 @@ AmseokNAs-server/
 推荐增加独立特权进程：
 
 ```text
-AmseokNAs-privileged/
+AmseokNas-privileged/
   src/
     Nas.Privileged/
       Protocol/
@@ -285,7 +310,7 @@ AmseokNAs-privileged/
 
 `Nas.Application` 负责编排业务用例、权限决策、操作状态和资源锁
 
-`Nas.Infrastructure` 负责 SQLite、Linux 状态查询、受管配置生成以及与 privileged daemon 通信
+`Nas.Infrastructure` 负责 PostgreSQL 与 SQLite 持久化、etcd 与 NATS 集成、Linux 状态查询、受管配置生成以及与 privileged daemon 通信
 
 `Nas.Domain` 保存核心模型、权限、统一状态机、错误类型和领域事件，不依赖外层项目
 
@@ -414,7 +439,7 @@ Samba、NFS、Nginx、systemd 和挂载配置应使用 NAS 自己管理的 inclu
 
 不同服务使用对应校验器，例如 Samba 使用 `testparm`，Nginx 使用 `nginx -t`，systemd 使用 `systemd-analyze verify`
 
-SQLite 保存管理系统期望状态和历史记录，Debian 查询结果代表实际状态
+PostgreSQL 保存集群全局期望状态，节点 SQLite 保存本地执行记录和实际状态快照，Debian 查询结果代表当前实际状态
 
 系统启动时进行状态对账，发现人工修改时先告警，由管理员选择导入当前配置或重新应用期望状态，不得默认覆盖
 
@@ -468,27 +493,23 @@ system.shutdown
 logs.read
 ```
 
-密码使用成熟身份组件支持的强密码哈希，Cookie 设置 `HttpOnly`、`Secure` 和合理的 `SameSite`，所有状态修改接口实施 CSRF 防护
+Web 账户使用 ASP.NET Core Identity 管理，账户、密码哈希、角色和权限以 PostgreSQL 为全局事实源；密码只保存不可逆哈希，不保存明文或可逆密文，节点 SQLite 不保存全量账户密码哈希
+
+所有控制面实例共享受静态加密保护的 ASP.NET Core Data Protection 密钥环。Cookie 设置 `HttpOnly`、`Secure` 和合理的 `SameSite`，所有状态修改接口实施 CSRF 防护
 
 必须包含登录限速、失败处理、会话撤销、首次启动设置管理员密码、高危操作重新认证和不可由普通用户修改的审计记录
 
-### 8.8 SQLite 持久化
+### 8.8 PostgreSQL 与 SQLite 持久化
 
-第一版使用 SQLite，并启用迁移、WAL、定期备份、完整性检查和严格文件权限
+数据库详细设计见 `AmseokNas-docs/database-architecture.md`
 
-数据库不得放在普通共享目录
+PostgreSQL 是集群身份、权限、全局期望状态和调度的事实源；每个节点的 SQLite 是本机实际状态、Operation 执行、资源锁、Inbox 和 Outbox 的事实源。两者不使用分布式事务，通过 NATS JetStream、幂等键、版本号和状态对账同步
 
-建议数据包含：
+SQLite 启用独立迁移、WAL、定期备份、完整性检查和严格文件权限；PostgreSQL 启用独立迁移、备份、恢复验证和高可用切换。所有数据库、消息和仲裁数据不得放在普通共享目录
 
-- 管理后台用户、角色和权限
-- 共享定义和访问策略
-- 稳定设备信息、卷和挂载
-- Operations、阶段和资源锁
-- Alerts 和 AuditLogs
-- Settings 和 ConfigVersions
-- 危险操作确认记录
+单节点部署仍运行 PostgreSQL、SQLite、单成员 etcd 和单节点 NATS JetStream，保持与集群模式相同的数据所有权和协议边界；高可用模式使用 3 个或 5 个投票成员，两个节点不得启用无人值守自动选举
 
-大体积命令输出不得无限写入 SQLite，应实施长度限制、轮转或受控文件存储
+大体积命令输出不得无限写入 PostgreSQL 或 SQLite，应实施长度限制、轮转或受控文件存储
 
 ### 8.9 API 约定
 
@@ -549,14 +570,15 @@ SMART 正常也不能保证磁盘不会突然故障
 
 1. 初始化 Angular、ASP.NET Core、测试项目和本地开发配置
 2. 建立 Domain、Application、Infrastructure、Api 分层和依赖方向测试
-3. 实现 SQLite 迁移、WAL、基础备份和启动完整性检查
-4. 实现首次启动管理员、登录、会话、权限和审计骨架
-5. 实现系统状态和物理磁盘只读查询，统一稳定设备 ID
-6. 建立 Operation 状态机、持久化仓储、幂等和资源锁基础结构
-7. 建立 privileged daemon 与 Unix socket 强类型协议，但第一阶段只开放无破坏性的查询或受控测试动作
-8. 实现系统盘识别和保护规则，并用测试覆盖多层块设备关系
-9. Angular 实现登录、Dashboard、磁盘只读列表、错误状态和断线恢复
-10. 提供 systemd 与 Nginx 的最小部署草案和健康检查
+3. 实现 PostgreSQL 与 SQLite 独立迁移、SQLite WAL、基础备份、启动完整性检查和严格文件权限
+4. 使用 ASP.NET Core Identity 实现首次启动管理员、密码哈希、登录、会话、权限和审计骨架，并配置共享且受静态加密保护的 Data Protection 密钥环
+5. 建立单成员 etcd Leader 租约和 fencing token，以及单节点 NATS JetStream、Inbox、Outbox 和幂等消费骨架
+6. 实现系统状态和物理磁盘只读查询，统一稳定设备 ID
+7. 建立 Operation 状态机、PostgreSQL 全局仓储、SQLite 节点仓储、幂等和资源锁基础结构
+8. 建立 privileged daemon 与 Unix socket 强类型协议，但第一阶段只开放无破坏性的查询或受控测试动作
+9. 实现系统盘识别和保护规则，并用测试覆盖多层块设备关系
+10. Angular 实现登录、Dashboard、磁盘只读列表、错误状态和断线恢复
+11. 提供 PostgreSQL、etcd、NATS、systemd 与 Nginx 的单节点部署草案和健康检查
 
 第一阶段验收条件：
 
@@ -566,8 +588,9 @@ SMART 正常也不能保证磁盘不会突然故障
 - 可以只读查看系统状态、磁盘稳定 ID 和 SMART 摘要
 - 系统盘和不可靠设备会被明确标记且无法进入危险流程
 - Operation 可创建测试任务、持久化、恢复和审计
+- 单节点模式使用 PostgreSQL、SQLite、etcd 和 NATS 的正式数据与协议边界，Leader 租约过期后旧 fencing token 被拒绝
 - Web API 以普通用户运行且不能直接执行任意系统命令
-- 重启服务后数据库和只读状态能够恢复
+- 重启服务后 PostgreSQL 全局状态、SQLite 节点状态和只读系统状态能够恢复
 
 ### 第二阶段：mdadm + ext4 + SMB 纵向闭环
 
@@ -803,6 +826,7 @@ manifest 是声明文件，不执行代码，因此优先 TOML 而不是 Lua
 - 中文注释结尾不加“。”
 - 中英文内容保持简单、专业和含义一致，不使用过多修饰词
 - 注释应说明职责、边界、约束或设计原因，不重复代码可以直接表达的内容
+- 已准确说明职责与边界且格式合规的文件头注释应保持稳定，不得仅因修改同一文件而重写、润色或调整；仅在模块职责、边界或约束实际变化，或原注释存在错误时进行最小必要修改
 - 权限检查、危险操作、状态转换、资源锁、并发控制、回滚、设备识别和非直观算法等关键代码必须使用 `//` 添加必要备注
 - 关键代码注释应解释为什么这样处理以及不能越过的边界，不逐行翻译代码
 - 注释必须随实现同步更新，失效注释视为代码缺陷

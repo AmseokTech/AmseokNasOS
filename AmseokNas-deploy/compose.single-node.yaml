@@ -1,0 +1,88 @@
+name: amseoknas
+
+services:
+  postgres:
+    image: postgres:18.4-alpine3.24
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-amseoknas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE:-amseoknas}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+  etcd:
+    image: gcr.io/etcd-development/etcd:v3.6.11
+    restart: unless-stopped
+    command:
+      - /usr/local/bin/etcd
+      - --name=amseoknas-1
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=amseoknas-1=http://etcd:2380
+      - --initial-cluster-state=new
+      - --initial-cluster-token=amseoknas-single-node
+    ports:
+      - "127.0.0.1:2379:2379"
+    volumes:
+      - etcd-data:/etcd-data
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/etcdctl
+        - --endpoints=http://127.0.0.1:2379
+        - endpoint
+        - health
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+  nats:
+    image: nats:2.14.2-alpine3.22
+    restart: unless-stopped
+    command:
+      - -c
+      - /etc/nats/nats-server.conf
+    environment:
+      NATS_USER: ${NATS_USER:-amseoknas}
+      NATS_PASSWORD_HASH: ${NATS_PASSWORD_HASH:?set NATS_PASSWORD_HASH}
+      NATS_STORE_DIR: /data/jetstream
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
+    volumes:
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - nats-data:/data/jetstream
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - 'http://127.0.0.1:8222/healthz?js-enabled-only=true' >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres-data:
+  etcd-data:
+  nats-data:
