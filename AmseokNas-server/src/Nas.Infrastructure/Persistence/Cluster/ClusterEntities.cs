@@ -10,6 +10,7 @@ namespace Nas.Infrastructure.Persistence.Cluster;
 public sealed class NasUser : IdentityUser<Guid>
 {
     public long SecurityVersion { get; set; }
+    public bool MustChangePassword { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 
