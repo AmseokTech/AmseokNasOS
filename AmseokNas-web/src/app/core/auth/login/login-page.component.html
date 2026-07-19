@@ -10,10 +10,15 @@
     <form class="login-form" (ngSubmit)="submitLogin()" novalidate>
       <app-password-field [control]="passwordControl" />
 
-      <button class="login-button" mat-flat-button type="submit">登录</button>
+      <button class="login-button" mat-flat-button type="submit" [disabled]="submitting()">
+        {{ submitting() ? '正在登录…' : '登录' }}
+      </button>
 
-      @if (loginUnavailable()) {
-        <p class="login-message" role="status">登录服务尚未启用，请稍后再试</p>
+      @if (errorMessage()) {
+        <p class="login-message" role="alert">{{ errorMessage() }}</p>
+      }
+      @if (successMessage()) {
+        <p class="login-message login-message--success" role="status">{{ successMessage() }}</p>
       }
     </form>
   </section>

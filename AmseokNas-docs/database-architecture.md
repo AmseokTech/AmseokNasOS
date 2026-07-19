@@ -206,6 +206,9 @@ NodeDbContext
 当前已经实现：
 
 - `ClusterDbContext` 的 PostgreSQL 模型和初始迁移，包括 ASP.NET Core Identity 表、权限点、节点注册、全局 Operation、审计索引和 Data Protection 密钥表
+- 固定初始管理员的 Identity 密码哈希、`MustChangePassword` 状态、管理员角色与现有全部权限种子；数据库和运行时配置不保存初始密码明文
+- Cookie 登录、CSRF、失败锁定、登录限速、会话查询、退出和强制修改密码 API；修改成功后新哈希覆盖初始哈希并撤销临时会话
+- Angular 登录和强制改密页面，包含提交、失败、复杂度校验和修改成功状态
 - `NodeDbContext` 的 SQLite 模型和初始迁移，包括节点状态、本地 Operation、资源锁、Inbox 和 Outbox
 - 两个数据库的启动迁移开关、独立健康检查，以及 SQLite 文件权限、WAL 和完整性检查
 - PostgreSQL、单成员 etcd、NATS JetStream 的单节点 Compose 配置和部署说明
@@ -214,7 +217,8 @@ NodeDbContext
 当前尚未实现或验证：
 
 - 当前环境没有 Docker，Compose 未实际启动，PostgreSQL 初始迁移尚未对真实服务执行
-- ASP.NET Core Identity 目前只有持久化模型，尚未接入登录、Cookie、授权策略和 Data Protection 外部密钥保护
+- 认证迁移尚未在真实 PostgreSQL 执行，浏览器 Cookie、CSRF、锁定和改密闭环尚未进行真实服务集成验证
+- Data Protection 密钥环尚未接入数据库之外的证书或主密钥保护，多控制面共享 Cookie 尚未验证
 - etcd 尚未接入应用内 Leader 租约、成员资格和 fencing token
 - NATS JetStream 尚未接入应用内命令发布、Inbox/Outbox 工作者和幂等消费
 - PostgreSQL HA、三成员 etcd、三副本 JetStream、备份恢复、故障切换和脑裂测试尚未完成
@@ -223,7 +227,7 @@ NodeDbContext
 
 1. 补齐 `ClusterId`、`NodeId`、Operation、身份权限和持久化事务边界契约
 2. 在具备 Docker 的目标机启动单节点基础设施并执行 PostgreSQL 迁移
-3. 接入 ASP.NET Core Identity、Cookie 和 Data Protection 外部密钥保护
+3. 在真实 PostgreSQL 和浏览器环境验证 Identity、Cookie 与强制改密，并接入 Data Protection 外部密钥保护
 4. 接入 etcd 单成员租约、Leader 身份和 fencing token
 5. 接入 NATS JetStream、Inbox、Outbox 和幂等消费
 6. 在破坏性存储操作开放前完成三节点仲裁、故障切换和脑裂测试

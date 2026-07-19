@@ -3,10 +3,13 @@
 //--------Configures PostgreSQL global data and Identity models--------//
 //-------------------------//
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Nas.Application.Authentication;
 using Nas.Domain.Operations;
 using Nas.Domain.Permissions;
+using Nas.Infrastructure.Authentication;
 
 namespace Nas.Infrastructure.Persistence.Cluster;
 
@@ -29,6 +32,7 @@ public sealed class ClusterDbContext(DbContextOptions<ClusterDbContext> options)
         ConfigureCluster(builder);
         ConfigureOperations(builder);
         ConfigureAudit(builder);
+        SeedIdentity(builder);
         SeedPermissions(builder);
     }
 
@@ -138,6 +142,43 @@ public sealed class ClusterDbContext(DbContextOptions<ClusterDbContext> options)
             {
                 Code = code,
                 Description = code
+            }));
+    }
+
+    private static void SeedIdentity(ModelBuilder builder)
+    {
+        builder.Entity<NasUser>().HasData(new NasUser
+        {
+            Id = BootstrapIdentity.AdministratorUserId,
+            UserName = AuthenticationDefaults.AdministratorUserName,
+            NormalizedUserName = BootstrapIdentity.NormalizedAdministratorUserName,
+            PasswordHash = BootstrapIdentity.InitialPasswordHash,
+            SecurityStamp = BootstrapIdentity.UserSecurityStamp,
+            ConcurrencyStamp = BootstrapIdentity.UserConcurrencyStamp,
+            LockoutEnabled = true,
+            MustChangePassword = true,
+            CreatedAt = BootstrapIdentity.CreatedAt
+        });
+
+        builder.Entity<NasRole>().HasData(new NasRole
+        {
+            Id = BootstrapIdentity.AdministratorRoleId,
+            Name = BootstrapIdentity.AdministratorRoleName,
+            NormalizedName = BootstrapIdentity.NormalizedAdministratorUserName,
+            ConcurrencyStamp = BootstrapIdentity.RoleConcurrencyStamp
+        });
+
+        builder.Entity<IdentityUserRole<Guid>>().HasData(new IdentityUserRole<Guid>
+        {
+            UserId = BootstrapIdentity.AdministratorUserId,
+            RoleId = BootstrapIdentity.AdministratorRoleId
+        });
+
+        builder.Entity<RolePermission>().HasData(
+            SystemPermissions.All.Select(code => new RolePermission
+            {
+                RoleId = BootstrapIdentity.AdministratorRoleId,
+                PermissionCode = code
             }));
     }
 }

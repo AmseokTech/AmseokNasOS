@@ -29,6 +29,17 @@ Persistence__ApplyMigrationsOnStartup=true
 
 NATS 客户端使用生成哈希前的原始密码连接。原始密码必须进入独立运行时秘密，不得写入 NATS 服务端配置、Compose 文件或仓库。
 
+## 初始管理员
+
+首次应用认证迁移后，Web 管理入口使用以下一次性初始凭据：
+
+```text
+账户：admin
+密码：AmseokNas
+```
+
+初始密码只用于首次登录。登录后只能访问会话查询、修改密码和退出接口；设置满足复杂度要求的新密码后，新 Identity 哈希会覆盖初始哈希，初始密码立即失效，并要求使用新密码重新登录。
+
 首次迁移完成后应关闭 `Persistence__ApplyMigrationsOnStartup`，由受控升级流程执行后续迁移，避免多个控制面实例并发迁移。
 
 ## 健康检查

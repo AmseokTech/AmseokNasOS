@@ -12,16 +12,16 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-17
+最后检查日期：2026-07-19
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础已建立，但真实 PostgreSQL 部署、备份恢复和启动完整性验证尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础已建立；第 4 项管理员认证与强制改密代码闭环已建立，但真实 PostgreSQL、Data Protection 外部密钥保护和部署验证尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
 - 已配置本仓库提交身份为 `IwakuraTorei <IwakuraTorei@outlook.com>`
-- 当前开发基线提交为 `d540cd1 feat(project): initialize web and API skeleton`
+- 当前开发基线提交为 `feabae2 feat(database): 建立双数据库模型与集群基础设施`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -29,21 +29,24 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已提供匿名只读的 `GET /api/health` 健康接口，前端可通过开发代理访问
 - 已建立本地 Angular 组件测试和 xUnit API 测试；按仓库规则测试源码保持忽略，不进入提交范围
 - 已接入 Angular Material 22.0.4，启用官方 Azure Blue 预构建主题、异步动画 provider，并将顶部栏与 API 连接状态改为 Material Toolbar 和 Chip
-- 已从测试机源码快照恢复管理员登录入口，包含密码必填校验、密码显隐控制、响应式布局和认证服务未启用提示；当前仅为前端入口，尚未实现真实认证
+- 已从测试机源码快照恢复管理员登录入口，并接入真实 Cookie 认证、错误与提交状态以及首次登录强制改密页面
 - 已将管理员登录入口从根组件迁入 `core/auth`，根组件只承载路由内容，并将用户头像与密码输入框拆为可复用的 `shared` 组件
-- 已使用 Node.js 22.22.3 验证拆分后的 Angular 生产构建和 5 项组件测试通过
+- 已使用 Node.js 22.22.3 验证 Angular 生产构建和 7 项组件测试通过
 - 已验证 Angular 生产构建、Vitest 组件测试、ASP.NET Core 解决方案构建、xUnit 测试、API 直接请求和前端代理请求通过
 - Angular 22 工具链已在 Node.js 22.22.3 和 npm 10.9.8 下验证，当前系统默认的 Node.js 18 不满足运行要求
 - 前端生产依赖审计无漏洞；完整开发依赖审计仍有 3 个来自 Angular 构建器 Babel 和 Vite esbuild 的低危告警，当前无不降级 Angular 的自动修复方案
 - 已确定数据库目标架构：对等 NAS 节点与动态控制面 Leader，节点本地使用 SQLite，集群全局数据使用 PostgreSQL HA，etcd 负责选举和租约，NATS JetStream 负责节点命令与事件
 - 已确定 Web 身份边界：ASP.NET Core Identity 在 PostgreSQL 中保存账户、密码哈希、角色和权限，Data Protection 保护 Cookie 与临时令牌，节点 SQLite 不保存全量账户密码哈希
 - 已建立 `ClusterDbContext` 与 PostgreSQL 初始迁移，覆盖 ASP.NET Core Identity 用户/角色、权限点、节点注册、全局 Operation、审计索引和 Data Protection 密钥表
+- 已增加固定初始管理员 `admin` 的 Identity 哈希种子、全部现有权限、`MustChangePassword` 状态和独立迁移；初始密码明文不写入运行时配置或数据库
+- 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
+- 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
 - 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
 - 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
-- 已验证 .NET 解决方案构建为 0 警告和 0 错误，NuGet 直接与传递依赖未发现已知漏洞
-- 当前环境未安装 Docker，尚未实际启动 Compose 或对真实 PostgreSQL 执行迁移；PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、真实认证授权、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
+- 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 7 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
+- 当前环境未安装 Docker，尚未实际启动 Compose、对真实 PostgreSQL 执行认证迁移或验证浏览器 Cookie 登录；Data Protection 外部密钥保护、会话持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：回到第一阶段第 2 项，为 Domain、Application、Infrastructure 和 Api 补齐 `ClusterId`、`NodeId`、Operation、身份权限和双数据库事务边界的最小模块契约与依赖方向测试；随后在具备 Docker 的目标机实际启动单节点基础设施并应用 PostgreSQL 迁移
+下一建议工作项：在具备 Docker 的目标机启动单节点基础设施并执行 PostgreSQL 迁移，验证默认管理员登录、强制改密、旧密码失效、Cookie 与 CSRF；随后接入受外部密钥保护的共享 Data Protection 密钥环，再继续 etcd Leader/fencing 与 NATS Inbox/Outbox
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
