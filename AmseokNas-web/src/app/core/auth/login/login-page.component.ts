@@ -3,7 +3,7 @@
 //--------The login page composes identity, password input, and authentication entry state--------//
 //-------------------------//
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -27,6 +27,9 @@ export class LoginPageComponent {
   readonly passwordControl = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required]
+  });
+  readonly loginForm = new FormGroup({
+    password: this.passwordControl
   });
   readonly submitting = signal(false);
   readonly errorMessage = signal('');
