@@ -15,7 +15,7 @@ using Nas.Infrastructure.Persistence.Node;
 //-------------------------//
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorization(options =>
 {
     var passwordChangeSessionPolicy = new AuthorizationPolicyBuilder()

@@ -14,14 +14,14 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 最后检查日期：2026-07-20
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础已建立；第 4 项管理员认证与强制改密代码闭环已建立；前端桌面 Shell 已建立，但 Dashboard、磁盘列表和窗口管理仍未实现；真实 PostgreSQL、Data Protection 外部密钥保护和部署验证尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell 已建立，但 Dashboard、磁盘列表和窗口管理仍未实现；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
 - 已配置本仓库提交身份为 `IwakuraTorei <IwakuraTorei@outlook.com>`
-- 当前开发基线提交为 `b09479e feat(web): 建立深蓝色桌面与 Dock`
+- 当前开发基线提交为 `53e9fe1 build(ci): 建立前后端持续集成门禁`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -46,9 +46,14 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
 - 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 8 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
 - 已建立 GitHub Actions CI，在面向 `devkihon` 或 `main` 的 Pull Request 以及合并后的分支推送上并行执行 Angular 测试与生产构建、.NET Release 构建与 xUnit 测试，并支持人工触发
-- 当前环境未安装 Docker，尚未实际启动 Compose、对真实 PostgreSQL 执行认证迁移或验证浏览器 Cookie 登录；Data Protection 外部密钥保护、会话持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
+- 已在 `nastest` 安装并启用 Docker 26.1.5 和 Compose 2.26.1；由于 Docker Hub 连接超时，仓库 Compose 镜像路径尚未实际启动验证
+- 已改用 Debian 官方包部署并启用 PostgreSQL 17.10、etcd 3.5.16 和 NATS 2.10.27 JetStream，服务只监听本机基础设施端口；运行时数据库与 NATS 密码保存在 `root:root`、`0600` 的仓库外环境文件中
+- 已对真实 PostgreSQL 和节点 SQLite 应用迁移，验证 SQLite 为 WAL、`quick_check=ok` 且外键开启，并关闭常规启动时自动迁移
+- 已在 `nastest` 定位并验证 API 未注册防伪验证过滤器以及 record DTO 验证元数据目标错误；相同最小修复已回到开发机 `devkihon` 工作流
+- 已真实验证 CSRF 获取、默认管理员登录、强制改密状态会话查询、CSRF 刷新和退出链路通过；systemd、Nginx、PostgreSQL、etcd 和 NATS 均已设置开机启动并验证 active
+- Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：在具备 Docker 的目标机启动单节点基础设施并执行 PostgreSQL 迁移，验证默认管理员登录、强制改密、旧密码失效、Cookie 与 CSRF；随后接入受外部密钥保护的共享 Data Protection 密钥环，再继续 etcd Leader/fencing 与 NATS Inbox/Outbox。前端下一小项是在桌面 Shell 内建立窗口状态与可复用 WindowFrame，再接入 Dashboard 和磁盘只读列表
+下一建议工作项：将认证部署修复合并到 `main` 后在 `nastest` 从干净工作树重新拉取并回归认证链路；随后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是在桌面 Shell 内建立窗口状态与可复用 WindowFrame，再接入 Dashboard 和磁盘只读列表
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
