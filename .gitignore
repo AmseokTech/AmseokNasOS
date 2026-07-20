@@ -1,11 +1,4 @@
-# Test source and output
-**/test/
-**/tests/
-**/*.Test/
-**/*.Tests/
-**/*.test.*
-**/*.spec.*
-!**/tsconfig.spec.json
+# Test output
 TestResults/
 coverage/
 .nyc_output/
