@@ -42,9 +42,19 @@ describe('ChangePasswordPageComponent', () => {
     fixture.componentInstance.newPasswordControl.setValue('NewPassword1!');
     fixture.componentInstance.confirmPasswordControl.setValue('NewPassword1!');
 
-    fixture.componentInstance.submitPasswordChange();
+    fixture.detectChanges();
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+    form.dispatchEvent(submitEvent);
+
+    expect(submitEvent.defaultPrevented).toBe(true);
     http.expectOne('/api/auth/csrf').flush(null);
-    http.expectOne('/api/auth/change-password').flush(null);
+    const request = http.expectOne('/api/auth/change-password');
+    expect(request.request.body).toEqual({
+      currentPassword: 'AmseokNas',
+      newPassword: 'NewPassword1!'
+    });
+    request.flush(null);
     await fixture.whenStable();
 
     expect(router.url).toBe('/?passwordChanged=true');
