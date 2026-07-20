@@ -41,7 +41,7 @@ describe('LoginPageComponent', () => {
     expect(compiled.querySelector('mat-error')?.textContent).toContain('请输入密码');
   });
 
-  it('should redirect to password change when the initial password is used', async () => {
+  it('should open the desktop and preserve the forced password-change session', async () => {
     const fixture = TestBed.createComponent(LoginPageComponent);
     const http = TestBed.inject(HttpTestingController);
     const router = TestBed.inject(Router);
@@ -53,7 +53,7 @@ describe('LoginPageComponent', () => {
     http.expectOne('/api/auth/login').flush({ userName: 'admin', mustChangePassword: true });
     await fixture.whenStable();
 
-    expect(router.url).toBe('/change-password');
+    expect(router.url).toBe('/desktop');
     http.verify();
   });
 

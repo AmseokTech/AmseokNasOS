@@ -1,6 +1,15 @@
 <main class="desktop">
   <app-top-bar [activeApp]="activeApp().label" />
 
+  @if (session()?.mustChangePassword) {
+    <div class="desktop-reminders">
+      <app-reminder-popover title="请修改初始密码" tone="warning">
+        <p>当前账户仍在使用初始密码。完成修改前，系统管理功能将保持受限。</p>
+        <a reminder-actions mat-flat-button routerLink="/change-password">立即修改密码</a>
+      </app-reminder-popover>
+    </div>
+  }
+
   <section class="desktop-workspace" aria-label="AmseokNas 桌面">
     <div class="desktop-identity" aria-hidden="true">
       <span class="desktop-identity__mark">

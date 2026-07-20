@@ -51,6 +51,24 @@
   place-items: center;
 }
 
+.desktop-reminders {
+  position: absolute;
+  z-index: 30;
+  top: 56px;
+  right: 16px;
+}
+
+.desktop-reminders a {
+  min-height: 38px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.desktop-reminders p {
+  margin: 0;
+}
+
 .desktop-identity {
   display: grid;
   justify-items: center;
@@ -101,5 +119,11 @@
 @media (max-height: 520px) {
   .desktop-identity {
     display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .desktop-reminders {
+    right: 12px;
   }
 }
