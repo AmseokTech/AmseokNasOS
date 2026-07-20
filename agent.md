@@ -51,6 +51,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已对真实 PostgreSQL 和节点 SQLite 应用迁移，验证 SQLite 为 WAL、`quick_check=ok` 且外键开启，并关闭常规启动时自动迁移
 - 已在 `nastest` 定位并验证 API 未注册防伪验证过滤器以及 record DTO 验证元数据目标错误；相同最小修复已回到开发机 `devkihon` 工作流
 - 已真实验证 CSRF 获取、默认管理员登录、强制改密状态会话查询、CSRF 刷新和退出链路通过；systemd、Nginx、PostgreSQL、etcd 和 NATS 均已设置开机启动并验证 active
+- 已修复强制改密页未绑定响应式表单导致浏览器提交不触发改密请求的问题，并用真实 DOM 提交测试覆盖请求参数与成功后返回登录页
 - Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
 下一建议工作项：将认证部署修复合并到 `main` 后在 `nastest` 从干净工作树重新拉取并回归认证链路；随后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是在桌面 Shell 内建立窗口状态与可复用 WindowFrame，再接入 Dashboard 和磁盘只读列表

@@ -3,7 +3,7 @@
 //--------Handles the forced password-change flow after initial sign-in--------//
 //-------------------------//
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -38,6 +38,11 @@ export class ChangePasswordPageComponent {
   readonly confirmPasswordControl = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required]
+  });
+  readonly changePasswordForm = new FormGroup({
+    currentPassword: this.currentPasswordControl,
+    newPassword: this.newPasswordControl,
+    confirmPassword: this.confirmPasswordControl
   });
   readonly submitting = signal(false);
   readonly errorMessage = signal('');
