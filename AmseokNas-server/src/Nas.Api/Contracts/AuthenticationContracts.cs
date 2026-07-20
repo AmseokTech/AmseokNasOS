@@ -7,11 +7,11 @@ using System.ComponentModel.DataAnnotations;
 namespace Nas.Api.Contracts;
 
 public sealed record LoginRequest(
-    [property: Required, MaxLength(256)] string Password);
+    [param: Required, MaxLength(256)] string Password);
 
 public sealed record ChangePasswordRequest(
-    [property: Required, MaxLength(256)] string CurrentPassword,
-    [property: Required, MaxLength(256)] string NewPassword);
+    [param: Required, MaxLength(256)] string CurrentPassword,
+    [param: Required, MaxLength(256)] string NewPassword);
 
 public sealed record AuthenticationResponse(
     string UserName,
