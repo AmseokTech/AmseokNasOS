@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.desktop {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 16%, rgb(63 140 225 / 42%) 0, transparent 31%),
+    radial-gradient(circle at 80% 72%, rgb(24 96 185 / 45%) 0, transparent 36%),
+    linear-gradient(145deg, #123d73 0%, #092a56 48%, #061b3d 100%);
+  color: #f6faff;
+  isolation: isolate;
+}
+
+.desktop::before,
+.desktop::after {
+  position: absolute;
+  z-index: -1;
+  border-radius: 46% 54% 60% 40%;
+  content: '';
+  filter: blur(2px);
+  opacity: 0.58;
+  transform: rotate(-18deg);
+}
+
+.desktop::before {
+  top: 8%;
+  left: -12%;
+  width: 58vw;
+  height: 68vh;
+  background: linear-gradient(135deg, rgb(76 165 242 / 28%), rgb(18 78 155 / 4%));
+}
+
+.desktop::after {
+  right: -15%;
+  bottom: -25%;
+  width: 64vw;
+  height: 72vh;
+  background: linear-gradient(145deg, rgb(35 120 216 / 35%), rgb(8 35 80 / 3%));
+  transform: rotate(22deg);
+}
+
+.desktop-workspace {
+  position: relative;
+  display: grid;
+  min-height: calc(100vh - 40px);
+  padding: 40px 24px 116px;
+  place-items: center;
+}
+
+.desktop-identity {
+  display: grid;
+  justify-items: center;
+  color: rgb(240 248 255 / 74%);
+  text-align: center;
+  text-shadow: 0 3px 18px rgb(0 15 45 / 32%);
+  user-select: none;
+}
+
+.desktop-identity__mark {
+  position: relative;
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  transform: rotate(30deg);
+}
+
+.desktop-identity__mark span {
+  position: absolute;
+  width: 24px;
+  height: 46px;
+  border: 3px solid currentColor;
+  border-radius: 14px;
+}
+
+.desktop-identity__mark span:first-child {
+  transform: translateX(-14px);
+}
+
+.desktop-identity__mark span:last-child {
+  transform: translateX(14px);
+}
+
+.desktop-identity p {
+  margin: 18px 0 5px;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.desktop-identity small {
+  color: rgb(229 241 255 / 58%);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+@media (max-height: 520px) {
+  .desktop-identity {
+    display: none;
+  }
+}

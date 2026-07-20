@@ -57,7 +57,7 @@ export class LoginPageComponent {
             return;
           }
 
-          this.successMessage.set('登录成功，管理界面将在后续阶段接入');
+          void this.router.navigate(['/desktop']);
         },
         error: (error: Error) => this.errorMessage.set(error.message)
       });

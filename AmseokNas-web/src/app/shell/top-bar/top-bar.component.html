@@ -1,0 +1,24 @@
+<header class="top-bar">
+  <div class="top-bar__start">
+    <span class="brand-mark" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+    </span>
+    <strong class="product-name">AmseokNas</strong>
+    <span class="active-app">{{ activeApp() }}</span>
+  </div>
+
+  <div class="top-bar__end" aria-label="系统状态">
+    <span class="status-item" title="网络已连接">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M2.5 8.6a15 15 0 0 1 19 0l-1.7 1.8a12.5 12.5 0 0 0-15.6 0L2.5 8.6Zm3.4 3.5a10 10 0 0 1 12.2 0l-1.8 1.8a7.4 7.4 0 0 0-8.6 0l-1.8-1.8Zm3.5 3.5a4.7 4.7 0 0 1 5.2 0L12 18.3l-2.6-2.7Z" />
+      </svg>
+      <span class="status-text">已连接</span>
+    </span>
+    <time [attr.datetime]="currentTime().toISOString()">
+      {{ currentTime() | date: 'M月d日 HH:mm' }}
+    </time>
+    <span class="user-avatar" aria-label="当前用户 admin">A</span>
+  </div>
+</header>
