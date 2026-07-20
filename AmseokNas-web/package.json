@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve --port 6521 --proxy-config proxy.conf.json --poll 2000",
+    "dev:https": "node scripts/ensure-dev-https.mjs",
+    "start": "npm run dev:https && ng serve --host localhost --port 6521 --ssl --ssl-cert .certs/localhost.pem --ssl-key .certs/localhost.key --proxy-config proxy.conf.json --poll 2000",
+    "start:http": "ng serve --host localhost --port 6521 --proxy-config proxy.http.conf.json --poll 2000",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
