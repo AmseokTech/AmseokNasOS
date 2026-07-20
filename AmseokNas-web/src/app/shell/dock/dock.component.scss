@@ -1,0 +1,136 @@
+:host {
+  position: absolute;
+  z-index: 20;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 50%;
+  max-width: calc(100% - 24px);
+  transform: translateX(-50%);
+}
+
+.dock {
+  display: flex;
+  max-width: 100%;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px 7px;
+  overflow-x: auto;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgb(235 245 255 / 24%), rgb(185 214 241 / 13%));
+  box-shadow:
+    0 22px 45px rgb(0 11 33 / 34%),
+    inset 0 1px 0 rgb(255 255 255 / 27%);
+  scrollbar-width: none;
+  backdrop-filter: blur(25px) saturate(150%);
+  -webkit-backdrop-filter: blur(25px) saturate(150%);
+}
+
+.dock::-webkit-scrollbar {
+  display: none;
+}
+
+.dock-item {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  padding: 0 0 8px;
+  border: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  place-items: center;
+}
+
+.dock-icon {
+  display: grid;
+  width: clamp(46px, 5vw, 58px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 16px rgb(0 13 40 / 28%),
+    inset 0 1px 1px rgb(255 255 255 / 30%);
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+.dock-icon svg {
+  width: 56%;
+  fill: currentColor;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 18%));
+}
+
+.dock-item:hover .dock-icon,
+.dock-item:focus-visible .dock-icon {
+  filter: brightness(1.08);
+  transform: translateY(-7px) scale(1.08);
+}
+
+.dock-item:focus-visible {
+  outline: none;
+}
+
+.dock-item:focus-visible .dock-icon {
+  outline: 3px solid rgb(177 221 255 / 90%);
+  outline-offset: 3px;
+}
+
+.dock-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  padding: 5px 9px;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 8px;
+  background: rgb(7 25 52 / 86%);
+  box-shadow: 0 8px 20px rgb(0 9 27 / 25%);
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(5px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  white-space: nowrap;
+}
+
+.dock-item:hover .dock-tooltip,
+.dock-item:focus-visible .dock-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.active-dot {
+  position: absolute;
+  bottom: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.dock-item--active .active-dot {
+  background: rgb(255 255 255 / 90%);
+  box-shadow: 0 0 6px rgb(255 255 255 / 70%);
+}
+
+@media (max-width: 540px) {
+  :host {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .dock {
+    gap: 6px;
+    padding-inline: 9px;
+    border-radius: 19px;
+  }
+
+  .dock-icon {
+    width: 44px;
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-icon,
+  .dock-tooltip {
+    transition: none;
+  }
+}

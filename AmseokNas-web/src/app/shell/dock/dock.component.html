@@ -1,0 +1,20 @@
+<nav class="dock" aria-label="应用程序 Dock">
+  @for (app of apps(); track app.id) {
+    <button
+      class="dock-item"
+      type="button"
+      [class.dock-item--active]="activeAppId() === app.id"
+      [attr.aria-pressed]="activeAppId() === app.id"
+      [attr.aria-label]="app.label"
+      (click)="appSelected.emit(app)"
+    >
+      <span class="dock-tooltip" aria-hidden="true">{{ app.label }}</span>
+      <span class="dock-icon" [style.background]="app.iconBackground" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path [attr.d]="app.iconPath" />
+        </svg>
+      </span>
+      <span class="active-dot" aria-hidden="true"></span>
+    </button>
+  }
+</nav>

@@ -1,0 +1,21 @@
+<main class="desktop">
+  <app-top-bar [activeApp]="activeApp().label" />
+
+  <section class="desktop-workspace" aria-label="AmseokNas 桌面">
+    <div class="desktop-identity" aria-hidden="true">
+      <span class="desktop-identity__mark">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+      <p>AmseokNas</p>
+      <small>安全、清晰地管理你的存储空间</small>
+    </div>
+  </section>
+
+  <app-dock
+    [apps]="apps"
+    [activeAppId]="activeApp().id"
+    (appSelected)="selectApp($event)"
+  />
+</main>
