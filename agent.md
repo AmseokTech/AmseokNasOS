@@ -21,7 +21,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
 - 已配置本仓库提交身份为 `IwakuraTorei <IwakuraTorei@outlook.com>`
-- 当前开发基线提交为 `53e9fe1 build(ci): 建立前后端持续集成门禁`
+- 当前开发基线提交为 `0f850d7 fix(auth): 修复部署环境认证请求异常`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -41,10 +41,10 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已增加固定初始管理员 `admin` 的 Identity 哈希种子、全部现有权限、`MustChangePassword` 状态和独立迁移；初始密码明文不写入运行时配置或数据库
 - 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
 - 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
-- 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；普通登录成功后进入懒加载的 `/desktop` 路由，Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
+- 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；所有成功登录统一进入懒加载的 `/desktop` 路由，强制改密会话在桌面右上角显示可复用内容投影提醒，刷新桌面后通过会话接口恢复提醒；Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
 - 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
 - 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
-- 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 8 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
+- 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 10 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
 - 已建立 GitHub Actions CI，在面向 `devkihon` 或 `main` 的 Pull Request 以及合并后的分支推送上并行执行 Angular 测试与生产构建、.NET Release 构建与 xUnit 测试，并支持人工触发
 - 已在 `nastest` 安装并启用 Docker 26.1.5 和 Compose 2.26.1；由于 Docker Hub 连接超时，仓库 Compose 镜像路径尚未实际启动验证
 - 已改用 Debian 官方包部署并启用 PostgreSQL 17.10、etcd 3.5.16 和 NATS 2.10.27 JetStream，服务只监听本机基础设施端口；运行时数据库与 NATS 密码保存在 `root:root`、`0600` 的仓库外环境文件中

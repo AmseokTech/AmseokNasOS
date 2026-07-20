@@ -3,8 +3,8 @@
 //--------Encapsulates cookie authentication, CSRF preparation, and password-change requests--------//
 //-------------------------//
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
-import { catchError, concatMap, Observable, throwError } from 'rxjs';
+import { inject, Injectable, signal } from '@angular/core';
+import { catchError, concatMap, Observable, tap, throwError } from 'rxjs';
 
 export interface AuthenticationSession {
   userName: string;
@@ -18,17 +18,27 @@ interface ProblemDetails {
 @Injectable({ providedIn: 'root' })
 export class AuthenticationService {
   private readonly http = inject(HttpClient);
+  private readonly currentSession = signal<AuthenticationSession | null>(null);
+
+  readonly session = this.currentSession.asReadonly();
 
   login(password: string): Observable<AuthenticationSession> {
     return this.withCsrf(() =>
       this.http.post<AuthenticationSession>('/api/auth/login', { password })
+    ).pipe(tap((session) => this.currentSession.set(session)));
+  }
+
+  getSession(): Observable<AuthenticationSession> {
+    return this.http.get<AuthenticationSession>('/api/auth/session').pipe(
+      tap((session) => this.currentSession.set(session)),
+      catchError((error: unknown) => throwError(() => this.normalizeError(error)))
     );
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.withCsrf(() =>
       this.http.post<void>('/api/auth/change-password', { currentPassword, newPassword })
-    );
+    ).pipe(tap(() => this.currentSession.set(null)));
   }
 
   private withCsrf<T>(request: () => Observable<T>): Observable<T> {

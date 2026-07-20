@@ -50,13 +50,8 @@ export class LoginPageComponent {
       .login(this.passwordControl.value)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: (session) => {
+        next: () => {
           this.passwordControl.reset();
-          if (session.mustChangePassword) {
-            void this.router.navigate(['/change-password']);
-            return;
-          }
-
           void this.router.navigate(['/desktop']);
         },
         error: (error: Error) => this.errorMessage.set(error.message)
