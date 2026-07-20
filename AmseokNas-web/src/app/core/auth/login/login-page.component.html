@@ -7,7 +7,7 @@
 
     <p class="username">admin</p>
 
-    <form class="login-form" (ngSubmit)="submitLogin()" novalidate>
+    <form class="login-form" [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
       <app-password-field [control]="passwordControl" />
 
       <button class="login-button" mat-flat-button type="submit" [disabled]="submitting()">

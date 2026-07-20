@@ -48,7 +48,11 @@ describe('LoginPageComponent', () => {
     fixture.componentInstance.passwordControl.setValue('AmseokNas');
 
     fixture.detectChanges();
-    fixture.componentInstance.submitLogin();
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+    form.dispatchEvent(submitEvent);
+
+    expect(submitEvent.defaultPrevented).toBe(true);
     http.expectOne('/api/auth/csrf').flush(null);
     http.expectOne('/api/auth/login').flush({ userName: 'admin', mustChangePassword: true });
     await fixture.whenStable();
