@@ -5,7 +5,16 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { routes } from '../../app.routes';
+import { TerminalLauncherService } from '../../features/terminal/terminal-launcher.service';
 import { DesktopComponent } from './desktop.component';
+
+class TerminalLauncherStub {
+  openCalls = 0;
+
+  open(): void {
+    this.openCalls += 1;
+  }
+}
 
 describe('DesktopComponent', () => {
   beforeEach(async () => {
@@ -15,7 +24,8 @@ describe('DesktopComponent', () => {
         provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideRouter(routes)
+        provideRouter(routes),
+        { provide: TerminalLauncherService, useClass: TerminalLauncherStub }
       ]
     }).compileComponents();
   });
@@ -32,6 +42,24 @@ describe('DesktopComponent', () => {
     expect(compiled.querySelector('.desktop-reminders')?.textContent).toContain('请修改初始密码');
     expect(compiled.querySelector<HTMLAnchorElement>('[reminder-actions]')?.getAttribute('href'))
       .toBe('/change-password');
+    http.verify();
+  });
+
+  it('should open the terminal dialog flow without a dedicated terminal route', () => {
+    const fixture = TestBed.createComponent(DesktopComponent);
+    const http = TestBed.inject(HttpTestingController);
+    const launcher = TestBed.inject(TerminalLauncherService) as unknown as TerminalLauncherStub;
+
+    fixture.detectChanges();
+    http.expectOne('/api/auth/session').flush({ userName: 'admin', mustChangePassword: false });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const terminalButton = compiled.querySelector<HTMLButtonElement>('button[aria-label="终端"]');
+    terminalButton?.click();
+
+    expect(launcher.openCalls).toBe(1);
+    expect(routes.some((route) => route.path === 'terminal')).toBe(false);
     http.verify();
   });
 });

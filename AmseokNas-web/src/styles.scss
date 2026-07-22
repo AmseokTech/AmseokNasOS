@@ -4,6 +4,7 @@
 //-------------------------//
 
 @import '@angular/material/prebuilt-themes/azure-blue.css';
+@import '@xterm/xterm/css/xterm.css';
 
 * {
   box-sizing: border-box;
@@ -19,6 +20,23 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
+}
+
+.terminal-dialog-panel .mat-mdc-dialog-surface {
+  overflow: hidden;
+  border: 1px solid rgb(132 165 204 / 24%);
+  border-radius: 14px;
+  background: #07101d;
+  box-shadow: 0 28px 90px rgb(0 0 0 / 48%);
+}
+
+.cdk-overlay-pane.window-frame-panel--minimized {
+  display: none;
+}
+
+.window-frame-panel--maximized .mat-mdc-dialog-surface {
+  border: 0;
+  border-radius: 0;
 }
 
 button,

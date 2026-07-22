@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthenticationService } from '../../core/auth/authentication.service';
+import { TerminalLauncherService } from '../../features/terminal/terminal-launcher.service';
 import { ReminderPopoverComponent } from '../../shared/components/reminder-popover/reminder-popover.component';
 import { DockComponent } from '../dock/dock.component';
 import { TopBarComponent } from '../top-bar/top-bar.component';
@@ -22,6 +23,7 @@ import { DESKTOP_APPS, DesktopApp } from './desktop-app.model';
 export class DesktopComponent implements OnInit {
   private readonly authentication = inject(AuthenticationService);
   private readonly router = inject(Router);
+  private readonly terminalLauncher = inject(TerminalLauncherService);
 
   readonly apps = DESKTOP_APPS;
   readonly activeApp = signal<DesktopApp>(DESKTOP_APPS[0]);
@@ -38,6 +40,21 @@ export class DesktopComponent implements OnInit {
   }
 
   selectApp(app: DesktopApp): void {
+    if (app.launch === 'terminal') {
+      if (this.session()?.mustChangePassword) {
+        void this.router.navigate(['/change-password']);
+        return;
+      }
+
+      this.terminalLauncher.open();
+      return;
+    }
+
+    if (app.route) {
+      void this.router.navigate([app.route]);
+      return;
+    }
+
     this.activeApp.set(app);
   }
 }

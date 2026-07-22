@@ -8,6 +8,8 @@ export interface DesktopApp {
   readonly label: string;
   readonly iconPath: string;
   readonly iconBackground: string;
+  readonly route?: string;
+  readonly launch?: 'terminal';
 }
 
 export const DESKTOP_APPS: readonly DesktopApp[] = [
@@ -40,6 +42,13 @@ export const DESKTOP_APPS: readonly DesktopApp[] = [
     label: '任务中心',
     iconPath: 'M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3Zm-1 4v6l4.5 2.6 1-1.73-3.5-2.02V7h-2Z',
     iconBackground: 'linear-gradient(145deg, #ffb25b, #ec6b2d)'
+  },
+  {
+    id: 'terminal',
+    label: '终端',
+    iconPath: 'M4 5h16v14H4V5Zm2 2v10h12V7H6Zm1.5 2.2 2.3 2.3-2.3 2.3 1.4 1.4 3.7-3.7-3.7-3.7-1.4 1.4ZM12 14h4v-2h-4v2Z',
+    iconBackground: 'linear-gradient(145deg, #36455b, #101722)',
+    launch: 'terminal'
   },
   {
     id: 'settings',
