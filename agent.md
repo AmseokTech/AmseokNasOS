@@ -14,7 +14,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 最后检查日期：2026-07-22
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell 和可复用 WindowFrame 已建立，WindowFrame 支持最小化、最大化/还原与关闭，但 Dashboard、磁盘列表和多窗口状态管理仍未实现；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口基础状态管理已建立，WindowFrame 支持最小化、最大化/还原与关闭，但拖动、缩放、布局持久化、Dashboard 和磁盘列表仍未实现；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
@@ -42,6 +42,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
 - 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
 - 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；所有成功登录统一进入懒加载的 `/desktop` 路由，强制改密会话在桌面右上角显示可复用内容投影提醒，刷新桌面后通过会话接口恢复提醒；Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
+- 已将桌面手绘渐变背景替换为用户提供的 16:9 山景壁纸，使用 `cover` 保持宽高比并保留深蓝色加载兜底；Angular 25 项测试与生产构建通过，构建产物包含与源文件一致的壁纸资源
 - 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
 - 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
 - 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 10 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
@@ -58,7 +59,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已在独立构建机 `build@192.168.1.13` 基于提交 `eb7b022` 完成可追溯 Release 构建：Angular 14 项测试与生产构建、.NET Release 0 警告/0 错误与 5 项测试、EF 模型检查、NuGet 和前端生产依赖漏洞检查、Rust 格式化、Clippy、4 项测试与 Release 构建均通过；80 个产物文件经 SHA-256 校验后由构建机直接传至 `nastest`。测试机已激活 API 与 Web release `20260722T190500Z-eb7b022`，root 所有的 Rust broker 与构建产物哈希一致；Nginx 已在 HTTPS 6521 提供静态前端及带 Upgrade 的 Terminal WebSocket 代理并设为开机启动，Angular 开发服务已停止并禁用。dev 侧验证桌面和健康接口返回 200、未登录终端会话返回 401，API、Terminal、Nginx 均 active/enabled，Terminal Socket 为 `amseoknas-terminal:amseoknas-terminal`、`0660`
 - Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：使用当前 Web 管理员密码在 `nastest` 完成登录、重新认证、WebSocket 升级、交互输入、resize、最小化恢复、最大化还原、空闲超时和退出的浏览器端到端回归，并验证 terminal 用户无法读取 privileged socket 与后续新增秘密；随后将认证和 Web Terminal 改动合并到 `main`，从干净工作树重新部署。之后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是建立多窗口状态管理并复用现有 WindowFrame，再接入 Dashboard 和磁盘只读列表。进入 privileged daemon 工作项时，先按 `AmseokNas-docs/csharp-rust-privileged-architecture.md` 建立 Rust 只读执行面和 Unix Socket 契约，不提前开放破坏性动作
+下一建议工作项：使用当前 Web 管理员密码在 `nastest` 完成登录、重新认证、WebSocket 升级、交互输入、resize、最小化恢复、最大化还原、空闲超时和退出的浏览器端到端回归，并验证 terminal 用户无法读取 privileged socket 与后续新增秘密；随后将认证和 Web Terminal 改动合并到 `main`，从干净工作树重新部署。之后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是为现有窗口管理器增加拖动、缩放和布局持久化，再接入 Dashboard 和磁盘只读列表。进入 privileged daemon 工作项时，先按 `AmseokNas-docs/csharp-rust-privileged-architecture.md` 建立 Rust 只读执行面和 Unix Socket 契约，不提前开放破坏性动作
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 

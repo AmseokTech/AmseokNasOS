@@ -7,40 +7,9 @@
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 16%, rgb(63 140 225 / 42%) 0, transparent 31%),
-    radial-gradient(circle at 80% 72%, rgb(24 96 185 / 45%) 0, transparent 36%),
-    linear-gradient(145deg, #123d73 0%, #092a56 48%, #061b3d 100%);
+  background: #061b3d url('/images/desktop-wallpaper.jpeg') center / cover no-repeat;
   color: #f6faff;
   isolation: isolate;
-}
-
-.desktop::before,
-.desktop::after {
-  position: absolute;
-  z-index: -1;
-  border-radius: 46% 54% 60% 40%;
-  content: '';
-  filter: blur(2px);
-  opacity: 0.58;
-  transform: rotate(-18deg);
-}
-
-.desktop::before {
-  top: 8%;
-  left: -12%;
-  width: 58vw;
-  height: 68vh;
-  background: linear-gradient(135deg, rgb(76 165 242 / 28%), rgb(18 78 155 / 4%));
-}
-
-.desktop::after {
-  right: -15%;
-  bottom: -25%;
-  width: 64vw;
-  height: 72vh;
-  background: linear-gradient(145deg, rgb(35 120 216 / 35%), rgb(8 35 80 / 3%));
-  transform: rotate(22deg);
 }
 
 .desktop-workspace {
