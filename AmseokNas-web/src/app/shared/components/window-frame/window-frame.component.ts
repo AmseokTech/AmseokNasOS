@@ -3,11 +3,13 @@
 //--------Provides a reusable desktop window title bar and window controls--------//
 //-------------------------//
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { CdkDragHandle } from '@angular/cdk/drag-drop';
 
 export type WindowStatusTone = 'neutral' | 'busy' | 'online' | 'error';
 
 @Component({
   selector: 'app-window-frame',
+  imports: [CdkDragHandle],
   templateUrl: './window-frame.component.html',
   styleUrl: './window-frame.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

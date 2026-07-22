@@ -1,10 +1,17 @@
 <nav class="dock" aria-label="应用程序 Dock">
   @for (app of apps(); track app.id) {
+    @let appWindow = windowState(app.id);
+    @let focused = isFocused(appWindow);
+    @let selected = selectedAppId() === app.id;
     <button
       class="dock-item"
       type="button"
-      [class.dock-item--active]="activeAppId() === app.id"
-      [attr.aria-pressed]="activeAppId() === app.id"
+      [class.dock-item--selected]="selected"
+      [class.dock-item--running]="!!appWindow"
+      [class.dock-item--minimized]="appWindow?.displayState === 'minimized'"
+      [class.dock-item--focused]="focused"
+      [attr.aria-current]="!appWindow && selected ? 'page' : null"
+      [attr.aria-pressed]="appWindow ? focused : null"
       [attr.aria-label]="app.label"
       (click)="appSelected.emit(app)"
     >

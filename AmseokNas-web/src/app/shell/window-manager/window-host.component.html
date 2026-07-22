@@ -1,0 +1,49 @@
+<div #workspace class="window-host">
+  @for (windowState of windows(); track windowState.id) {
+    @let bounds = boundsFor(windowState);
+    <article
+      class="managed-window"
+      cdkDrag
+      cdkDragBoundary=".window-host"
+      [cdkDragDisabled]="windowState.displayState !== 'normal'"
+      [class.managed-window--minimized]="windowState.displayState === 'minimized'"
+      [class.managed-window--maximized]="windowState.displayState === 'maximized'"
+      [style.left.px]="bounds.x"
+      [style.top.px]="bounds.y"
+      [style.width.px]="bounds.width"
+      [style.height.px]="bounds.height"
+      [style.z-index]="windowState.zIndex"
+      [attr.aria-label]="windowState.title + ' 窗口'"
+      (cdkDragStarted)="manager.focus(windowState.id)"
+      (cdkDragEnded)="handleDragEnd(windowState, $event)"
+      (pointerdown)="manager.focus(windowState.id)"
+    >
+      <app-window-frame
+        [title]="windowState.title"
+        [showStatus]="false"
+        [maximized]="windowState.displayState === 'maximized'"
+        (minimized)="manager.minimize(windowState.id)"
+        (maximizeToggled)="manager.toggleMaximize(windowState.id)"
+        (closed)="manager.close(windowState.id)"
+      >
+        @if (componentFor(windowState.id); as component) {
+          <ng-container *ngComponentOutlet="component; injector: injectorFor(windowState)" />
+        } @else if (hasLoadError(windowState.id)) {
+          <div class="managed-window__message" role="alert">应用加载失败，请关闭后重试。</div>
+        } @else {
+          <div class="managed-window__message" role="status">正在加载应用…</div>
+        }
+      </app-window-frame>
+
+      @if (windowState.displayState === 'normal') {
+        <button
+          class="managed-window__resize-handle"
+          type="button"
+          aria-label="调整窗口大小；使用方向键微调，Shift 加速"
+          (pointerdown)="beginResize(windowState, $event)"
+          (keydown)="resizeWithKeyboard(windowState, $event)"
+        ></button>
+      }
+    </article>
+  }
+</div>

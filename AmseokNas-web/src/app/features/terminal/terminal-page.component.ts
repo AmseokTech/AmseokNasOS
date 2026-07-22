@@ -1,6 +1,6 @@
 //--------------------------//
-//--------在 Material 弹窗中管理 xterm.js 与 WebSocket 生命周期---------//
-//--------Manages the xterm.js and WebSocket lifecycle inside a Material dialog--------//
+//--------在受管窗口中管理 xterm.js 与 WebSocket 生命周期---------//
+//--------Manages the xterm.js and WebSocket lifecycle inside a managed window--------//
 //-------------------------//
 import {
   AfterViewInit,
@@ -9,17 +9,22 @@ import {
   ElementRef,
   OnDestroy,
   ViewChild,
+  effect,
   inject,
   signal
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 
-import { WindowFrameComponent } from '../../shared/components/window-frame/window-frame.component';
-import type { TerminalDialogResult } from './terminal-launcher.service';
+import {
+  WINDOW_DATA,
+  WINDOW_DISPLAY_STATE,
+  WINDOW_ID,
+  WindowDisplayState
+} from '../../shell/window-manager/window-state.model';
+import { TerminalLauncherService } from './terminal-launcher.service';
 import type { TerminalSession } from './terminal-session.service';
 
 type TerminalState = 'connecting' | 'connected' | 'closed' | 'error';
@@ -32,20 +37,20 @@ interface TerminalControlMessage {
 }
 
 @Component({
-  selector: 'app-terminal-dialog',
-  imports: [MatButtonModule, MatProgressSpinnerModule, WindowFrameComponent],
+  selector: 'app-terminal-page',
+  imports: [MatButtonModule, MatProgressSpinnerModule],
   templateUrl: './terminal-page.component.html',
   styleUrl: './terminal-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TerminalDialogComponent implements AfterViewInit, OnDestroy {
+export class TerminalPageComponent implements AfterViewInit, OnDestroy {
   @ViewChild('terminalHost', { static: true })
   private terminalHost!: ElementRef<HTMLDivElement>;
 
-  private readonly dialogRef = inject(
-    MatDialogRef<TerminalDialogComponent, TerminalDialogResult>
-  );
-  private readonly session = inject<TerminalSession>(MAT_DIALOG_DATA);
+  private readonly launcher = inject(TerminalLauncherService);
+  private readonly session = inject(WINDOW_DATA) as TerminalSession;
+  private readonly windowDisplayState = inject(WINDOW_DISPLAY_STATE);
+  private readonly windowId = inject(WINDOW_ID);
   private readonly terminal = new Terminal({
     allowProposedApi: false,
     convertEol: false,
@@ -65,10 +70,27 @@ export class TerminalDialogComponent implements AfterViewInit, OnDestroy {
   private readonly encoder = new TextEncoder();
   private socket: WebSocket | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private scheduledFitFrame: number | null = null;
+  private destroyed = false;
+  private viewInitialized = false;
+  private previousDisplayState: WindowDisplayState = this.windowDisplayState();
 
   readonly state = signal<TerminalState>('connecting');
   readonly errorMessage = signal<string | null>(null);
-  readonly maximized = signal(false);
+
+  constructor() {
+    effect(() => {
+      const displayState = this.windowDisplayState();
+      if (
+        this.viewInitialized &&
+        displayState !== 'minimized' &&
+        displayState !== this.previousDisplayState
+      ) {
+        this.scheduleFit();
+      }
+      this.previousDisplayState = displayState;
+    });
+  }
 
   ngAfterViewInit(): void {
     this.terminal.loadAddon(this.fitAddon);
@@ -85,46 +107,20 @@ export class TerminalDialogComponent implements AfterViewInit, OnDestroy {
     });
     this.resizeObserver.observe(this.terminalHost.nativeElement);
     this.openSocket(this.session.webSocketPath);
-  }
-
-  close(): void {
-    this.requestClose();
-    this.dialogRef.close();
-  }
-
-  minimize(): void {
-    this.dialogRef.addPanelClass('window-frame-panel--minimized');
-  }
-
-  restore(): void {
-    this.dialogRef.removePanelClass('window-frame-panel--minimized');
-    this.scheduleFit();
-  }
-
-  toggleMaximize(): void {
-    const maximized = !this.maximized();
-    this.maximized.set(maximized);
-    if (maximized) {
-      this.dialogRef.addPanelClass('window-frame-panel--maximized');
-      this.dialogRef.updateSize('100vw', '100vh');
-      this.dialogRef.updatePosition({ top: '0', left: '0' });
-    } else {
-      this.dialogRef.removePanelClass('window-frame-panel--maximized');
-      this.dialogRef.updateSize(
-        'min(1120px, calc(100vw - 24px))',
-        'min(760px, calc(100vh - 24px))'
-      );
-      this.dialogRef.updatePosition();
-    }
-    this.scheduleFit();
+    this.viewInitialized = true;
   }
 
   reauthenticate(): void {
     this.requestClose();
-    this.dialogRef.close('reauthenticate');
+    this.launcher.reauthenticate(this.windowId);
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.scheduledFitFrame !== null) {
+      cancelAnimationFrame(this.scheduledFitFrame);
+      this.scheduledFitFrame = null;
+    }
     this.resizeObserver?.disconnect();
     this.requestClose();
     this.terminal.dispose();
@@ -206,7 +202,14 @@ export class TerminalDialogComponent implements AfterViewInit, OnDestroy {
   }
 
   private scheduleFit(): void {
-    requestAnimationFrame(() => {
+    if (this.scheduledFitFrame !== null) {
+      cancelAnimationFrame(this.scheduledFitFrame);
+    }
+    this.scheduledFitFrame = requestAnimationFrame(() => {
+      this.scheduledFitFrame = null;
+      if (this.destroyed) {
+        return;
+      }
       this.fitAddon.fit();
       this.terminal.focus();
       this.sendResize();

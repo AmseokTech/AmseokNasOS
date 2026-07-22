@@ -1,0 +1,71 @@
+:host,
+.window-host {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+:host {
+  z-index: 10;
+}
+
+.managed-window {
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid rgb(132 165 204 / 24%);
+  border-radius: 14px;
+  background: #07101d;
+  box-shadow: 0 28px 90px rgb(0 0 0 / 48%);
+  pointer-events: auto;
+}
+
+.managed-window--minimized {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.managed-window--maximized {
+  border: 0;
+  border-radius: 0;
+}
+
+.managed-window__message {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: 24px;
+  background: #202020;
+  color: #dce9f8;
+  font-size: 14px;
+  text-align: center;
+}
+
+.managed-window__resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(135deg, transparent 48%, rgb(228 239 252 / 70%) 50%, transparent 54%);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.managed-window__resize-handle:focus-visible {
+  outline: 2px solid #72b6ff;
+  outline-offset: -3px;
+}
+
+@media (max-width: 520px) {
+  .managed-window {
+    border-radius: 10px;
+  }
+
+  .managed-window--maximized {
+    border-radius: 0;
+  }
+}

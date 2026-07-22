@@ -106,9 +106,20 @@
   background: transparent;
 }
 
-.dock-item--active .active-dot {
+.dock-item--selected:not(.dock-item--running) .active-dot,
+.dock-item--running .active-dot {
   background: rgb(255 255 255 / 90%);
   box-shadow: 0 0 6px rgb(255 255 255 / 70%);
+}
+
+.dock-item--minimized .active-dot {
+  background: rgb(255 255 255 / 42%);
+  box-shadow: none;
+}
+
+.dock-item--focused .dock-icon {
+  outline: 2px solid rgb(214 237 255 / 72%);
+  outline-offset: 2px;
 }
 
 @media (max-width: 540px) {

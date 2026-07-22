@@ -45,7 +45,7 @@ describe('DesktopComponent', () => {
     http.verify();
   });
 
-  it('should open the terminal dialog flow without a dedicated terminal route', () => {
+  it('should open the managed terminal flow without a dedicated terminal route', () => {
     const fixture = TestBed.createComponent(DesktopComponent);
     const http = TestBed.inject(HttpTestingController);
     const launcher = TestBed.inject(TerminalLauncherService) as unknown as TerminalLauncherStub;
@@ -60,6 +60,25 @@ describe('DesktopComponent', () => {
 
     expect(launcher.openCalls).toBe(1);
     expect(routes.some((route) => route.path === 'terminal')).toBe(false);
+    http.verify();
+  });
+
+  it('should keep terminal reauthentication blocked until the initial password is changed', () => {
+    const fixture = TestBed.createComponent(DesktopComponent);
+    const http = TestBed.inject(HttpTestingController);
+    const launcher = TestBed.inject(TerminalLauncherService) as unknown as TerminalLauncherStub;
+
+    fixture.detectChanges();
+    http.expectOne('/api/auth/session').flush({ userName: 'admin', mustChangePassword: true });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const terminalButton = compiled.querySelector<HTMLButtonElement>(
+      'button[aria-label="终端"]'
+    );
+    terminalButton?.click();
+
+    expect(launcher.openCalls).toBe(0);
     http.verify();
   });
 });
