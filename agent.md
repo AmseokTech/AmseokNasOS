@@ -14,13 +14,13 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 最后检查日期：2026-07-22
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell 和可复用 WindowFrame 已建立，WindowFrame 支持最小化、最大化/还原与关闭，但 Dashboard、磁盘列表和多窗口状态管理仍未实现；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、HTTPS 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell 和可复用 WindowFrame 已建立，WindowFrame 支持最小化、最大化/还原与关闭，但 Dashboard、磁盘列表和多窗口状态管理仍未实现；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
-- 当前开发基线提交为 `dc7df15 fix(web): 修复修改密码表单提交`
+- 当前开发基线提交为 `eb7b022 feat(terminal): 实现低权限 Web Terminal`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -50,11 +50,12 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已改用 Debian 官方包部署并启用 PostgreSQL 17.10、etcd 3.5.16 和 NATS 2.10.27 JetStream，服务只监听本机基础设施端口；运行时数据库与 NATS 密码保存在 `root:root`、`0600` 的仓库外环境文件中
 - 已对真实 PostgreSQL 和节点 SQLite 应用迁移，验证 SQLite 为 WAL、`quick_check=ok` 且外键开启，并关闭常规启动时自动迁移
 - 已在 `nastest` 定位并验证 API 未注册防伪验证过滤器以及 record DTO 验证元数据目标错误；相同最小修复已回到开发机 `devkihon` 工作流
-- 已真实验证 CSRF 获取、默认管理员登录、强制改密状态会话查询、CSRF 刷新和退出链路通过；API、Web 开发服务、PostgreSQL、etcd 和 NATS 均已设置开机启动并验证 active，测试机 Nginx 当前保持 inactive，由 HTTPS Angular 开发服务承载测试入口
+- 已真实验证 CSRF 获取、默认管理员登录、强制改密状态会话查询、CSRF 刷新和退出链路通过；API、PostgreSQL、etcd 和 NATS 均已设置开机启动并验证 active；测试机当前由 Nginx 在 HTTPS 6521 端口承载生产构建静态资源和 API/WebSocket 反向代理，Angular 开发服务已停用
 - 已修复强制改密页未绑定响应式表单导致浏览器提交不触发改密请求的问题，并用真实 DOM 提交测试覆盖请求参数与成功后返回登录页
 - 已按独立低权限边界实现代码默认关闭的 Web Terminal：Angular Dock 使用 Material Dialog 先重新验证当前 Web 管理员密码，成功后再以大尺寸 Dialog 懒加载 xterm.js，不再跳转独立 `/terminal` 页面；终端复用 `shared/components/window-frame` 的 Windows 风格标题栏，最小化保持会话并可由 Dock 恢复，最大化/还原会重新计算终端尺寸，关闭才释放 WebSocket/PTY；C# 使用一次性短期授权、WebSocket Origin 与子协议校验、有界转发、空闲和最长时限，独立 Rust broker 使用 Unix Socket peer UID、固定 profile、固定环境和真实 PTY；新增 `terminal.open` 权限迁移、systemd/Nginx 草案和部署说明，终端不复用 privileged daemon
 - 已验证 Rust 格式化、Clippy、4 项测试和 Release 构建通过，其中真实 PTY 测试覆盖 shell 输入输出；Cargo 元数据依赖经 OSV 查询未发现已知漏洞，CI 已纳入 `cargo audit`；验证 .NET 构建 0 警告和 0 错误、5 项 xUnit 测试、迁移模型无待生成变更、Angular 14 项组件/服务测试和生产构建通过；systemd unit 与 Nginx 配置通过本地语法检查
 - 已通过局域网将源码同步到 `nastest` 的隔离构建目录并在测试机直接验证：.NET Release 构建 0 警告和 0 错误、5 项 xUnit 测试、Angular 13 项测试与生产构建、前端生产依赖审计、Rust 1.97.1 格式化、Clippy、4 项测试和 Release 构建均通过；已创建 UID 999 的 `amseoknas-terminal` 系统用户，安装 root 所有的 broker 和 systemd unit，验证 Socket mode 为 `0660`、peer UID、真实 PTY 的 UID/工作目录、无 capabilities、仅 AF_UNIX、`ProtectSystem=strict`、`ProtectHome=yes` 和 `NoNewPrivileges=yes`，PTY 内无法读取运行时秘密和 API 用户 home，也无法创建 AF_INET 连接；模拟 `SIGKILL` 后服务从 PID 35521 自动重启为 PID 35686，`NRestarts=1`。测试 release 已激活，`20260722075206_AddTerminalPermission` 已应用且自动迁移重新关闭，HTTPS 桌面与健康接口返回 200，未登录终端会话与 Socket 请求返回 401；Dialog 与 WindowFrame 前端改动已同步到测试机隔离源码并由 Angular 开发服务热构建成功。此次 Terminal 灰色 CMD 风格与认证文案调整已直接写入测试机活动源码，相关 WindowFrame 2 项远端测试和开发服务热构建通过，桌面与健康接口返回 200，Web 与 Terminal 服务保持 active；测试机仅约 1 GB 内存，不再并行执行完整 Angular 测试与生产构建，完整 14 项测试与生产构建以开发机结果为准
+- 已在独立构建机 `build@192.168.1.13` 基于提交 `eb7b022` 完成可追溯 Release 构建：Angular 14 项测试与生产构建、.NET Release 0 警告/0 错误与 5 项测试、EF 模型检查、NuGet 和前端生产依赖漏洞检查、Rust 格式化、Clippy、4 项测试与 Release 构建均通过；80 个产物文件经 SHA-256 校验后由构建机直接传至 `nastest`。测试机已激活 API 与 Web release `20260722T190500Z-eb7b022`，root 所有的 Rust broker 与构建产物哈希一致；Nginx 已在 HTTPS 6521 提供静态前端及带 Upgrade 的 Terminal WebSocket 代理并设为开机启动，Angular 开发服务已停止并禁用。dev 侧验证桌面和健康接口返回 200、未登录终端会话返回 401，API、Terminal、Nginx 均 active/enabled，Terminal Socket 为 `amseoknas-terminal:amseoknas-terminal`、`0660`
 - Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
 下一建议工作项：使用当前 Web 管理员密码在 `nastest` 完成登录、重新认证、WebSocket 升级、交互输入、resize、最小化恢复、最大化还原、空闲超时和退出的浏览器端到端回归，并验证 terminal 用户无法读取 privileged socket 与后续新增秘密；随后将认证和 Web Terminal 改动合并到 `main`，从干净工作树重新部署。之后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是建立多窗口状态管理并复用现有 WindowFrame，再接入 Dashboard 和磁盘只读列表。进入 privileged daemon 工作项时，先按 `AmseokNas-docs/csharp-rust-privileged-architecture.md` 建立 Rust 只读执行面和 Unix Socket 契约，不提前开放破坏性动作
