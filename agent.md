@@ -12,16 +12,15 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-20
+最后检查日期：2026-07-22
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell 已建立，但 Dashboard、磁盘列表和窗口管理仍未实现；Data Protection 外部密钥保护尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell 和可复用 WindowFrame 已建立，WindowFrame 支持最小化、最大化/还原与关闭，但 Dashboard、磁盘列表和多窗口状态管理仍未实现；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、HTTPS 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
-- 已配置本仓库提交身份为 `IwakuraTorei <IwakuraTorei@outlook.com>`
-- 当前开发基线提交为 `0f850d7 fix(auth): 修复部署环境认证请求异常`
+- 当前开发基线提交为 `dc7df15 fix(web): 修复修改密码表单提交`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -34,9 +33,10 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已使用 Node.js 22.22.3 验证 Angular 生产构建和 7 项组件测试通过
 - 已验证 Angular 生产构建、Vitest 组件测试、ASP.NET Core 解决方案构建、xUnit 测试、API 直接请求和前端代理请求通过
 - Angular 22 工具链已在 Node.js 22.22.3 和 npm 10.9.8 下验证，当前系统默认的 Node.js 18 不满足运行要求
-- 前端生产依赖审计无漏洞；完整开发依赖审计仍有 3 个来自 Angular 构建器 Babel 和 Vite esbuild 的低危告警，当前无不降级 Angular 的自动修复方案
+- 前端生产依赖审计无漏洞；完整开发依赖审计有 7 个来自 Angular 构建与开发工具链的告警，其中 3 个低危、3 个中危和 1 个高危，当前自动完整修复会降级 Angular CLI
 - 已确定数据库目标架构：对等 NAS 节点与动态控制面 Leader，节点本地使用 SQLite，集群全局数据使用 PostgreSQL HA，etcd 负责选举和租约，NATS JetStream 负责节点命令与事件
 - 已确定 Web 身份边界：ASP.NET Core Identity 在 PostgreSQL 中保存账户、密码哈希、角色和权限，Data Protection 保护 Cookie 与临时令牌，节点 SQLite 不保存全量账户密码哈希
+- 已确定 C# 控制面与 Rust 特权执行面边界：ASP.NET Core 负责认证、业务编排、Operation、数据库和集群协调，独立 Rust daemon 通过 Unix Domain Socket 提供受限系统查询与特权动作；当前仅完成架构文档，Rust workspace、通信协议和系统动作尚未实现
 - 已建立 `ClusterDbContext` 与 PostgreSQL 初始迁移，覆盖 ASP.NET Core Identity 用户/角色、权限点、节点注册、全局 Operation、审计索引和 Data Protection 密钥表
 - 已增加固定初始管理员 `admin` 的 Identity 哈希种子、全部现有权限、`MustChangePassword` 状态和独立迁移；初始密码明文不写入运行时配置或数据库
 - 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
@@ -50,11 +50,14 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已改用 Debian 官方包部署并启用 PostgreSQL 17.10、etcd 3.5.16 和 NATS 2.10.27 JetStream，服务只监听本机基础设施端口；运行时数据库与 NATS 密码保存在 `root:root`、`0600` 的仓库外环境文件中
 - 已对真实 PostgreSQL 和节点 SQLite 应用迁移，验证 SQLite 为 WAL、`quick_check=ok` 且外键开启，并关闭常规启动时自动迁移
 - 已在 `nastest` 定位并验证 API 未注册防伪验证过滤器以及 record DTO 验证元数据目标错误；相同最小修复已回到开发机 `devkihon` 工作流
-- 已真实验证 CSRF 获取、默认管理员登录、强制改密状态会话查询、CSRF 刷新和退出链路通过；systemd、Nginx、PostgreSQL、etcd 和 NATS 均已设置开机启动并验证 active
+- 已真实验证 CSRF 获取、默认管理员登录、强制改密状态会话查询、CSRF 刷新和退出链路通过；API、Web 开发服务、PostgreSQL、etcd 和 NATS 均已设置开机启动并验证 active，测试机 Nginx 当前保持 inactive，由 HTTPS Angular 开发服务承载测试入口
 - 已修复强制改密页未绑定响应式表单导致浏览器提交不触发改密请求的问题，并用真实 DOM 提交测试覆盖请求参数与成功后返回登录页
+- 已按独立低权限边界实现代码默认关闭的 Web Terminal：Angular Dock 使用 Material Dialog 先重新验证当前 Web 管理员密码，成功后再以大尺寸 Dialog 懒加载 xterm.js，不再跳转独立 `/terminal` 页面；终端复用 `shared/components/window-frame` 的 Windows 风格标题栏，最小化保持会话并可由 Dock 恢复，最大化/还原会重新计算终端尺寸，关闭才释放 WebSocket/PTY；C# 使用一次性短期授权、WebSocket Origin 与子协议校验、有界转发、空闲和最长时限，独立 Rust broker 使用 Unix Socket peer UID、固定 profile、固定环境和真实 PTY；新增 `terminal.open` 权限迁移、systemd/Nginx 草案和部署说明，终端不复用 privileged daemon
+- 已验证 Rust 格式化、Clippy、4 项测试和 Release 构建通过，其中真实 PTY 测试覆盖 shell 输入输出；Cargo 元数据依赖经 OSV 查询未发现已知漏洞，CI 已纳入 `cargo audit`；验证 .NET 构建 0 警告和 0 错误、5 项 xUnit 测试、迁移模型无待生成变更、Angular 14 项组件/服务测试和生产构建通过；systemd unit 与 Nginx 配置通过本地语法检查
+- 已通过局域网将源码同步到 `nastest` 的隔离构建目录并在测试机直接验证：.NET Release 构建 0 警告和 0 错误、5 项 xUnit 测试、Angular 13 项测试与生产构建、前端生产依赖审计、Rust 1.97.1 格式化、Clippy、4 项测试和 Release 构建均通过；已创建 UID 999 的 `amseoknas-terminal` 系统用户，安装 root 所有的 broker 和 systemd unit，验证 Socket mode 为 `0660`、peer UID、真实 PTY 的 UID/工作目录、无 capabilities、仅 AF_UNIX、`ProtectSystem=strict`、`ProtectHome=yes` 和 `NoNewPrivileges=yes`，PTY 内无法读取运行时秘密和 API 用户 home，也无法创建 AF_INET 连接；模拟 `SIGKILL` 后服务从 PID 35521 自动重启为 PID 35686，`NRestarts=1`。测试 release 已激活，`20260722075206_AddTerminalPermission` 已应用且自动迁移重新关闭，HTTPS 桌面与健康接口返回 200，未登录终端会话与 Socket 请求返回 401；Dialog 与 WindowFrame 前端改动已同步到测试机隔离源码并由 Angular 开发服务热构建成功。此次 Terminal 灰色 CMD 风格与认证文案调整已直接写入测试机活动源码，相关 WindowFrame 2 项远端测试和开发服务热构建通过，桌面与健康接口返回 200，Web 与 Terminal 服务保持 active；测试机仅约 1 GB 内存，不再并行执行完整 Angular 测试与生产构建，完整 14 项测试与生产构建以开发机结果为准
 - Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：将认证部署修复合并到 `main` 后在 `nastest` 从干净工作树重新拉取并回归认证链路；随后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是在桌面 Shell 内建立窗口状态与可复用 WindowFrame，再接入 Dashboard 和磁盘只读列表
+下一建议工作项：使用当前 Web 管理员密码在 `nastest` 完成登录、重新认证、WebSocket 升级、交互输入、resize、最小化恢复、最大化还原、空闲超时和退出的浏览器端到端回归，并验证 terminal 用户无法读取 privileged socket 与后续新增秘密；随后将认证和 Web Terminal 改动合并到 `main`，从干净工作树重新部署。之后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是建立多窗口状态管理并复用现有 WindowFrame，再接入 Dashboard 和磁盘只读列表。进入 privileged daemon 工作项时，先按 `AmseokNas-docs/csharp-rust-privileged-architecture.md` 建立 Rust 只读执行面和 Unix Socket 契约，不提前开放破坏性动作
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
@@ -176,7 +179,7 @@ PR 内容必须至少包含以下部分：
 
 - 前端：Angular + TypeScript
 - 后端控制面：ASP.NET Core / C#
-- 特权执行面：独立 privileged daemon
+- 特权执行面：独立 Rust privileged daemon
 - 系统底层：Debian Linux + apt/deb 包
 - 浏览器实时通信：SignalR / WebSocket
 - 节点命令与事件：NATS JetStream
@@ -304,16 +307,21 @@ AmseokNas-server/
   tests/
 ```
 
-推荐增加独立特权进程：
+推荐增加独立 Rust 特权进程，详细边界见 `AmseokNas-docs/csharp-rust-privileged-architecture.md`：
 
 ```text
 AmseokNas-privileged/
+  Cargo.toml
+  Cargo.lock
   src/
-    Nas.Privileged/
-      Protocol/
-      Actions/
-      Validation/
-      Execution/
+    main.rs
+    protocol/
+    actions/
+    inventory/
+    safety/
+    storage/
+    config/
+    execution/
   tests/
 ```
 
@@ -321,7 +329,7 @@ AmseokNas-privileged/
 
 `Nas.Application` 负责编排业务用例、权限决策、操作状态和资源锁
 
-`Nas.Infrastructure` 负责 PostgreSQL 与 SQLite 持久化、etcd 与 NATS 集成、Linux 状态查询、受管配置生成以及与 privileged daemon 通信
+`Nas.Infrastructure` 负责 PostgreSQL 与 SQLite 持久化、etcd 与 NATS 集成、受管配置生成以及通过强类型客户端与 Rust privileged daemon 通信；Linux 系统查询和特权动作不得绕过该边界
 
 `Nas.Domain` 保存核心模型、权限、统一状态机、错误类型和领域事件，不依赖外层项目
 

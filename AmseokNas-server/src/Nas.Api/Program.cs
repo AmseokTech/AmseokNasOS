@@ -5,9 +5,11 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Threading.RateLimiting;
 using Nas.Infrastructure;
 using Nas.Application.Authentication;
+using Nas.Application.Terminal;
 using Nas.Infrastructure.ClusterServices;
 using Nas.Infrastructure.Persistence.Cluster;
 using Nas.Infrastructure.Persistence.Node;
+using Nas.Domain.Permissions;
 
 //--------------------------//
 //--------API 入口只装配控制面 HTTP 管道---------//
@@ -34,6 +36,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         AuthenticationDefaults.PasswordChangeSessionPolicy,
         passwordChangeSessionPolicy);
+    options.AddPolicy(
+        AuthenticationDefaults.TerminalAccessPolicy,
+        policy => policy
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.TerminalOpen)
+            .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
 });
 builder.Services.AddAntiforgery(options =>
 {
@@ -54,6 +62,18 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("terminal-session", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
                 QueueLimit = 0,
                 Window = TimeSpan.FromMinutes(1),
                 AutoReplenishment = true
@@ -79,6 +99,10 @@ app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(30)
+});
 app.MapControllers();
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+.terminal-auth__description {
+  margin: 0 0 20px;
+  color: #4b5f73;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.terminal-auth__error {
+  margin: 12px 0 0;
+  color: #ba1a1a;
+  font-size: 13px;
+}
+
+mat-dialog-content {
+  padding-top: 4px;
+}
+
+mat-dialog-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

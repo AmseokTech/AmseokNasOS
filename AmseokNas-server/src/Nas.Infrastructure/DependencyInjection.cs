@@ -10,11 +10,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nas.Application.Authentication;
+using Nas.Application.Terminal;
 using Nas.Infrastructure.Authentication;
 using Nas.Infrastructure.ClusterServices;
 using Nas.Infrastructure.Persistence;
 using Nas.Infrastructure.Persistence.Cluster;
 using Nas.Infrastructure.Persistence.Node;
+using Nas.Infrastructure.Terminal;
 
 namespace Nas.Infrastructure;
 
@@ -35,6 +37,22 @@ public static class DependencyInjection
             .Validate(
                 options => options.EtcdHealthUrl is not null && options.NatsHealthUrl is not null,
                 "Both etcd and NATS health URLs are required")
+            .ValidateOnStart();
+        services.AddOptions<TerminalOptions>()
+            .Bind(configuration.GetSection(TerminalOptions.SectionName))
+            .Validate(
+                options => !options.Enabled
+                    || (Path.IsPathFullyQualified(options.SocketPath)
+                        && options.AllowedOrigins.Length > 0
+                        && options.AllowedOrigins.All(value =>
+                            Uri.TryCreate(value, UriKind.Absolute, out var origin)
+                            && origin.Scheme is "http" or "https")),
+                "Enabled terminal requires an absolute socket path and at least one absolute allowed origin")
+            .Validate(
+                options => options.PendingSessionLifetimeSeconds is >= 10 and <= 120
+                    && options.IdleTimeoutMinutes is >= 1 and <= 60
+                    && options.MaximumSessionMinutes is >= 5 and <= 240,
+                "Terminal time limits are outside the supported range")
             .ValidateOnStart();
 
         services.AddDbContext<ClusterDbContext>(options => options.UseNpgsql(clusterConnection));
@@ -85,6 +103,9 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
         services.AddScoped<IUserClaimsPrincipalFactory<NasUser>, NasUserClaimsPrincipalFactory>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ITerminalSessionStore, InMemoryTerminalSessionStore>();
+        services.AddSingleton<ITerminalBrokerClient, UnixSocketTerminalBrokerClient>();
 
         services.AddHttpClient("cluster-health", client =>
         {

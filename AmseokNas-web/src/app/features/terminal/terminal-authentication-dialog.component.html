@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>使用terminal</h2>
+
+<form [formGroup]="form" (ngSubmit)="authenticate()">
+  <mat-dialog-content>
+    <p class="terminal-auth__description">需要输入 Web admin 管理员密码进行验证</p>
+
+    <app-password-field
+      label="Web admin 管理员密码"
+      autocomplete="current-password"
+      [control]="form.controls.password"
+    />
+
+    @if (errorMessage()) {
+      <p class="terminal-auth__error" role="alert">{{ errorMessage() }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined" [disabled]="submitting()">
+      取消
+    </button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" />
+        正在验证
+      } @else {
+        验证并打开
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

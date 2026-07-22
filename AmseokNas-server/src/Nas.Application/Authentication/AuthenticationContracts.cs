@@ -9,7 +9,9 @@ public static class AuthenticationDefaults
     public const string AdministratorUserName = "admin";
     public const string PasswordChangedPolicy = "PasswordChanged";
     public const string PasswordChangeSessionPolicy = "PasswordChangeSession";
+    public const string TerminalAccessPolicy = "TerminalAccess";
     public const string MustChangePasswordClaim = "amseoknas:must_change_password";
+    public const string PermissionClaim = "amseoknas:permission";
 }
 
 public enum SignInFailure
@@ -42,6 +44,11 @@ public interface IAuthenticationService
 
     Task<AuthenticatedUser?> GetUserAsync(
         Guid userId,
+        CancellationToken cancellationToken);
+
+    Task<bool> VerifyPasswordAsync(
+        Guid userId,
+        string password,
         CancellationToken cancellationToken);
 
     Task<PasswordChangeOutcome> ChangePasswordAsync(

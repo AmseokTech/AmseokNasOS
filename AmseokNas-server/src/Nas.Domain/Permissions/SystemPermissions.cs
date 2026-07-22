@@ -26,6 +26,7 @@ public static class SystemPermissions
         BackupManage,
         SystemReboot,
         SystemShutdown,
+        TerminalOpen,
         LogsRead
     ];
 
@@ -47,5 +48,6 @@ public static class SystemPermissions
     public const string BackupManage = "backup.manage";
     public const string SystemReboot = "system.reboot";
     public const string SystemShutdown = "system.shutdown";
+    public const string TerminalOpen = "terminal.open";
     public const string LogsRead = "logs.read";
 }

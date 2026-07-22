@@ -1,0 +1,55 @@
+<section class="window-frame">
+  <header class="window-frame__titlebar" (dblclick)="handleTitleBarDoubleClick($event)">
+    <div class="window-frame__identity">
+      @if (showStatus()) {
+        <span
+          class="window-frame__status"
+          [class.window-frame__status--busy]="statusTone() === 'busy'"
+          [class.window-frame__status--online]="statusTone() === 'online'"
+          [class.window-frame__status--error]="statusTone() === 'error'"
+          aria-hidden="true"
+        ></span>
+      }
+      <div>
+        <strong>{{ title() }}</strong>
+        @if (subtitle()) {
+          <small aria-live="polite">{{ subtitle() }}</small>
+        }
+      </div>
+    </div>
+
+    <div class="window-frame__controls" role="group" aria-label="窗口控制">
+      <button
+        class="window-frame__control window-frame__control--minimize"
+        type="button"
+        title="最小化"
+        aria-label="最小化窗口"
+        (click)="minimized.emit()"
+      >
+        <span aria-hidden="true"></span>
+      </button>
+      <button
+        class="window-frame__control window-frame__control--maximize"
+        type="button"
+        [title]="maximized() ? '还原' : '最大化'"
+        [attr.aria-label]="maximized() ? '还原窗口' : '最大化窗口'"
+        (click)="maximizeToggled.emit()"
+      >
+        <span [class.window-frame__restore-icon]="maximized()" aria-hidden="true"></span>
+      </button>
+      <button
+        class="window-frame__control window-frame__control--close"
+        type="button"
+        title="关闭"
+        aria-label="关闭窗口"
+        (click)="closed.emit()"
+      >
+        <span aria-hidden="true"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="window-frame__content">
+    <ng-content></ng-content>
+  </div>
+</section>

@@ -1,0 +1,44 @@
+#--------------------------#
+#--------隔离低权限 Web Terminal broker---------#
+#--------Isolates the low-privilege Web Terminal broker--------#
+#-------------------------#
+[Unit]
+Description=AmseokNas low-privilege Web Terminal broker
+After=local-fs.target
+
+[Service]
+Type=simple
+User=amseoknas-terminal
+Group=amseoknas-terminal
+UMask=0007
+RuntimeDirectory=amseoknas-terminal
+RuntimeDirectoryMode=0750
+StateDirectory=amseoknas-terminal
+StateDirectoryMode=0700
+ExecStart=/usr/libexec/amseoknas/amseoknas-terminal-broker
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+ReadWritePaths=/run/amseoknas-terminal /var/lib/amseoknas-terminal
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

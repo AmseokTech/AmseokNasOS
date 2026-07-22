@@ -70,6 +70,28 @@ public sealed class IdentityAuthenticationService(
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<bool> VerifyPasswordAsync(
+        Guid userId,
+        string password,
+        CancellationToken cancellationToken)
+    {
+        var user = await userManager.Users.SingleOrDefaultAsync(
+            item => item.Id == userId,
+            cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        var valid = await userManager.CheckPasswordAsync(user, password);
+        cancellationToken.ThrowIfCancellationRequested();
+        logger.LogInformation(
+            "Administrator {UserId} terminal reauthentication result was {Result}",
+            userId,
+            valid ? "Succeeded" : "Failed");
+        return valid;
+    }
+
     public async Task<PasswordChangeOutcome> ChangePasswordAsync(
         Guid userId,
         string currentPassword,
