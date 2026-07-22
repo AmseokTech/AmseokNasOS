@@ -15,10 +15,20 @@
   min-height: 46px;
   align-items: center;
   justify-content: space-between;
-  padding-left: 14px;
   border-bottom: 1px solid #aaa;
   background: #d5d5d5;
   user-select: none;
+}
+
+.window-frame__drag-region {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-self: stretch;
+  align-items: center;
+  padding-left: 14px;
+  cursor: move;
+  touch-action: none;
 }
 
 .window-frame__identity {
@@ -168,7 +178,7 @@
 }
 
 @media (max-width: 520px) {
-  .window-frame__titlebar {
+  .window-frame__drag-region {
     padding-left: 10px;
   }
 

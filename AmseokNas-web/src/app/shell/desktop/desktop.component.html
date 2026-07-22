@@ -1,5 +1,5 @@
 <main class="desktop">
-  <app-top-bar [activeApp]="activeApp().label" />
+  <app-top-bar [activeApp]="activeAppLabel()" />
 
   @if (session()?.mustChangePassword) {
     <div class="desktop-reminders">
@@ -11,6 +11,8 @@
   }
 
   <section class="desktop-workspace" aria-label="AmseokNas 桌面">
+    <app-window-host />
+
     <div class="desktop-identity" aria-hidden="true">
       <span class="desktop-identity__mark">
         <span></span>
@@ -24,7 +26,7 @@
 
   <app-dock
     [apps]="apps"
-    [activeAppId]="activeApp().id"
+    [selectedAppId]="selectedApp().id"
     (appSelected)="selectApp($event)"
   />
 </main>
