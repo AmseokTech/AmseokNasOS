@@ -19,6 +19,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  repository-quality:
+    name: Repository quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+
+      - name: Check changed files for whitespace errors
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            git diff --check "${BASE_SHA}" "${GITHUB_SHA}"
+          else
+            git show --check --format= "${GITHUB_SHA}"
+          fi
+
+      - name: Validate JSON files
+        run: |
+          while IFS= read -r -d '' file; do
+            jq empty "${file}"
+          done < <(git ls-files -z -- '*.json' ':(exclude,glob)**/tsconfig*.json')
+
+      - name: Validate Docker Compose configuration
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          NATS_PASSWORD_HASH: ci-placeholder
+        run: docker compose --file AmseokNas-deploy/compose.single-node.yaml config --quiet
+
+      - name: Validate systemd units
+        run: |
+          sudo install -D -m 0755 /bin/true /usr/libexec/amseoknas/amseoknas-privileged
+          sudo install -D -m 0755 /bin/true /usr/libexec/amseoknas/amseoknas-terminal-broker
+          sudo install -D -m 0644 AmseokNas-deploy/systemd/privileged.env.example /etc/amseoknas/privileged.env
+          systemd-analyze verify \
+            AmseokNas-deploy/systemd/amseoknas-privileged.service \
+            AmseokNas-deploy/systemd/amseoknas-terminal.service
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -41,8 +98,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test -- --watch=false
+      - name: Run lint
+        run: npm run lint
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Run tests with coverage
+        run: npm run test:ci
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-coverage
+          path: AmseokNas-web/coverage
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build production bundle
         run: npm run build
@@ -73,11 +145,59 @@ jobs:
       - name: Restore tests
         run: dotnet restore tests/Nas.Api.Tests/Nas.Api.Tests.csproj
 
-      - name: Build solution
-        run: dotnet build AmseokNas.sln --configuration Release --no-restore
+      - name: Restore local tools
+        run: dotnet tool restore
 
-      - name: Run tests
-        run: dotnet test tests/Nas.Api.Tests/Nas.Api.Tests.csproj --configuration Release --no-restore
+      - name: Verify formatting and analyzers
+        run: |
+          dotnet format AmseokNas.sln --verify-no-changes --no-restore
+          dotnet format tests/Nas.Api.Tests/Nas.Api.Tests.csproj --verify-no-changes --no-restore
+
+      - name: Audit NuGet dependencies
+        run: |
+          dotnet list AmseokNas.sln package \
+            --vulnerable \
+            --include-transitive \
+            --no-restore \
+            --format json > "${RUNNER_TEMP}/nuget-audit.json"
+          jq -e '
+            [
+              .projects[]?.frameworks[]?
+              | [(.topLevelPackages // []), (.transitivePackages // [])][][]
+              | select((.vulnerabilities // []) | length > 0)
+            ]
+            | length == 0
+          ' "${RUNNER_TEMP}/nuget-audit.json"
+
+      - name: Build solution with warnings as errors
+        run: dotnet build AmseokNas.sln --configuration Release --no-restore --warnaserror
+
+      - name: Check Entity Framework migrations
+        run: |
+          dotnet tool run dotnet-ef migrations has-pending-model-changes \
+            --project src/Nas.Infrastructure/Nas.Infrastructure.csproj \
+            --startup-project src/Nas.Infrastructure/Nas.Infrastructure.csproj \
+            --context ClusterDbContext \
+            --configuration Release \
+            --no-build
+
+      - name: Run tests with coverage
+        run: |
+          dotnet test tests/Nas.Api.Tests/Nas.Api.Tests.csproj \
+            --configuration Release \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+
+      - name: Upload backend coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: backend-coverage
+          path: AmseokNas-server/TestResults/**/coverage.cobertura.xml
+          if-no-files-found: warn
+          retention-days: 14
 
   terminal-broker:
     name: Terminal broker
@@ -103,10 +223,10 @@ jobs:
         run: cargo +1.97.1 clippy --all-targets --all-features -- -D warnings
 
       - name: Run tests
-        run: cargo +1.97.1 test --locked
+        run: cargo +1.97.1 test --locked --all-features
 
       - name: Audit dependencies
-        run: cargo install cargo-audit --locked && cargo audit
+        run: cargo +1.97.1 install cargo-audit --version 0.22.2 --locked && cargo audit
 
       - name: Build release broker
         run: cargo +1.97.1 build --release --locked
@@ -135,10 +255,10 @@ jobs:
         run: cargo +1.97.1 clippy --all-targets --all-features -- -D warnings
 
       - name: Run tests
-        run: cargo +1.97.1 test --locked
+        run: cargo +1.97.1 test --locked --all-features
 
       - name: Audit dependencies
-        run: cargo install cargo-audit --locked && cargo audit
+        run: cargo +1.97.1 install cargo-audit --version 0.22.2 --locked && cargo audit
 
       - name: Build release daemon
         run: cargo +1.97.1 build --release --locked
