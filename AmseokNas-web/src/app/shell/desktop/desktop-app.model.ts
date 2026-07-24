@@ -10,6 +10,7 @@ export interface DesktopApp {
   readonly iconBackground: string;
   readonly route?: string;
   readonly launch?: 'terminal';
+  readonly windowAppId?: string;
 }
 
 export const DESKTOP_APPS: readonly DesktopApp[] = [
@@ -54,6 +55,7 @@ export const DESKTOP_APPS: readonly DesktopApp[] = [
     id: 'settings',
     label: '系统设置',
     iconPath: 'm19.43 12.98.04-.98-.04-.98 2.11-1.65-2-3.46-2.49 1a7.6 7.6 0 0 0-1.69-.98L15 3.27h-4L10.64 5a7.6 7.6 0 0 0-1.69.98l-2.49-1-2 3.46 2.11 1.65-.04.98.04.98-2.11 1.65 2 3.46 2.49-1c.52.4 1.09.73 1.69.98L11 20.73h4l.36-2.66a7.6 7.6 0 0 0 1.69-.98l2.49 1 2-3.46-2.11-1.65ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z',
-    iconBackground: 'linear-gradient(145deg, #aeb7c2, #596574)'
+    iconBackground: 'linear-gradient(145deg, #aeb7c2, #596574)',
+    windowAppId: 'settings'
   }
 ];

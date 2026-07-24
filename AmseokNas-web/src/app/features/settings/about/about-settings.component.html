@@ -1,0 +1,125 @@
+<section class="settings-panel" aria-labelledby="about-title">
+  <header class="settings-panel__header">
+    <span class="settings-panel__icon" aria-hidden="true">A</span>
+    <div>
+      <h1 id="about-title">关于本机</h1>
+      <p>查看当前设备的系统、处理器、内存和系统盘信息。</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="settings-state" role="status">正在读取本机信息…</div>
+  } @else if (error()) {
+    <div class="settings-state settings-state--error" role="alert">
+      <strong>无法读取本机信息</strong>
+      <span>{{ error() }}</span>
+      <button type="button" (click)="load()">重新加载</button>
+    </div>
+  } @else if (about(); as information) {
+    <div class="settings-card settings-card--identity">
+      <div class="device-mark" aria-hidden="true">
+        <span></span>
+      </div>
+      <div>
+        <h2>{{ information.hostName }}</h2>
+        <p>{{ information.operatingSystem }}</p>
+      </div>
+    </div>
+
+    <dl class="settings-card information-list">
+      <div>
+        <dt>系统版本</dt>
+        <dd>{{ information.operatingSystem }}</dd>
+      </div>
+      <div>
+        <dt>内核版本</dt>
+        <dd>{{ information.kernelVersion }}</dd>
+      </div>
+      <div>
+        <dt>运行时间</dt>
+        <dd>{{ formatUptime(information.uptimeSeconds) }}</dd>
+      </div>
+    </dl>
+
+    <div class="settings-card settings-card--section">
+      <h2>处理器与内存</h2>
+      <dl class="information-list">
+        <div>
+          <dt>处理器</dt>
+          <dd>{{ information.cpu.model }}</dd>
+        </div>
+        <div>
+          <dt>核心</dt>
+          <dd>
+            {{ information.cpu.physicalCoreCount }} 个物理核心 ·
+            {{ information.cpu.logicalProcessorCount }} 个逻辑处理器
+          </dd>
+        </div>
+        <div>
+          <dt>频率</dt>
+          <dd>
+            @if (information.cpu.currentFrequencyMhz !== null) {
+              当前 {{ information.cpu.currentFrequencyMhz }} MHz
+            } @else {
+              当前频率未知
+            }
+            @if (information.cpu.maximumFrequencyMhz !== null) {
+              · 最高 {{ information.cpu.maximumFrequencyMhz }} MHz
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>内存</dt>
+          <dd>{{ formatBytes(information.memory.totalBytes) }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="settings-card settings-card--section">
+      <h2>系统盘</h2>
+      <div class="storage-summary">
+        <strong>{{ information.systemStorage.model || information.systemStorage.source }}</strong>
+        <span>
+          已使用 {{ formatBytes(information.systemStorage.usedBytes) }}，
+          可用 {{ formatBytes(information.systemStorage.availableBytes) }}
+        </span>
+      </div>
+      <div
+        class="storage-meter"
+        role="meter"
+        aria-label="系统盘使用率"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="storageUsagePercentage(
+          information.systemStorage.totalBytes,
+          information.systemStorage.usedBytes
+        )"
+      >
+        <span
+          [style.width.%]="storageUsagePercentage(
+            information.systemStorage.totalBytes,
+            information.systemStorage.usedBytes
+          )"
+        ></span>
+      </div>
+      <dl class="information-list">
+        <div>
+          <dt>总容量</dt>
+          <dd>{{ formatBytes(information.systemStorage.totalBytes) }}</dd>
+        </div>
+        <div>
+          <dt>设备</dt>
+          <dd>{{ information.systemStorage.source }}</dd>
+        </div>
+        @if (information.systemStorage.stableId) {
+          <div>
+            <dt>稳定标识</dt>
+            <dd class="information-list__technical">
+              {{ information.systemStorage.stableId }}
+            </dd>
+          </div>
+        }
+      </dl>
+    </div>
+  }
+</section>

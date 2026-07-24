@@ -25,6 +25,22 @@ const BUILT_IN_APP_COMPONENTS: ReadonlyMap<string, AppComponentDefinition> = new
       loadComponent: () =>
         import('../../features/terminal/terminal-page.component').then(
           ({ TerminalPageComponent }) => TerminalPageComponent
+      )
+    }
+  ],
+  [
+    'settings',
+    {
+      appId: 'settings',
+      title: '系统设置',
+      singleton: true,
+      defaultWidth: 980,
+      defaultHeight: 680,
+      minWidth: 720,
+      minHeight: 480,
+      loadComponent: () =>
+        import('../../features/settings/settings-page.component').then(
+          ({ SettingsPageComponent }) => SettingsPageComponent
         )
     }
   ]

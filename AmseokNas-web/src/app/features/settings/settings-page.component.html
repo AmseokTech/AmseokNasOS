@@ -1,0 +1,36 @@
+<div class="settings-layout">
+  <nav class="settings-sidebar" aria-label="系统设置分类">
+    <h1>系统设置</h1>
+    <button
+      type="button"
+      [class.settings-sidebar__item--active]="activeSection() === 'about'"
+      [attr.aria-current]="activeSection() === 'about' ? 'page' : null"
+      (click)="selectSection('about')"
+    >
+      <span class="settings-sidebar__icon settings-sidebar__icon--about" aria-hidden="true">A</span>
+      关于本机
+    </button>
+    <button
+      type="button"
+      [class.settings-sidebar__item--active]="activeSection() === 'network'"
+      [attr.aria-current]="activeSection() === 'network' ? 'page' : null"
+      (click)="selectSection('network')"
+    >
+      <span class="settings-sidebar__icon settings-sidebar__icon--network" aria-hidden="true">
+        <i></i><i></i><i></i>
+      </span>
+      网络
+    </button>
+  </nav>
+
+  <main class="settings-content">
+    @switch (activeSection()) {
+      @case ('network') {
+        <app-network-settings />
+      }
+      @default {
+        <app-about-settings />
+      }
+    }
+  </main>
+</div>

@@ -68,6 +68,12 @@ export class DesktopComponent implements OnInit {
       return;
     }
 
+    if (app.windowAppId) {
+      this.selectedApp.set(app);
+      this.windowManager.open(app.windowAppId);
+      return;
+    }
+
     this.selectedApp.set(app);
   }
 }

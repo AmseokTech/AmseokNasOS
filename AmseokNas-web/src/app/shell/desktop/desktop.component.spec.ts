@@ -63,6 +63,25 @@ describe('DesktopComponent', () => {
     http.verify();
   });
 
+  it('should show the AmseokOS identity without the drawn desktop logo', () => {
+    const fixture = TestBed.createComponent(DesktopComponent);
+    const http = TestBed.inject(HttpTestingController);
+
+    fixture.detectChanges();
+    http.expectOne('/api/auth/session').flush({ userName: 'admin', mustChangePassword: false });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const identity = compiled.querySelector('.desktop-identity');
+
+    expect(identity?.textContent).toContain('AmseokOS');
+    expect(identity?.textContent).toContain('更便捷地管理你的服务器');
+    expect(identity?.querySelector('.desktop-identity__mark')).toBeNull();
+    expect(compiled.querySelector('.desktop-workspace')?.getAttribute('aria-label'))
+      .toBe('AmseokOS 桌面');
+    http.verify();
+  });
+
   it('should keep terminal reauthentication blocked until the initial password is changed', () => {
     const fixture = TestBed.createComponent(DesktopComponent);
     const http = TestBed.inject(HttpTestingController);

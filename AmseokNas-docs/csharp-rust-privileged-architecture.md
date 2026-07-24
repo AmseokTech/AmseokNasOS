@@ -1,8 +1,8 @@
 # AmseokNas C# 与 Rust 特权执行架构
 
-状态：架构已选定，尚未实现
+状态：第一阶段只读查询已开始实现；关于本机与物理网卡查询已完成，写操作尚未开放
 
-最后确认日期：2026-07-22
+最后确认日期：2026-07-24
 
 ## 1. 设计结论
 
@@ -135,7 +135,7 @@ daemon 启动时不得盲目删除 socket 路径。应先确认路径类型、ow
 
 ### 5.1 传输方式
 
-第一版使用 Unix Domain Stream Socket。C# 使用 .NET 的 `UnixDomainSocketEndPoint` 连接，Rust 使用 Tokio `UnixListener` 监听。
+第一版使用 Unix Domain Stream Socket。C# 使用 .NET 的 `UnixDomainSocketEndPoint` 连接，Rust 使用标准库 `UnixListener` 监听；当前守护进程按连接串行处理只读小请求，后续出现长耗时动作前必须引入有界并发和动作级超时。
 
 Stream Socket 不保留消息边界，因此协议使用：
 
@@ -144,7 +144,7 @@ Stream Socket 不保留消息边界，因此协议使用：
   + UTF-8 JSON 消息体
 ```
 
-第一版建议把单个请求和响应限制为 1 MiB。命令的大体积输出不得直接装入协议消息或数据库；只返回截断、脱敏摘要，必要的完整诊断以后使用受控文件存储和独立授权下载。
+第一版已把单个请求和响应限制为 1 MiB。命令的大体积输出不得直接装入协议消息或数据库；只返回截断、脱敏摘要，必要的完整诊断以后使用受控文件存储和独立授权下载。
 
 JSON 便于 C# 与 Rust 首次联调、测试夹具和故障排查。协议稳定且确有兼容或吞吐需求后，可以评估 Protobuf，但不能只为技术偏好提前增加代码生成链路。
 
@@ -248,7 +248,16 @@ raid.inspectArrays
 service.inspectManagedService
 ```
 
-第一阶段还可以提供不接触真实存储的受控测试动作，用于验证 socket、peer credentials、超时、取消、错误映射和协议兼容性。
+当前已实现的只读动作：
+
+```text
+system.getAbout
+network.inspectInterfaces
+```
+
+两项动作只从受信任的 `/proc`、`/sys`、`/run` 和文件系统接口读取数据，不接受参数，也不执行外部命令。Rust 守护进程要求显式配置唯一允许的 API 进程 UID，并在 Unix Socket 上校验 peer credentials；C# 端通过独立的 `system.read` 与 `network.read` 权限策略开放 HTTP 查询。
+
+第一阶段还可以继续提供不接触真实存储的受控测试动作，用于验证 socket、peer credentials、超时、取消、错误映射和协议兼容性。
 
 ### 6.2 第二阶段写入动作
 
