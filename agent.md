@@ -12,15 +12,15 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-22
+最后检查日期：2026-07-24
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口基础状态管理已建立，WindowFrame 支持最小化、最大化/还原与关闭，但拖动、缩放、布局持久化、Dashboard 和磁盘列表仍未实现；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口管理已建立，支持最小化、最大化/还原、关闭、拖动、缩放和布局持久化，并已接入只读系统设置窗口，Dashboard 和磁盘列表仍未实现；C# 与 Rust 特权边界已完成首批“关于本机”和物理网卡只读查询代码闭环，但尚未安装到测试机，DHCP/固定 IP 写入仍保持关闭；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
-- 当前开发基线提交为 `eb7b022 feat(terminal): 实现低权限 Web Terminal`
+- 当前开发基线提交为 `c077c6d feat(web): 使用山景壁纸替换桌面背景`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -36,13 +36,15 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 前端生产依赖审计无漏洞；完整开发依赖审计有 7 个来自 Angular 构建与开发工具链的告警，其中 3 个低危、3 个中危和 1 个高危，当前自动完整修复会降级 Angular CLI
 - 已确定数据库目标架构：对等 NAS 节点与动态控制面 Leader，节点本地使用 SQLite，集群全局数据使用 PostgreSQL HA，etcd 负责选举和租约，NATS JetStream 负责节点命令与事件
 - 已确定 Web 身份边界：ASP.NET Core Identity 在 PostgreSQL 中保存账户、密码哈希、角色和权限，Data Protection 保护 Cookie 与临时令牌，节点 SQLite 不保存全量账户密码哈希
-- 已确定 C# 控制面与 Rust 特权执行面边界：ASP.NET Core 负责认证、业务编排、Operation、数据库和集群协调，独立 Rust daemon 通过 Unix Domain Socket 提供受限系统查询与特权动作；当前仅完成架构文档，Rust workspace、通信协议和系统动作尚未实现
+- 已确定并开始实现 C# 控制面与 Rust 特权执行面边界：ASP.NET Core 负责认证、业务编排、Operation、数据库和集群协调，独立 Rust daemon 通过 Unix Domain Socket 提供受限系统查询与特权动作；当前已建立 Rust workspace、1 MiB 有界版本化协议、peer UID 校验和首批只读动作，写动作尚未开放
 - 已建立 `ClusterDbContext` 与 PostgreSQL 初始迁移，覆盖 ASP.NET Core Identity 用户/角色、权限点、节点注册、全局 Operation、审计索引和 Data Protection 密钥表
 - 已增加固定初始管理员 `admin` 的 Identity 哈希种子、全部现有权限、`MustChangePassword` 状态和独立迁移；初始密码明文不写入运行时配置或数据库
 - 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
 - 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
 - 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；所有成功登录统一进入懒加载的 `/desktop` 路由，强制改密会话在桌面右上角显示可复用内容投影提醒，刷新桌面后通过会话接口恢复提醒；Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
 - 已将桌面手绘渐变背景替换为用户提供的 16:9 山景壁纸，使用 `cover` 保持宽高比并保留深蓝色加载兜底；Angular 25 项测试与生产构建通过，构建产物包含与源文件一致的壁纸资源
+- 已将前端用户可见产品名从 `AmseokNas` 统一为 `AmseokOS`，移除桌面品牌区的 CSS 手绘 Logo，将“更便捷地管理你的服务器”与产品名移至桌面右下角，并在窄屏避让底部 Dock；Angular 26 项测试与生产构建通过
+- 已将系统设置注册为桌面窗口管理器中的单例应用，Dock 可打开、聚焦、最小化和恢复窗口；设置页面采用左侧“关于本机/网络”导航，关于本机展示操作系统、内核、运行时间、CPU 型号/核心/频率、内存和系统盘容量，网络页展示物理网卡型号、驱动、链路、速率、地址、网关和 DNS；当前仅在检测到 systemd DHCP 租约时标记 DHCP，其他已配置来源显示未知，避免把 NetworkManager、ifupdown 或 SLAAC 地址误报为固定地址；尚未具备安全回滚能力的 IP 写入按钮保持禁用
 - 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
 - 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
 - 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 10 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
@@ -57,9 +59,10 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已验证 Rust 格式化、Clippy、4 项测试和 Release 构建通过，其中真实 PTY 测试覆盖 shell 输入输出；Cargo 元数据依赖经 OSV 查询未发现已知漏洞，CI 已纳入 `cargo audit`；验证 .NET 构建 0 警告和 0 错误、5 项 xUnit 测试、迁移模型无待生成变更、Angular 14 项组件/服务测试和生产构建通过；systemd unit 与 Nginx 配置通过本地语法检查
 - 已通过局域网将源码同步到 `nastest` 的隔离构建目录并在测试机直接验证：.NET Release 构建 0 警告和 0 错误、5 项 xUnit 测试、Angular 13 项测试与生产构建、前端生产依赖审计、Rust 1.97.1 格式化、Clippy、4 项测试和 Release 构建均通过；已创建 UID 999 的 `amseoknas-terminal` 系统用户，安装 root 所有的 broker 和 systemd unit，验证 Socket mode 为 `0660`、peer UID、真实 PTY 的 UID/工作目录、无 capabilities、仅 AF_UNIX、`ProtectSystem=strict`、`ProtectHome=yes` 和 `NoNewPrivileges=yes`，PTY 内无法读取运行时秘密和 API 用户 home，也无法创建 AF_INET 连接；模拟 `SIGKILL` 后服务从 PID 35521 自动重启为 PID 35686，`NRestarts=1`。测试 release 已激活，`20260722075206_AddTerminalPermission` 已应用且自动迁移重新关闭，HTTPS 桌面与健康接口返回 200，未登录终端会话与 Socket 请求返回 401；Dialog 与 WindowFrame 前端改动已同步到测试机隔离源码并由 Angular 开发服务热构建成功。此次 Terminal 灰色 CMD 风格与认证文案调整已直接写入测试机活动源码，相关 WindowFrame 2 项远端测试和开发服务热构建通过，桌面与健康接口返回 200，Web 与 Terminal 服务保持 active；测试机仅约 1 GB 内存，不再并行执行完整 Angular 测试与生产构建，完整 14 项测试与生产构建以开发机结果为准
 - 已在独立构建机 `build@192.168.1.13` 基于提交 `eb7b022` 完成可追溯 Release 构建：Angular 14 项测试与生产构建、.NET Release 0 警告/0 错误与 5 项测试、EF 模型检查、NuGet 和前端生产依赖漏洞检查、Rust 格式化、Clippy、4 项测试与 Release 构建均通过；80 个产物文件经 SHA-256 校验后由构建机直接传至 `nastest`。测试机已激活 API 与 Web release `20260722T190500Z-eb7b022`，root 所有的 Rust broker 与构建产物哈希一致；Nginx 已在 HTTPS 6521 提供静态前端及带 Upgrade 的 Terminal WebSocket 代理并设为开机启动，Angular 开发服务已停止并禁用。dev 侧验证桌面和健康接口返回 200、未登录终端会话返回 401，API、Terminal、Nginx 均 active/enabled，Terminal Socket 为 `amseoknas-terminal:amseoknas-terminal`、`0660`
-- Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon、系统状态和物理磁盘查询仍未实现，第一阶段验收条件尚未满足
+- 已实现首批 C# 与 Rust 只读系统信息链路：Rust daemon 只登记 `system.getAbout` 和 `network.inspectInterfaces`，不接受任意命令或参数，要求显式 API 服务 UID、校验 Socket 目录 owner/mode 与 peer credentials，并从 `/proc`、`/sys`、`/run` 和文件系统接口读取信息；C# 增加 `system.read` 权限迁移、独立授权策略、超时 Unix Socket 客户端和只读 API，原始 daemon 诊断不直接暴露给浏览器；部署草案使用独立低权限账户、无 capabilities、`NoNewPrivileges`、严格文件系统保护和仅 AF_UNIX/AF_NETLINK。Rust 格式化、Clippy、8 项测试、Release 构建和真实本机 Socket 查询通过；.NET Release 构建 0 警告/0 错误、10 项测试和 EF 无待生成迁移通过；Angular 29 项测试与生产构建通过；NuGet 与前端生产依赖扫描未发现已知漏洞
+- Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon 测试机安装、物理磁盘查询和网络安全写入仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：使用当前 Web 管理员密码在 `nastest` 完成登录、重新认证、WebSocket 升级、交互输入、resize、最小化恢复、最大化还原、空闲超时和退出的浏览器端到端回归，并验证 terminal 用户无法读取 privileged socket 与后续新增秘密；随后将认证和 Web Terminal 改动合并到 `main`，从干净工作树重新部署。之后接入受外部密钥保护的共享 Data Protection 密钥环，并验证修改密码后旧密码失效以及会话跨服务重启行为。部署侧后续还需在 Docker Hub 可访问时验证仓库 Compose 路径。前端下一小项是为现有窗口管理器增加拖动、缩放和布局持久化，再接入 Dashboard 和磁盘只读列表。进入 privileged daemon 工作项时，先按 `AmseokNas-docs/csharp-rust-privileged-architecture.md` 建立 Rust 只读执行面和 Unix Socket 契约，不提前开放破坏性动作
+下一建议工作项：先审查当前工作树中并发存在的 AmseokOS 品牌改动与本次系统设置改动，形成干净可追溯提交；随后在独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。之后再设计网络写入阶段：必须先完成 `network.manage` 授权、重新认证、配置预览、稳定网卡 ID、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation 与审计，不得直接把当前禁用按钮接到写配置动作。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 

@@ -17,6 +17,8 @@ using Nas.Infrastructure.Persistence;
 using Nas.Infrastructure.Persistence.Cluster;
 using Nas.Infrastructure.Persistence.Node;
 using Nas.Infrastructure.Terminal;
+using Nas.Application.SystemSettings;
+using Nas.Infrastructure.Privileged;
 
 namespace Nas.Infrastructure;
 
@@ -53,6 +55,15 @@ public static class DependencyInjection
                     && options.IdleTimeoutMinutes is >= 1 and <= 60
                     && options.MaximumSessionMinutes is >= 5 and <= 240,
                 "Terminal time limits are outside the supported range")
+            .ValidateOnStart();
+        services.AddOptions<PrivilegedOptions>()
+            .Bind(configuration.GetSection(PrivilegedOptions.SectionName))
+            .Validate(
+                options => !options.Enabled || Path.IsPathFullyQualified(options.SocketPath),
+                "Enabled privileged client requires an absolute socket path")
+            .Validate(
+                options => options.TimeoutSeconds is >= 1 and <= 15,
+                "Privileged client timeout is outside the supported range")
             .ValidateOnStart();
 
         services.AddDbContext<ClusterDbContext>(options => options.UseNpgsql(clusterConnection));
@@ -106,6 +117,8 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITerminalSessionStore, InMemoryTerminalSessionStore>();
         services.AddSingleton<ITerminalBrokerClient, UnixSocketTerminalBrokerClient>();
+        services.AddSingleton<IPrivilegedClient, UnixSocketPrivilegedClient>();
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 
         services.AddHttpClient("cluster-health", client =>
         {

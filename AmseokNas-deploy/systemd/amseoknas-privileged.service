@@ -1,0 +1,43 @@
+#--------------------------#
+#--------隔离只读系统查询守护进程---------#
+#--------Isolates the read-only system inventory daemon--------#
+#-------------------------#
+[Unit]
+Description=AmseokNas read-only system inventory daemon
+After=local-fs.target
+
+[Service]
+Type=simple
+User=amseoknas-privileged
+Group=amseoknas
+UMask=0007
+EnvironmentFile=/etc/amseoknas/privileged.env
+RuntimeDirectory=amseoknas
+RuntimeDirectoryMode=0750
+ExecStart=/usr/libexec/amseoknas/amseoknas-privileged
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+ReadWritePaths=/run/amseoknas
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

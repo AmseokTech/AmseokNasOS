@@ -1,0 +1,109 @@
+<section class="settings-panel" aria-labelledby="network-title">
+  <header class="settings-panel__header">
+    <span class="settings-panel__icon" aria-hidden="true">
+      <i></i><i></i><i></i>
+    </span>
+    <div>
+      <h1 id="network-title">网络</h1>
+      <p>查看物理网卡、链路状态和当前地址配置。</p>
+    </div>
+  </header>
+
+  <aside class="security-note" id="network-write-status">
+    当前版本仅开放查询。IP 配置将在二次认证、连通性确认和自动回滚机制完成后启用。
+  </aside>
+
+  @if (loading()) {
+    <div class="settings-state" role="status">正在读取网络信息…</div>
+  } @else if (error()) {
+    <div class="settings-state settings-state--error" role="alert">
+      <strong>无法读取网络信息</strong>
+      <span>{{ error() }}</span>
+      <button type="button" (click)="load()">重新加载</button>
+    </div>
+  } @else if (interfaces().length === 0) {
+    <div class="settings-state" role="status">
+      <strong>没有检测到物理网卡</strong>
+      <span>虚拟网卡和回环接口不会显示在这里。</span>
+    </div>
+  } @else {
+    <div class="network-list">
+      @for (network of interfaces(); track network.id) {
+        <article class="network-card">
+          <header class="network-card__header">
+            <span
+              class="network-state"
+              [class.network-state--up]="network.linkState.toLowerCase() === 'up'"
+              aria-hidden="true"
+            ></span>
+            <div>
+              <h2>{{ network.name }}</h2>
+              <p>{{ network.model || network.driver || '物理网络接口' }}</p>
+            </div>
+            <div class="network-card__summary">
+              <strong>{{ linkLabel(network.linkState) }}</strong>
+              <span>{{ modeLabel(network.configurationMode) }}</span>
+            </div>
+          </header>
+
+          <dl class="information-list">
+            <div>
+              <dt>IP 地址</dt>
+              <dd>
+                @if (network.addresses.length) {
+                  @for (address of network.addresses; track address) {
+                    <span class="technical-value">{{ address }}</span>
+                  }
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>链路速率</dt>
+              <dd>
+                {{ network.speedMbps === null ? '未知' : network.speedMbps + ' Mbps' }}
+                @if (network.duplex) {
+                  · {{ network.duplex === 'full' ? '全双工' : '半双工' }}
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>MAC 地址</dt>
+              <dd class="technical-value">{{ network.macAddress }}</dd>
+            </div>
+            <div>
+              <dt>网关</dt>
+              <dd class="technical-value">{{ network.gateway || '—' }}</dd>
+            </div>
+            <div>
+              <dt>DNS</dt>
+              <dd>
+                @if (network.dnsServers.length) {
+                  {{ network.dnsServers.join('、') }}
+                } @else {
+                  —
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>MTU / 驱动</dt>
+              <dd>{{ network.mtu }} / {{ network.driver || '未知' }}</dd>
+            </div>
+          </dl>
+
+          <footer class="network-card__actions">
+            <button
+              type="button"
+              disabled
+              aria-describedby="network-write-status"
+              title="安全写入与自动回滚机制完成后开放"
+            >
+              设置 IP 地址
+            </button>
+          </footer>
+        </article>
+      }
+    </div>
+  }
+</section>

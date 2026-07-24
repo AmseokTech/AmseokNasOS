@@ -8,6 +8,7 @@ public static class SystemPermissions
 {
     public static IReadOnlyList<string> All { get; } =
     [
+        SystemRead,
         StorageRead,
         StorageWrite,
         StorageFormat,
@@ -30,6 +31,7 @@ public static class SystemPermissions
         LogsRead
     ];
 
+    public const string SystemRead = "system.read";
     public const string StorageRead = "storage.read";
     public const string StorageWrite = "storage.write";
     public const string StorageFormat = "storage.format";

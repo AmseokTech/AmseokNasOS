@@ -110,3 +110,35 @@ jobs:
 
       - name: Build release broker
         run: cargo +1.97.1 build --release --locked
+
+  privileged-daemon:
+    name: Privileged read-only daemon
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: AmseokNas-privileged
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Set up Rust
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt,clippy
+
+      - name: Check formatting
+        run: cargo +1.97.1 fmt --check
+
+      - name: Run Clippy
+        run: cargo +1.97.1 clippy --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo +1.97.1 test --locked
+
+      - name: Audit dependencies
+        run: cargo install cargo-audit --locked && cargo audit
+
+      - name: Build release daemon
+        run: cargo +1.97.1 build --release --locked
