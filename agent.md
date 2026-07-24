@@ -19,8 +19,8 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
-- 已配置远端 `origin` 为 `git@github.com:IwakuraRin/AmseokNasOS.git`
-- 当前开发基线提交为 `c077c6d feat(web): 使用山景壁纸替换桌面背景`
+- 已配置远端 `origin` 为 `git@github.com:AmseokTech/AmseokOS.git`
+- 当前开发基线提交为 `8624e97 build(ci): 完善分层质量检测与安全扫描`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -33,7 +33,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已使用 Node.js 22.22.3 验证 Angular 生产构建和 7 项组件测试通过
 - 已验证 Angular 生产构建、Vitest 组件测试、ASP.NET Core 解决方案构建、xUnit 测试、API 直接请求和前端代理请求通过
 - Angular 22 工具链已在 Node.js 22.22.3 和 npm 10.9.8 下验证，当前系统默认的 Node.js 18 不满足运行要求
-- 前端生产依赖审计无漏洞；完整开发依赖审计有 7 个来自 Angular 构建与开发工具链的告警，其中 3 个低危、3 个中危和 1 个高危，当前自动完整修复会降级 Angular CLI
+- 前端生产依赖审计无漏洞；完整开发依赖审计有 6 个来自 Angular 构建与开发工具链的上游告警，其中 3 个低危、3 个中危，当前强制自动修复会降级 Angular CLI
 - 已确定数据库目标架构：对等 NAS 节点与动态控制面 Leader，节点本地使用 SQLite，集群全局数据使用 PostgreSQL HA，etcd 负责选举和租约，NATS JetStream 负责节点命令与事件
 - 已确定 Web 身份边界：ASP.NET Core Identity 在 PostgreSQL 中保存账户、密码哈希、角色和权限，Data Protection 保护 Cookie 与临时令牌，节点 SQLite 不保存全量账户密码哈希
 - 已确定并开始实现 C# 控制面与 Rust 特权执行面边界：ASP.NET Core 负责认证、业务编排、Operation、数据库和集群协调，独立 Rust daemon 通过 Unix Domain Socket 提供受限系统查询与特权动作；当前已建立 Rust workspace、1 MiB 有界版本化协议、peer UID 校验和首批只读动作，写动作尚未开放
@@ -48,7 +48,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
 - 已提供 PostgreSQL、单成员 etcd 和 NATS JetStream 的单节点 Compose 配置、NATS 权限配置、部署说明，以及 API 存活/就绪健康检查；etcd 健康与 NATS JetStream 发布持久化已使用对应版本的独立二进制验证
 - 已验证 .NET 解决方案构建 0 警告和 0 错误、本地 2 项 API/身份种子测试、Angular 10 项组件测试与生产构建通过，并验证 PostgreSQL 认证迁移模型无待生成变更；NuGet 直接与传递依赖未发现已知漏洞
-- 已建立 GitHub Actions CI，在面向 `devkihon` 或 `main` 的 Pull Request 以及合并后的分支推送上并行执行 Angular 测试与生产构建、.NET Release 构建与 xUnit 测试，并支持人工触发
+- 已建立 GitHub Actions CI，在面向 `devkihon` 或 `main` 的 Pull Request、分支推送和人工触发上并行执行仓库配置、Angular、.NET 和两套 Rust 检查；仓库门禁校验变更空白、JSON、Compose 和 systemd unit，前端执行 ESLint、生产依赖审计、带阈值覆盖率测试和生产构建，后端执行格式与分析器、NuGet 漏洞、警告即错误构建、EF 模型漂移和带覆盖率测试，Rust 执行格式、Clippy、全特性测试、固定版本 `cargo-audit` 和 Release 构建；Pull Request 另执行中危以上依赖变更审查，C# 与 JavaScript/TypeScript 使用 CodeQL `security-and-quality` 查询并按周定时扫描，前后端覆盖率报告保留 14 天
 - 已在 `nastest` 安装并启用 Docker 26.1.5 和 Compose 2.26.1；由于 Docker Hub 连接超时，仓库 Compose 镜像路径尚未实际启动验证
 - 已改用 Debian 官方包部署并启用 PostgreSQL 17.10、etcd 3.5.16 和 NATS 2.10.27 JetStream，服务只监听本机基础设施端口；运行时数据库与 NATS 密码保存在 `root:root`、`0600` 的仓库外环境文件中
 - 已对真实 PostgreSQL 和节点 SQLite 应用迁移，验证 SQLite 为 WAL、`quick_check=ok` 且外键开启，并关闭常规启动时自动迁移
@@ -60,9 +60,11 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已通过局域网将源码同步到 `nastest` 的隔离构建目录并在测试机直接验证：.NET Release 构建 0 警告和 0 错误、5 项 xUnit 测试、Angular 13 项测试与生产构建、前端生产依赖审计、Rust 1.97.1 格式化、Clippy、4 项测试和 Release 构建均通过；已创建 UID 999 的 `amseoknas-terminal` 系统用户，安装 root 所有的 broker 和 systemd unit，验证 Socket mode 为 `0660`、peer UID、真实 PTY 的 UID/工作目录、无 capabilities、仅 AF_UNIX、`ProtectSystem=strict`、`ProtectHome=yes` 和 `NoNewPrivileges=yes`，PTY 内无法读取运行时秘密和 API 用户 home，也无法创建 AF_INET 连接；模拟 `SIGKILL` 后服务从 PID 35521 自动重启为 PID 35686，`NRestarts=1`。测试 release 已激活，`20260722075206_AddTerminalPermission` 已应用且自动迁移重新关闭，HTTPS 桌面与健康接口返回 200，未登录终端会话与 Socket 请求返回 401；Dialog 与 WindowFrame 前端改动已同步到测试机隔离源码并由 Angular 开发服务热构建成功。此次 Terminal 灰色 CMD 风格与认证文案调整已直接写入测试机活动源码，相关 WindowFrame 2 项远端测试和开发服务热构建通过，桌面与健康接口返回 200，Web 与 Terminal 服务保持 active；测试机仅约 1 GB 内存，不再并行执行完整 Angular 测试与生产构建，完整 14 项测试与生产构建以开发机结果为准
 - 已在独立构建机 `build@192.168.1.13` 基于提交 `eb7b022` 完成可追溯 Release 构建：Angular 14 项测试与生产构建、.NET Release 0 警告/0 错误与 5 项测试、EF 模型检查、NuGet 和前端生产依赖漏洞检查、Rust 格式化、Clippy、4 项测试与 Release 构建均通过；80 个产物文件经 SHA-256 校验后由构建机直接传至 `nastest`。测试机已激活 API 与 Web release `20260722T190500Z-eb7b022`，root 所有的 Rust broker 与构建产物哈希一致；Nginx 已在 HTTPS 6521 提供静态前端及带 Upgrade 的 Terminal WebSocket 代理并设为开机启动，Angular 开发服务已停止并禁用。dev 侧验证桌面和健康接口返回 200、未登录终端会话返回 401，API、Terminal、Nginx 均 active/enabled，Terminal Socket 为 `amseoknas-terminal:amseoknas-terminal`、`0660`
 - 已实现首批 C# 与 Rust 只读系统信息链路：Rust daemon 只登记 `system.getAbout` 和 `network.inspectInterfaces`，不接受任意命令或参数，要求显式 API 服务 UID、校验 Socket 目录 owner/mode 与 peer credentials，并从 `/proc`、`/sys`、`/run` 和文件系统接口读取信息；C# 增加 `system.read` 权限迁移、独立授权策略、超时 Unix Socket 客户端和只读 API，原始 daemon 诊断不直接暴露给浏览器；部署草案使用独立低权限账户、无 capabilities、`NoNewPrivileges`、严格文件系统保护和仅 AF_UNIX/AF_NETLINK。Rust 格式化、Clippy、8 项测试、Release 构建和真实本机 Socket 查询通过；.NET Release 构建 0 警告/0 错误、10 项测试和 EF 无待生成迁移通过；Angular 29 项测试与生产构建通过；NuGet 与前端生产依赖扫描未发现已知漏洞
+- 已在本地验证新增质量门禁：GitHub Actions 两个工作流通过 YAML 解析、Actionlint 和空白检查；Angular ESLint 0 告警、29 项测试通过，语句/分支/函数/行覆盖率分别为 65.6%/49.83%/69.06%/64.87%，配置的最低门槛为 60%/45%/60%/60%，生产构建和生产依赖审计通过；.NET 解决方案与测试项目格式/分析器检查通过，警告即错误的 Release 构建为 0 警告/0 错误，10 项测试和 Cobertura 报告通过，EF 无待生成迁移，NuGet 直接与传递依赖无已知漏洞；两套 Rust 格式、Clippy、全特性 4/8 项测试和 Release 构建通过。开发机没有 Docker，Compose/systemd 完整环境校验、固定版本 `cargo-audit`、依赖变更审查和 CodeQL 需由 GitHub Actions 首次运行确认
+- 已针对 Dock 点击“系统设置”未见窗口的问题完成端到端链路核对：测试机当前 Web Release `20260724T075839Z` 已包含 `windowAppId: settings`、设置懒加载块和 WindowManager 打开逻辑，本地测试改为真实点击 Dock 按钮并确认 WindowHost 渲染“系统设置 窗口”和设置布局，完整前端门禁通过。测试机 Nginx 当前未为 `index.html` 设置 `Cache-Control`，部署前已经打开的浏览器标签仍会继续运行旧 JavaScript；旧实现点击设置只更新顶部标题而不创建窗口，需强制刷新后加载当前哈希资源。浏览器强制刷新后的人工结果仍待用户确认
 - Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon 测试机安装、物理磁盘查询和网络安全写入仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：先审查当前工作树中并发存在的 AmseokOS 品牌改动与本次系统设置改动，形成干净可追溯提交；随后在独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。之后再设计网络写入阶段：必须先完成 `network.manage` 授权、重新认证、配置预览、稳定网卡 ID、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation 与审计，不得直接把当前禁用按钮接到写配置动作。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
+下一建议工作项：观察 `devkihon` 首次 GitHub Actions 运行，确认 Compose/systemd、依赖变更审查、固定版本 `cargo-audit` 和 CodeQL 在托管 Runner 上通过；随后在独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。之后再设计网络写入阶段：必须先完成 `network.manage` 授权、重新认证、配置预览、稳定网卡 ID、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation 与审计，不得直接把当前禁用按钮接到写配置动作。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
