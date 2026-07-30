@@ -18,6 +18,8 @@ terminal broker 不属于 `amseoknas-privileged`，不得共享二进制、Unix 
 
 终端会话要求账户已经完成初始密码修改、具有管理员角色，并在每次开启前重新验证当前密码。待连接会话只在 API 进程内保存 30 秒且只能消费一次；第一版不支持 API 多实例间转移或断线重连。
 
+C# Controller 只负责终端 HTTP/WebSocket 升级检查、授权策略和响应映射；Application 层 `ITerminalSessionService` 负责功能开关、密码重新认证以及一次性待连接会话的创建和消费，底层 `ITerminalSessionStore` 不直接暴露给 Controller；API 传输层 `ITerminalWebSocketRelay` 独立负责浏览器与 broker 的有界双向转发、控制消息、空闲和最长时限、关闭握手及字节统计。
+
 ## 2. 安装
 
 构建并安装 broker：

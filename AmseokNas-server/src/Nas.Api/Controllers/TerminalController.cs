@@ -1,17 +1,15 @@
 //--------------------------//
-//--------鉴权并转发有界 Web Terminal 会话---------//
-//--------Authorizes and relays bounded Web Terminal sessions--------//
+//--------鉴权并映射 Web Terminal HTTP 与 WebSocket 边界---------//
+//--------Authorizes and maps Web Terminal HTTP and WebSocket boundaries--------//
 //-------------------------//
-using System.Buffers;
 using System.Net.Sockets;
-using System.Net.WebSockets;
 using System.Security.Claims;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Nas.Api.Contracts;
+using Nas.Api.Terminal;
 using Nas.Application.Authentication;
 using Nas.Application.Terminal;
 
@@ -21,15 +19,13 @@ namespace Nas.Api.Controllers;
 [Authorize(Policy = AuthenticationDefaults.TerminalAccessPolicy)]
 [Route("api/terminal")]
 public sealed class TerminalController(
-    IAuthenticationService authentication,
-    ITerminalSessionStore sessions,
+    ITerminalSessionService terminalSessions,
     ITerminalBrokerClient broker,
+    ITerminalWebSocketRelay relay,
     IOptions<TerminalOptions> options,
     ILogger<TerminalController> logger) : ControllerBase
 {
     private const string WebSocketSubProtocol = "amseoknas-terminal.v1";
-    private const int MaximumInputMessageBytes = 64 * 1024;
-    private const int MaximumControlMessageBytes = 4 * 1024;
 
     [HttpPost("sessions")]
     [ValidateAntiForgeryToken]
@@ -38,21 +34,31 @@ public sealed class TerminalController(
         CreateTerminalSessionRequest request,
         CancellationToken cancellationToken)
     {
-        if (!options.Value.Enabled)
-        {
-            return TerminalUnavailable("Web Terminal 当前未启用");
-        }
-
         var userId = GetCurrentUserId();
         if (userId is null)
         {
             return Unauthorized();
         }
 
-        if (!await authentication.VerifyPasswordAsync(
-                userId.Value,
-                request.Password,
-                cancellationToken))
+        var outcome = await terminalSessions.CreateAsync(
+            userId.Value,
+            request.Password,
+            request.Columns,
+            request.Rows,
+            cancellationToken);
+
+        if (outcome is TerminalSessionCreationRejected
+            {
+                Failure: TerminalSessionCreationFailure.Disabled
+            })
+        {
+            return TerminalUnavailable("Web Terminal 当前未启用");
+        }
+
+        if (outcome is TerminalSessionCreationRejected
+            {
+                Failure: TerminalSessionCreationFailure.ReauthenticationFailed
+            })
         {
             logger.LogWarning(
                 "Terminal session reauthentication failed for user {UserId}",
@@ -67,7 +73,10 @@ public sealed class TerminalController(
                 });
         }
 
-        var session = sessions.Create(userId.Value, request.Columns, request.Rows);
+        var session = outcome is TerminalSessionCreated created
+            ? created.Session
+            : throw new InvalidOperationException(
+                "Terminal session service returned an unknown outcome");
         logger.LogInformation(
             "Terminal session {SessionId} was authorized for user {UserId} from {RemoteAddress}",
             session.Id,
@@ -86,7 +95,7 @@ public sealed class TerminalController(
         Guid sessionId,
         CancellationToken cancellationToken)
     {
-        if (!options.Value.Enabled)
+        if (!terminalSessions.IsEnabled)
         {
             return TerminalUnavailable("Web Terminal 当前未启用");
         }
@@ -117,8 +126,18 @@ public sealed class TerminalController(
             return Unauthorized();
         }
 
-        var pending = sessions.Consume(sessionId, userId.Value);
-        if (pending is null)
+        var consumption = terminalSessions.Consume(sessionId, userId.Value);
+        if (consumption is TerminalSessionConsumptionRejected
+            {
+                Failure: TerminalSessionConsumptionFailure.Disabled
+            })
+        {
+            return TerminalUnavailable("Web Terminal 当前未启用");
+        }
+        if (consumption is TerminalSessionConsumptionRejected
+            {
+                Failure: TerminalSessionConsumptionFailure.Unavailable
+            })
         {
             return Problem(
                 statusCode: StatusCodes.Status410Gone,
@@ -129,6 +148,10 @@ public sealed class TerminalController(
                 });
         }
 
+        var pending = consumption is TerminalSessionConsumed consumed
+            ? consumed.Session
+            : throw new InvalidOperationException(
+                "Terminal session service returned an unknown outcome");
         ITerminalBrokerSession brokerSession;
         try
         {
@@ -150,231 +173,14 @@ public sealed class TerminalController(
         await using (brokerSession)
         using (var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync(WebSocketSubProtocol))
         {
-            await RelaySessionAsync(webSocket, brokerSession, pending, cancellationToken);
+            await relay.RelayAsync(
+                webSocket,
+                brokerSession,
+                pending.Id,
+                cancellationToken);
         }
 
         return new EmptyResult();
-    }
-
-    private async Task RelaySessionAsync(
-        WebSocket webSocket,
-        ITerminalBrokerSession brokerSession,
-        PendingTerminalSession session,
-        CancellationToken requestCancellationToken)
-    {
-        using var absoluteTimeout = new CancellationTokenSource(
-            TimeSpan.FromMinutes(options.Value.MaximumSessionMinutes));
-        using var idleTimeout = new CancellationTokenSource(
-            TimeSpan.FromMinutes(options.Value.IdleTimeoutMinutes));
-        using var relayCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-            requestCancellationToken,
-            absoluteTimeout.Token,
-            idleTimeout.Token);
-        long inputBytes = 0;
-        long outputBytes = 0;
-
-        void ReportActivity() => idleTimeout.CancelAfter(
-            TimeSpan.FromMinutes(options.Value.IdleTimeoutMinutes));
-
-        var inputTask = RelayBrowserInputAsync(
-            webSocket,
-            brokerSession,
-            ReportActivity,
-            count => Interlocked.Add(ref inputBytes, count),
-            relayCancellation.Token);
-        var outputTask = RelayBrokerOutputAsync(
-            brokerSession,
-            webSocket,
-            ReportActivity,
-            count => Interlocked.Add(ref outputBytes, count),
-            relayCancellation.Token);
-
-        string outcome;
-        try
-        {
-            await Task.WhenAny(inputTask, outputTask);
-            relayCancellation.Cancel();
-            await brokerSession.CloseAsync(CancellationToken.None);
-            await ObserveRelayTaskAsync(inputTask);
-            await ObserveRelayTaskAsync(outputTask);
-            outcome = absoluteTimeout.IsCancellationRequested
-                ? "MaximumDuration"
-                : idleTimeout.IsCancellationRequested
-                    ? "IdleTimeout"
-                    : "Closed";
-        }
-        catch (Exception exception)
-        {
-            outcome = "Failed";
-            logger.LogWarning(
-                exception,
-                "Terminal session {SessionId} relay failed",
-                session.Id);
-        }
-
-        if (webSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
-        {
-            try
-            {
-                await webSocket.CloseAsync(
-                    WebSocketCloseStatus.NormalClosure,
-                    "Terminal session ended",
-                    CancellationToken.None);
-            }
-            catch (WebSocketException)
-            {
-                // The browser may already have disconnected.
-            }
-        }
-
-        logger.LogInformation(
-            "Terminal session {SessionId} ended with {Outcome}; input {InputBytes} bytes, output {OutputBytes} bytes",
-            session.Id,
-            outcome,
-            inputBytes,
-            outputBytes);
-    }
-
-    private static async Task RelayBrowserInputAsync(
-        WebSocket webSocket,
-        ITerminalBrokerSession brokerSession,
-        Action reportActivity,
-        Action<int> reportBytes,
-        CancellationToken cancellationToken)
-    {
-        var buffer = ArrayPool<byte>.Shared.Rent(16 * 1024);
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested && webSocket.State == WebSocketState.Open)
-            {
-                using var message = new MemoryStream();
-                WebSocketReceiveResult result;
-                do
-                {
-                    result = await webSocket.ReceiveAsync(buffer, cancellationToken);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        return;
-                    }
-
-                    var limit = result.MessageType == WebSocketMessageType.Binary
-                        ? MaximumInputMessageBytes
-                        : MaximumControlMessageBytes;
-                    if (message.Length + result.Count > limit)
-                    {
-                        throw new InvalidDataException("Terminal WebSocket message exceeds its limit");
-                    }
-                    message.Write(buffer, 0, result.Count);
-                }
-                while (!result.EndOfMessage);
-
-                reportActivity();
-                if (result.MessageType == WebSocketMessageType.Binary)
-                {
-                    var data = message.ToArray();
-                    if (data.Length > 0)
-                    {
-                        await brokerSession.SendInputAsync(data, cancellationToken);
-                        reportBytes(data.Length);
-                    }
-                    continue;
-                }
-
-                var control = JsonSerializer.Deserialize(
-                    message.ToArray(),
-                    TerminalApiJsonContext.Default.TerminalClientControlMessage);
-                switch (control)
-                {
-                    case TerminalResizeMessage resize
-                        when resize.Columns is >= 20 and <= 300
-                            && resize.Rows is >= 5 and <= 120:
-                        await brokerSession.ResizeAsync(
-                            resize.Columns,
-                            resize.Rows,
-                            cancellationToken);
-                        break;
-                    case TerminalCloseMessage:
-                        return;
-                    default:
-                        throw new InvalidDataException("Terminal control message is invalid");
-                }
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
-    }
-
-    private static async Task RelayBrokerOutputAsync(
-        ITerminalBrokerSession brokerSession,
-        WebSocket webSocket,
-        Action reportActivity,
-        Action<int> reportBytes,
-        CancellationToken cancellationToken)
-    {
-        await foreach (var brokerEvent in brokerSession.ReadEventsAsync(cancellationToken))
-        {
-            reportActivity();
-            switch (brokerEvent)
-            {
-                case TerminalOutput output:
-                    await webSocket.SendAsync(
-                        output.Data,
-                        WebSocketMessageType.Binary,
-                        endOfMessage: true,
-                        cancellationToken);
-                    reportBytes(output.Data.Length);
-                    break;
-                case TerminalExited exited:
-                    await SendControlMessageAsync(
-                        webSocket,
-                        new TerminalServerControlMessage("exited", exited.ExitCode),
-                        cancellationToken);
-                    return;
-                case TerminalBrokerError error:
-                    await SendControlMessageAsync(
-                        webSocket,
-                        new TerminalServerControlMessage(
-                            "error",
-                            Code: error.Code,
-                            Message: error.Message),
-                        cancellationToken);
-                    return;
-            }
-        }
-    }
-
-    private static Task SendControlMessageAsync(
-        WebSocket webSocket,
-        TerminalServerControlMessage message,
-        CancellationToken cancellationToken)
-    {
-        var payload = JsonSerializer.SerializeToUtf8Bytes(
-            message,
-            TerminalApiJsonContext.Default.TerminalServerControlMessage);
-        return webSocket.SendAsync(
-            payload,
-            WebSocketMessageType.Text,
-            endOfMessage: true,
-            cancellationToken);
-    }
-
-    private static async Task ObserveRelayTaskAsync(Task task)
-    {
-        try
-        {
-            await task;
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (WebSocketException)
-        {
-        }
-        catch (IOException)
-        {
-        }
     }
 
     private bool IsAllowedOrigin(string origin)

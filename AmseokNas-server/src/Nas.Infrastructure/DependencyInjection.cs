@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Nas.Application.Authentication;
 using Nas.Application.Terminal;
 using Nas.Infrastructure.Authentication;
@@ -116,6 +117,11 @@ public static class DependencyInjection
         services.AddScoped<IUserClaimsPrincipalFactory<NasUser>, NasUserClaimsPrincipalFactory>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITerminalSessionStore, InMemoryTerminalSessionStore>();
+        services.AddScoped<ITerminalSessionService>(provider =>
+            new TerminalSessionService(
+                provider.GetRequiredService<IAuthenticationService>(),
+                provider.GetRequiredService<ITerminalSessionStore>(),
+                provider.GetRequiredService<IOptions<TerminalOptions>>().Value));
         services.AddSingleton<ITerminalBrokerClient, UnixSocketTerminalBrokerClient>();
         services.AddSingleton<IPrivilegedClient, UnixSocketPrivilegedClient>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();

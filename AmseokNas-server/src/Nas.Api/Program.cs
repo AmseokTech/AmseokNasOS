@@ -10,6 +10,7 @@ using Nas.Infrastructure.ClusterServices;
 using Nas.Infrastructure.Persistence.Cluster;
 using Nas.Infrastructure.Persistence.Node;
 using Nas.Domain.Permissions;
+using Nas.Api.Terminal;
 
 //--------------------------//
 //--------API 入口只装配控制面 HTTP 管道---------//
@@ -92,6 +93,7 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 builder.Services.AddProblemDetails();
+builder.Services.AddSingleton<ITerminalWebSocketRelay, TerminalWebSocketRelay>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

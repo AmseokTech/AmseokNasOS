@@ -373,6 +373,8 @@ Web SSH 不属于磁盘 privileged daemon。终端允许用户输入任意命令
 
 C# 负责 Web 认证、重新认证、会话、并发限制、空闲超时和审计。终端 broker 只负责 PTY 生命周期、窗口尺寸和低权限 shell，不与 `amseoknas-privileged` 共用二进制、socket、Linux 用户或 systemd unit。默认不提供 root shell，提权由独立、明确的 sudo 策略控制。
 
+当前 C# API 中，`TerminalController` 只处理授权、Origin、子协议、WebSocket 升级和 HTTP 结果映射；`ITerminalSessionService` 编排重新认证与一次性授权会话，`ITerminalWebSocketRelay` 负责浏览器和 broker 之间的有界双向转发及超时关闭，`ITerminalBrokerClient` 封装独立 Unix Socket 协议。
+
 当前已按该边界建立 `AmseokNas-terminal` 独立 Rust broker、C# WebSocket Gateway，以及由 Material Dialog 承载的 Angular xterm.js 终端。测试机已完成独立 Linux 账户、systemd 沙箱、异常自动重启、Unix Socket/PTY 和跨权限访问验证，并通过 HTTPS Angular 开发代理启用；仍需使用当前 Web 管理员账户完成浏览器重新认证与 WebSocket 交互端到端验证，生产 Nginx 长连接也尚未验证。部署约束见 `AmseokNas-docs/web-terminal.md`。
 
 ## 12. 推荐实现结构
