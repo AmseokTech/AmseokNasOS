@@ -23,6 +23,48 @@ public sealed record PendingTerminalSession(
     ushort Rows,
     DateTimeOffset ExpiresAt);
 
+public enum TerminalSessionCreationFailure
+{
+    Disabled,
+    ReauthenticationFailed
+}
+
+public abstract record TerminalSessionCreationOutcome;
+
+public sealed record TerminalSessionCreated(PendingTerminalSession Session)
+    : TerminalSessionCreationOutcome;
+
+public sealed record TerminalSessionCreationRejected(TerminalSessionCreationFailure Failure)
+    : TerminalSessionCreationOutcome;
+
+public enum TerminalSessionConsumptionFailure
+{
+    Disabled,
+    Unavailable
+}
+
+public abstract record TerminalSessionConsumptionOutcome;
+
+public sealed record TerminalSessionConsumed(PendingTerminalSession Session)
+    : TerminalSessionConsumptionOutcome;
+
+public sealed record TerminalSessionConsumptionRejected(TerminalSessionConsumptionFailure Failure)
+    : TerminalSessionConsumptionOutcome;
+
+public interface ITerminalSessionService
+{
+    bool IsEnabled { get; }
+
+    Task<TerminalSessionCreationOutcome> CreateAsync(
+        Guid userId,
+        string password,
+        ushort columns,
+        ushort rows,
+        CancellationToken cancellationToken);
+
+    TerminalSessionConsumptionOutcome Consume(Guid sessionId, Guid userId);
+}
+
 public interface ITerminalSessionStore
 {
     PendingTerminalSession Create(Guid userId, ushort columns, ushort rows);

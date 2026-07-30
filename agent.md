@@ -12,15 +12,15 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-24
+最后检查日期：2026-07-30
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口管理已建立，支持最小化、最大化/还原、关闭、拖动、缩放和布局持久化，并已接入只读系统设置窗口，Dashboard 和磁盘列表仍未实现；C# 与 Rust 特权边界已完成首批“关于本机”和物理网卡只读查询代码闭环，但尚未安装到测试机，DHCP/固定 IP 写入仍保持关闭；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；Data Protection 外部密钥保护尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口管理已建立，支持最小化、最大化/还原、关闭、拖动、缩放和布局持久化，并已接入只读系统设置窗口，Dashboard 和磁盘列表仍未实现；C# 与 Rust 特权边界已完成首批“关于本机”和物理网卡只读查询代码闭环，但尚未安装到测试机，DHCP/固定 IP 写入仍保持关闭；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；终端重新认证与一次性会话流程已从 Controller 移入 Application 用例，浏览器与 broker 的双向转发也已移入独立 API Relay，但本工作区缺少 .NET 工具链，新增拆分与测试尚待实际构建验证；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:AmseokTech/AmseokOS.git`
-- 当前开发基线提交为 `8624e97 build(ci): 完善分层质量检测与安全扫描`
+- 当前开发基线提交为 `bfb666a web(fix):修复dock无法打开设置页面以及AmseokOS显示位置`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
@@ -62,9 +62,11 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已实现首批 C# 与 Rust 只读系统信息链路：Rust daemon 只登记 `system.getAbout` 和 `network.inspectInterfaces`，不接受任意命令或参数，要求显式 API 服务 UID、校验 Socket 目录 owner/mode 与 peer credentials，并从 `/proc`、`/sys`、`/run` 和文件系统接口读取信息；C# 增加 `system.read` 权限迁移、独立授权策略、超时 Unix Socket 客户端和只读 API，原始 daemon 诊断不直接暴露给浏览器；部署草案使用独立低权限账户、无 capabilities、`NoNewPrivileges`、严格文件系统保护和仅 AF_UNIX/AF_NETLINK。Rust 格式化、Clippy、8 项测试、Release 构建和真实本机 Socket 查询通过；.NET Release 构建 0 警告/0 错误、10 项测试和 EF 无待生成迁移通过；Angular 29 项测试与生产构建通过；NuGet 与前端生产依赖扫描未发现已知漏洞
 - 已在本地验证新增质量门禁：GitHub Actions 两个工作流通过 YAML 解析、Actionlint 和空白检查；Angular ESLint 0 告警、29 项测试通过，语句/分支/函数/行覆盖率分别为 65.6%/49.83%/69.06%/64.87%，配置的最低门槛为 60%/45%/60%/60%，生产构建和生产依赖审计通过；.NET 解决方案与测试项目格式/分析器检查通过，警告即错误的 Release 构建为 0 警告/0 错误，10 项测试和 Cobertura 报告通过，EF 无待生成迁移，NuGet 直接与传递依赖无已知漏洞；两套 Rust 格式、Clippy、全特性 4/8 项测试和 Release 构建通过。开发机没有 Docker，Compose/systemd 完整环境校验、固定版本 `cargo-audit`、依赖变更审查和 CodeQL 需由 GitHub Actions 首次运行确认
 - 已针对 Dock 点击“系统设置”未见窗口的问题完成端到端链路核对：测试机当前 Web Release `20260724T075839Z` 已包含 `windowAppId: settings`、设置懒加载块和 WindowManager 打开逻辑，本地测试改为真实点击 Dock 按钮并确认 WindowHost 渲染“系统设置 窗口”和设置布局，完整前端门禁通过。测试机 Nginx 当前未为 `index.html` 设置 `Cache-Control`，部署前已经打开的浏览器标签仍会继续运行旧 JavaScript；旧实现点击设置只更新顶部标题而不创建窗口，需强制刷新后加载当前哈希资源。浏览器强制刷新后的人工结果仍待用户确认
+- 已按 Application 用例边界拆分 Web Terminal 会话授权：新增 `ITerminalSessionService` 与明确的创建/消费结果类型，集中处理终端开关、密码重新认证、一次性会话创建和消费；`TerminalController` 不再直接编排 `IAuthenticationService` 与 `ITerminalSessionStore`，只保留 HTTP/WebSocket 协议检查和响应映射；新增 3 项用例测试覆盖禁用、重新认证失败、成功创建及一次性消费。拆分时工作区未包含 Git 元数据且未安装 .NET 工具链，本次仅完成静态检查，构建和测试执行仍待验证
+- 已将 Web Terminal 双向转发从 `TerminalController` 拆入 API 传输层 `ITerminalWebSocketRelay`：Relay 集中管理浏览器输入、broker 输出、控制消息、帧大小、空闲和最长时限、关闭握手及字节统计，Controller 只建立经过检查的 WebSocket 与 broker 会话后委托转发；新增 2 项 Relay 测试覆盖输入/resize/close 和输出/exit 两个方向。当前工作区仍无 .NET 工具链，本次新增代码和累计 15 项 xUnit 测试尚待实际构建执行
 - Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon 测试机安装、物理磁盘查询和网络安全写入仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：观察 `devkihon` 首次 GitHub Actions 运行，确认 Compose/systemd、依赖变更审查、固定版本 `cargo-audit` 和 CodeQL 在托管 Runner 上通过；随后在独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。之后再设计网络写入阶段：必须先完成 `network.manage` 授权、重新认证、配置预览、稳定网卡 ID、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation 与审计，不得直接把当前禁用按钮接到写配置动作。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
+下一建议工作项：先在具备 .NET 10 SDK 的仓库工作区运行格式、警告即错误构建和全部 15 项 xUnit 测试，确认 Web Terminal 会话用例与 Relay 拆分通过，并补一次真实 HTTP 创建会话和 WebSocket 双向交互回归；随后观察 `devkihon` 首次 GitHub Actions 运行，确认 Compose/systemd、依赖变更审查、固定版本 `cargo-audit` 和 CodeQL 在托管 Runner 上通过；再由独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。之后再设计网络写入阶段：必须先完成 `network.manage` 授权、重新认证、配置预览、稳定网卡 ID、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation 与审计，不得直接把当前禁用按钮接到写配置动作。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
