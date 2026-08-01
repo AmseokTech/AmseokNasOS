@@ -20,6 +20,8 @@ terminal broker 不属于 `amseoknas-privileged`，不得共享二进制、Unix 
 
 C# Controller 只负责终端 HTTP/WebSocket 升级检查、授权策略和响应映射；Application 层 `ITerminalSessionService` 负责功能开关、密码重新认证以及一次性待连接会话的创建和消费，底层 `ITerminalSessionStore` 不直接暴露给 Controller；API 传输层 `ITerminalWebSocketRelay` 独立负责浏览器与 broker 的有界双向转发、控制消息、空闲和最长时限、关闭握手及字节统计。
 
+Relay 在会话结束后为 broker、转发任务和 WebSocket 关闭共用 5 秒关闭预算；关闭握手被取消时会中止 WebSocket。超大消息、无效 JSON 和非法控制消息分别使用 `MessageTooBig`、`InvalidPayloadData` 或 `PolicyViolation` 关闭码，并记录为协议违规而非正常退出。
+
 ## 2. 安装
 
 构建并安装 broker：

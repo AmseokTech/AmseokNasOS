@@ -22,10 +22,12 @@ public interface ITerminalWebSocketRelay
 
 public sealed class TerminalWebSocketRelay(
     IOptions<TerminalOptions> options,
+    TimeProvider timeProvider,
     ILogger<TerminalWebSocketRelay> logger) : ITerminalWebSocketRelay
 {
     private const int MaximumInputMessageBytes = 64 * 1024;
     private const int MaximumControlMessageBytes = 4 * 1024;
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
 
     public async Task RelayAsync(
         WebSocket webSocket,
@@ -34,9 +36,11 @@ public sealed class TerminalWebSocketRelay(
         CancellationToken cancellationToken)
     {
         using var absoluteTimeout = new CancellationTokenSource(
-            TimeSpan.FromMinutes(options.Value.MaximumSessionMinutes));
+            TimeSpan.FromMinutes(options.Value.MaximumSessionMinutes),
+            timeProvider);
         using var idleTimeout = new CancellationTokenSource(
-            TimeSpan.FromMinutes(options.Value.IdleTimeoutMinutes));
+            TimeSpan.FromMinutes(options.Value.IdleTimeoutMinutes),
+            timeProvider);
         using var relayCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             absoluteTimeout.Token,
@@ -60,48 +64,57 @@ public sealed class TerminalWebSocketRelay(
             count => Interlocked.Add(ref outputBytes, count),
             relayCancellation.Token);
 
-        string outcome;
+        var completedTask = await Task.WhenAny(inputTask, outputTask);
+        var completion = await ClassifyCompletionAsync(
+            completedTask,
+            cancellationToken,
+            absoluteTimeout,
+            idleTimeout);
+        relayCancellation.Cancel();
+
+        using var shutdownTimeout = new CancellationTokenSource(
+            ShutdownTimeout,
+            timeProvider);
+        using var shutdownCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            shutdownTimeout.Token);
+        var observeRelayTasks = ObserveRelayTasksAsync(inputTask, outputTask);
+
+        await CloseBrokerAsync(
+            brokerSession,
+            sessionId,
+            shutdownCancellation.Token);
         try
         {
-            await Task.WhenAny(inputTask, outputTask);
-            relayCancellation.Cancel();
-            await brokerSession.CloseAsync(CancellationToken.None);
-            await ObserveRelayTaskAsync(inputTask);
-            await ObserveRelayTaskAsync(outputTask);
-            outcome = absoluteTimeout.IsCancellationRequested
-                ? "MaximumDuration"
-                : idleTimeout.IsCancellationRequested
-                    ? "IdleTimeout"
-                    : "Closed";
+            await observeRelayTasks.WaitAsync(shutdownCancellation.Token);
         }
-        catch (Exception exception)
+        catch (OperationCanceledException)
+            when (shutdownCancellation.IsCancellationRequested)
         {
-            outcome = "Failed";
             logger.LogWarning(
-                exception,
-                "Terminal session {SessionId} relay failed",
+                "Terminal session {SessionId} relay tasks did not finish before shutdown cancellation",
                 sessionId);
         }
 
-        if (webSocket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+        await CloseWebSocketAsync(
+            webSocket,
+            completion,
+            sessionId,
+            shutdownCancellation.Token);
+
+        if (completion.Failure is not null)
         {
-            try
-            {
-                await webSocket.CloseAsync(
-                    WebSocketCloseStatus.NormalClosure,
-                    "Terminal session ended",
-                    CancellationToken.None);
-            }
-            catch (WebSocketException)
-            {
-                // The browser may already have disconnected.
-            }
+            logger.LogWarning(
+                completion.Failure,
+                "Terminal session {SessionId} relay ended because {Outcome}",
+                sessionId,
+                completion.Outcome);
         }
 
         logger.LogInformation(
             "Terminal session {SessionId} ended with {Outcome}; input {InputBytes} bytes, output {OutputBytes} bytes",
             sessionId,
-            outcome,
+            completion.Outcome,
             inputBytes,
             outputBytes);
     }
@@ -136,7 +149,8 @@ public sealed class TerminalWebSocketRelay(
                         : MaximumControlMessageBytes;
                     if (message.Length + result.Count > limit)
                     {
-                        throw new InvalidDataException(
+                        throw new TerminalWebSocketProtocolException(
+                            WebSocketCloseStatus.MessageTooBig,
                             "Terminal WebSocket message exceeds its limit");
                     }
                     message.Write(buffer, 0, result.Count);
@@ -155,9 +169,20 @@ public sealed class TerminalWebSocketRelay(
                     continue;
                 }
 
-                var control = JsonSerializer.Deserialize(
-                    message.ToArray(),
-                    TerminalApiJsonContext.Default.TerminalClientControlMessage);
+                TerminalClientControlMessage? control;
+                try
+                {
+                    control = JsonSerializer.Deserialize(
+                        message.ToArray(),
+                        TerminalApiJsonContext.Default.TerminalClientControlMessage);
+                }
+                catch (JsonException exception)
+                {
+                    throw new TerminalWebSocketProtocolException(
+                        WebSocketCloseStatus.InvalidPayloadData,
+                        "Terminal control message contains invalid JSON",
+                        exception);
+                }
                 switch (control)
                 {
                     case TerminalResizeMessage resize
@@ -171,7 +196,8 @@ public sealed class TerminalWebSocketRelay(
                     case TerminalCloseMessage:
                         return;
                     default:
-                        throw new InvalidDataException(
+                        throw new TerminalWebSocketProtocolException(
+                            WebSocketCloseStatus.PolicyViolation,
                             "Terminal control message is invalid");
                 }
             }
@@ -236,20 +262,151 @@ public sealed class TerminalWebSocketRelay(
             cancellationToken);
     }
 
-    private static async Task ObserveRelayTaskAsync(Task task)
+    private static async Task<RelayCompletion> ClassifyCompletionAsync(
+        Task completedTask,
+        CancellationToken requestCancellationToken,
+        CancellationTokenSource absoluteTimeout,
+        CancellationTokenSource idleTimeout)
     {
         try
         {
-            await task;
+            await completedTask;
         }
         catch (OperationCanceledException)
+            when (requestCancellationToken.IsCancellationRequested
+                || absoluteTimeout.IsCancellationRequested
+                || idleTimeout.IsCancellationRequested)
         {
+        }
+        catch (TerminalWebSocketProtocolException exception)
+        {
+            return new RelayCompletion(
+                "ProtocolViolation",
+                exception.CloseStatus,
+                exception.Message,
+                exception);
         }
         catch (WebSocketException)
         {
+            return new RelayCompletion(
+                "Disconnected",
+                WebSocketCloseStatus.NormalClosure,
+                "Terminal client disconnected");
         }
-        catch (IOException)
+        catch (Exception exception)
         {
+            return new RelayCompletion(
+                "Failed",
+                WebSocketCloseStatus.InternalServerError,
+                "Terminal transport failed",
+                exception);
         }
+
+        return absoluteTimeout.IsCancellationRequested
+            ? new RelayCompletion(
+                "MaximumDuration",
+                WebSocketCloseStatus.NormalClosure,
+                "Terminal maximum duration reached")
+            : idleTimeout.IsCancellationRequested
+                ? new RelayCompletion(
+                    "IdleTimeout",
+                    WebSocketCloseStatus.NormalClosure,
+                    "Terminal idle timeout reached")
+                : requestCancellationToken.IsCancellationRequested
+                    ? new RelayCompletion(
+                        "RequestCancelled",
+                        WebSocketCloseStatus.EndpointUnavailable,
+                        "Terminal request ended")
+                    : new RelayCompletion(
+                        "Closed",
+                        WebSocketCloseStatus.NormalClosure,
+                        "Terminal session ended");
+    }
+
+    private async Task CloseBrokerAsync(
+        ITerminalBrokerSession brokerSession,
+        Guid sessionId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await brokerSession.CloseAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(
+                "Terminal session {SessionId} broker close was cancelled before completion",
+                sessionId);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Terminal session {SessionId} broker close failed",
+                sessionId);
+        }
+    }
+
+    private async Task CloseWebSocketAsync(
+        WebSocket webSocket,
+        RelayCompletion completion,
+        Guid sessionId,
+        CancellationToken cancellationToken)
+    {
+        if (webSocket.State is not (WebSocketState.Open or WebSocketState.CloseReceived))
+        {
+            return;
+        }
+
+        try
+        {
+            await webSocket.CloseAsync(
+                completion.CloseStatus,
+                completion.CloseDescription,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            webSocket.Abort();
+            logger.LogWarning(
+                "Terminal session {SessionId} WebSocket close was cancelled and aborted",
+                sessionId);
+        }
+        catch (WebSocketException)
+        {
+            // The browser may already have disconnected without completing the handshake.
+            webSocket.Abort();
+        }
+    }
+
+    private static async Task ObserveRelayTasksAsync(params Task[] tasks)
+    {
+        foreach (var task in tasks)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception)
+            {
+                // The first completion was classified; remaining failures follow relay cancellation.
+            }
+        }
+    }
+
+    private sealed record RelayCompletion(
+        string Outcome,
+        WebSocketCloseStatus CloseStatus,
+        string CloseDescription,
+        Exception? Failure = null);
+
+    private sealed class TerminalWebSocketProtocolException(
+        WebSocketCloseStatus closeStatus,
+        string message,
+        Exception? innerException = null) : Exception(message, innerException)
+    {
+        public WebSocketCloseStatus CloseStatus { get; } = closeStatus;
     }
 }
