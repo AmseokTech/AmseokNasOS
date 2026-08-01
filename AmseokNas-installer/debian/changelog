@@ -1,0 +1,5 @@
+amseokos-installer (0.1.0) unstable; urgency=medium
+
+  * Add the initial read-only installer architecture scaffold.
+
+ -- AmseokOS Maintainers <maintainers@amseokos.invalid>  Sat, 01 Aug 2026 00:00:00 +0800

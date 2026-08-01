@@ -1,0 +1,19 @@
+#!/bin/sh
+#--------------------------#
+#--------固定 Debian trixie amd64 Live 镜像构建入口---------#
+#--------Pins the Debian trixie amd64 Live image configuration entry point--------#
+#-------------------------#
+set -eu
+
+lb config noauto \
+    --mode debian \
+    --distribution trixie \
+    --architectures amd64 \
+    --archive-areas "main non-free-firmware" \
+    --binary-images iso-hybrid \
+    --debian-installer none \
+    --image-name amseokos-installer-amd64 \
+    --iso-application "AmseokOS Installer" \
+    --iso-publisher "AmseokOS" \
+    --iso-volume "AMSEOKOS_INSTALL" \
+    --bootappend-live "boot=live components username=amseokos hostname=amseokos-installer locales=zh_CN.UTF-8 keyboard-layouts=us"
