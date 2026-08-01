@@ -12,6 +12,7 @@ public static class AuthenticationDefaults
     public const string TerminalAccessPolicy = "TerminalAccess";
     public const string SystemReadPolicy = "SystemRead";
     public const string NetworkReadPolicy = "NetworkRead";
+    public const string StorageReadPolicy = "StorageRead";
     public const string MustChangePasswordClaim = "amseoknas:must_change_password";
     public const string PermissionClaim = "amseoknas:permission";
 }

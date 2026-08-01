@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Nas.Api.Contracts;
 using Nas.Api.Controllers;
 using Nas.Application.Authentication;
+using Nas.Application.Privileged;
 using Nas.Application.SystemSettings;
 
 namespace Nas.Api.Tests;

@@ -1,8 +1,8 @@
 # AmseokNas C# 与 Rust 特权执行架构
 
-状态：第一阶段只读查询已开始实现；关于本机与物理网卡查询已完成，写操作尚未开放
+状态：第一阶段只读查询已开始实现；关于本机、物理网卡、物理块设备和现有 MD RAID 阵列查询代码已完成，写操作尚未开放
 
-最后确认日期：2026-07-24
+最后确认日期：2026-08-01
 
 ## 1. 设计结论
 
@@ -49,11 +49,11 @@ C# 继续承担完整控制面，而不是只负责数据库：
 - etcd Leader 租约、fencing token 和 NATS JetStream 节点调度
 - 幂等请求、并发版本、审计和结构化日志
 - 受管配置的期望内容生成和版本管理
-- 通过 `IPrivilegedClient` 调用 Rust daemon
+- 通过按用例拆分的 Application 客户端端口调用 Rust daemon
 - 将 Rust 的结构化结果映射为领域结果、持久化状态和前端通知
 - 服务重启后根据数据库记录和节点真实状态进行对账
 
-C# Controller 不得直接使用 `Process`、写系统配置或访问调用方提供的设备路径。系统能力应先进入 Application 用例；`IPrivilegedClient` 由 Application 定义，Infrastructure 提供 Unix Socket 实现。
+C# Controller 不得直接使用 `Process`、写系统配置或访问调用方提供的设备路径。系统能力应先进入 Application 用例；`ISystemSettingsClient`、`IStorageInventoryClient` 等按用例细分的端口由 Application 定义，Infrastructure 提供 Unix Socket 实现。
 
 ### 3.2 Rust 特权执行面
 
@@ -86,9 +86,9 @@ Rust 不重新实现 RAID、ext4 或 SMART 协议，而是安全封装经过版�
 
 | 能力 | 首选工具或来源 | 输出策略 |
 | --- | --- | --- |
-| 块设备拓扑 | `lsblk` | 优先 JSON |
-| 挂载关系 | `findmnt` | 优先 JSON |
-| udev 属性 | `udevadm` | 固定字段解析 |
+| 块设备拓扑 | `/sys/class/block`，后续按需补充 `lsblk` | 只读固定字段 |
+| 挂载关系 | `/proc/self/mountinfo`，后续按需补充 `findmnt` | 只读固定字段 |
+| udev 属性 | `/run/udev/data`，后续按需补充 `udevadm` | 固定字段解析 |
 | SMART | `smartctl` | 优先 JSON |
 | 分区 | `parted`、`sgdisk` | 固定子命令和参数 |
 | RAID | `mdadm` | 固定动作，优先 export/detail 输出 |
@@ -253,9 +253,13 @@ service.inspectManagedService
 ```text
 system.getAbout
 network.inspectInterfaces
+storage.inspectBlockDevices
+raid.inspectArrays
 ```
 
-两项动作只从受信任的 `/proc`、`/sys`、`/run` 和文件系统接口读取数据，不接受参数，也不执行外部命令。Rust 守护进程要求显式配置唯一允许的 API 进程 UID，并在 Unix Socket 上校验 peer credentials；C# 端通过独立的 `system.read` 与 `network.read` 权限策略开放 HTTP 查询。
+这些动作只从受信任的 `/proc`、`/sys`、`/run` 和文件系统接口读取数据，不接受参数，也不执行外部命令。块设备查询返回 WWN/序列号优先的身份、分区、直接挂载、swap 和 MD 成员标记；阵列查询返回级别、状态、UUID、成员、降级数和内核同步进度。`ID_PATH` 和内核主次设备号明确标记为非稳定身份，不能作为未来写操作的唯一目标凭据。Rust 守护进程要求显式配置唯一允许的 API 进程 UID，并在 Unix Socket 上校验 peer credentials；C# 端通过独立的 `system.read`、`network.read` 与 `storage.read` 权限策略开放 HTTP 查询。
+
+当前只读实现尚未完成 LVM、device-mapper、LUKS 等多层块设备上的传递式系统盘识别，也未执行 SMART 查询。第二阶段的任何写动作必须等待稳定身份解析、完整占用拓扑和系统盘保护测试完成，不能直接复用当前展示字段作为“可写”判断。
 
 第一阶段还可以继续提供不接触真实存储的受控测试动作，用于验证 socket、peer credentials、超时、取消、错误映射和协议兼容性。
 
@@ -387,11 +391,11 @@ AmseokNas-server/src/
     Operations/
     Errors/
   Nas.Application/
-    SystemStatus/
+    SystemSettings/
     Storage/
     Operations/
     Privileged/
-      IPrivilegedClient.cs
+      PrivilegedContracts.cs
   Nas.Infrastructure/
     Privileged/
       UnixSocketPrivilegedClient.cs
@@ -401,7 +405,7 @@ AmseokNas-server/src/
   Nas.Api/
 ```
 
-`IPrivilegedClient` 是 C# 与系统能力之间的应用端口。Infrastructure 实现该端口并封装 Socket、JSON 和 Rust 协议类型，Application 与 Domain 不依赖这些传输细节。
+按用例拆分的客户端接口是 C# 与系统能力之间的 Application 端口。Infrastructure 可以由一个 Unix Socket 适配器实现多个窄接口并封装 Socket、JSON 和 Rust 协议类型，Application 与 Domain 不依赖这些传输细节。
 
 ### 12.2 Rust
 
@@ -473,7 +477,7 @@ Rust 第一版建议使用最小依赖集合：
 
 1. 初始化 Rust workspace、格式化、Clippy、测试和 CI
 2. 建立 Unix Socket、peer credentials、长度分帧和版本化协议
-3. 在 C# 中建立 `IPrivilegedClient` 和超时、取消、错误映射
+3. 在 C# 中建立按用例拆分的特权查询端口和超时、取消、错误映射
 4. 实现无副作用的受控测试动作
 5. 实现系统状态、磁盘拓扑、挂载、SMART 和 RAID 只读查询
 6. 实现稳定设备 ID、系统盘保护和多层块设备测试
@@ -491,12 +495,14 @@ Rust 第一版建议使用最小依赖集合：
 
 ## 15. 当前实施状态
 
-截至 2026-07-22：
+截至 2026-08-01：
 
 - C# 控制面骨架、身份认证和 PostgreSQL/SQLite 基础已经存在
 - Domain 已定义统一 `OperationStatus`，权限中已包含 `storage.read`、`storage.format` 和 `raid.manage`
-- `AmseokNas-privileged` 仍只有占位目录
-- Rust workspace、Unix Socket 协议、`IPrivilegedClient`、系统状态和磁盘查询均未实现
+- `AmseokNas-privileged` 已建立 1 MiB 有界版本化 Unix Socket 协议、peer UID 校验和固定只读动作白名单，不提供任意命令执行入口
+- C# Application 已按系统设置与存储清单用例拆分客户端端口；Infrastructure 复用单一 Unix Socket 适配器；HTTP Controller 只负责 `storage.read` 授权、协议映射和脱敏错误响应
+- Rust 已实现 `system.getAbout`、`network.inspectInterfaces`、`storage.inspectBlockDevices` 和 `raid.inspectArrays`；新增存储与 RAID 模块已通过 `aarch64-unknown-linux-gnu` 的 `cargo check --tests` 和 Clippy `-D warnings`，本机 macOS 不能运行 Linux 专用 daemon 测试
+- C# 存储查询新增 7 项 Controller/协议测试并全部通过；除项目原有 macOS Unix Socket 长路径测试外的 22 项 xUnit 全部通过，解决方案格式验证通过
 - 独立 `AmseokNas-terminal` Rust workspace、C# WebSocket Gateway 和 Angular Material/xterm.js 弹窗已经实现并通过本地及测试机构建；测试机已验证独立账户、systemd 沙箱、服务保活、Unix Socket/PTY、秘密与网络隔离、权限迁移和未登录拦截，浏览器登录后的 WebSocket 交互以及生产 Nginx 长连接仍待验证；该实现不属于 privileged daemon
-- 当前开发环境已安装 Rust 1.97.1 toolchain，用于终端 broker 验证
-- 本文是实施约束和后续设计依据，不代表任何 Rust 或磁盘管理功能已经完成
+- 当前开发环境已安装 Rust 1.97.1 toolchain，并已补充 Linux 交叉检查目标和 Clippy 组件
+- 当前完成的是只读清单代码闭环，不代表 RAID 创建、删除、扩容、替换、文件系统或挂载功能已经完成

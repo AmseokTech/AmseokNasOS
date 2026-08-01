@@ -4,17 +4,17 @@
 //-------------------------//
 namespace Nas.Application.SystemSettings;
 
-public sealed class SystemSettingsService(IPrivilegedClient privilegedClient)
+public sealed class SystemSettingsService(ISystemSettingsClient settingsClient)
     : ISystemSettingsService
 {
     public Task<SystemAboutInformation> GetAboutAsync(CancellationToken cancellationToken)
     {
-        return privilegedClient.GetAboutAsync(cancellationToken);
+        return settingsClient.GetAboutAsync(cancellationToken);
     }
 
     public Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(
         CancellationToken cancellationToken)
     {
-        return privilegedClient.GetNetworkInterfacesAsync(cancellationToken);
+        return settingsClient.GetNetworkInterfacesAsync(cancellationToken);
     }
 }

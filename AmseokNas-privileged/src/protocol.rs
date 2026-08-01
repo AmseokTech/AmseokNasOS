@@ -122,6 +122,10 @@ fn process_request(request: RequestEnvelope, started: Instant) -> ResponseEnvelo
         "network.inspectInterfaces" => {
             inventory::network::inspect_interfaces().and_then(to_json_value)
         }
+        "storage.inspectBlockDevices" => {
+            inventory::storage::inspect_block_devices().and_then(to_json_value)
+        }
+        "raid.inspectArrays" => inventory::raid::inspect_arrays().and_then(to_json_value),
         _ => {
             return ResponseEnvelope::failure(
                 request.request_id,

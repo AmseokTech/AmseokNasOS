@@ -1,6 +1,8 @@
 //--------------------------//
-//--------只读采集当前节点的系统与网络实际状态---------//
-//--------Collects read-only system and network state for the current node--------//
+//--------只读采集当前节点的系统、网络与存储实际状态---------//
+//--------Collects read-only system, network, and storage state for the current node--------//
 //-------------------------//
 pub mod network;
+pub mod raid;
+pub mod storage;
 pub mod system;

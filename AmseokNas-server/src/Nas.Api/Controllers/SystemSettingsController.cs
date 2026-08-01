@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nas.Api.Contracts;
 using Nas.Application.Authentication;
+using Nas.Application.Privileged;
 using Nas.Application.SystemSettings;
 
 namespace Nas.Api.Controllers;
