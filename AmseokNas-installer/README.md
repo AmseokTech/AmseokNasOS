@@ -62,6 +62,13 @@ Linux 构建后运行：
 AmseokNas-installer/build/amseokos-installer --windowed
 ```
 
+无界面启动冒烟检查：
+
+```bash
+QT_QPA_PLATFORM=offscreen \
+  AmseokNas-installer/build/amseokos-installer --windowed --smoke-test
+```
+
 ## Debian 包与镜像
 
 以下命令必须在 Debian trixie amd64 构建机执行：

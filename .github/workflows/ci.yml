@@ -314,6 +314,11 @@ jobs:
       - name: Lint QML
         run: cmake --build build --target all_qmllint
 
+      - name: Smoke test QML startup
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./build/amseokos-installer --windowed --smoke-test
+
       - name: Run installer tests
         run: ctest --test-dir build --output-on-failure --no-tests=error
 

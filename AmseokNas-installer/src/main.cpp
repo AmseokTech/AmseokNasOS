@@ -10,10 +10,13 @@
 #include <QCommandLineParser>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQuickStyle>
+#include <QUrl>
 #include <QVariant>
 
 int main(int argc, char* argv[]) {
   QGuiApplication application(argc, argv);
+  QQuickStyle::setStyle(QStringLiteral("Basic"));
   QCoreApplication::setApplicationName("AmseokOS Installer");
   QCoreApplication::setApplicationVersion("0.1.0");
 
@@ -24,7 +27,11 @@ int main(int argc, char* argv[]) {
   const QCommandLineOption windowed_option(
       "windowed",
       "Run in a normal desktop window instead of installer full-screen mode");
+  const QCommandLineOption smoke_test_option(
+      "smoke-test",
+      "Load the QML interface and exit without entering the event loop");
   parser.addOption(windowed_option);
+  parser.addOption(smoke_test_option);
   parser.process(application);
 
   amseokos::installer::DisabledInstallationExecutor executor;
@@ -36,10 +43,15 @@ int main(int argc, char* argv[]) {
        QVariant::fromValue(static_cast<QObject*>(&session))},
       {"windowedPreview", parser.isSet(windowed_option)},
   });
-  engine.loadFromModule("AmseokOS.Installer", "Main");
+  engine.load(
+      QUrl(QStringLiteral("qrc:/qt/qml/AmseokOS/Installer/qml/Main.qml")));
 
   if (engine.rootObjects().isEmpty()) {
     return 1;
+  }
+
+  if (parser.isSet(smoke_test_option)) {
+    return 0;
   }
 
   return application.exec();
