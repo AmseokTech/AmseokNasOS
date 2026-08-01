@@ -6,13 +6,15 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Nas.Application.Privileged;
+using Nas.Application.Storage;
 using Nas.Application.SystemSettings;
 
 namespace Nas.Infrastructure.Privileged;
 
 public sealed class UnixSocketPrivilegedClient(
     IOptions<PrivilegedOptions> options,
-    TimeProvider timeProvider) : IPrivilegedClient
+    TimeProvider timeProvider) : ISystemSettingsClient, IStorageInventoryClient
 {
     private const ushort ProtocolVersion = 1;
     private const int MaximumFrameBytes = 1024 * 1024;
@@ -28,6 +30,22 @@ public sealed class UnixSocketPrivilegedClient(
     {
         return await SendAsync<NetworkInterfaceInformation[]>(
             "network.inspectInterfaces",
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<BlockDeviceInformation>> GetBlockDevicesAsync(
+        CancellationToken cancellationToken)
+    {
+        return await SendAsync<BlockDeviceInformation[]>(
+            "storage.inspectBlockDevices",
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<RaidArrayInformation>> GetRaidArraysAsync(
+        CancellationToken cancellationToken)
+    {
+        return await SendAsync<RaidArrayInformation[]>(
+            "raid.inspectArrays",
             cancellationToken);
     }
 

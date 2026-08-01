@@ -11,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nas.Application.Authentication;
+using Nas.Application.Privileged;
+using Nas.Application.Storage;
 using Nas.Application.Terminal;
 using Nas.Infrastructure.Authentication;
 using Nas.Infrastructure.ClusterServices;
@@ -123,8 +125,13 @@ public static class DependencyInjection
                 provider.GetRequiredService<ITerminalSessionStore>(),
                 provider.GetRequiredService<IOptions<TerminalOptions>>().Value));
         services.AddSingleton<ITerminalBrokerClient, UnixSocketTerminalBrokerClient>();
-        services.AddSingleton<IPrivilegedClient, UnixSocketPrivilegedClient>();
+        services.AddSingleton<UnixSocketPrivilegedClient>();
+        services.AddSingleton<ISystemSettingsClient>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        services.AddSingleton<IStorageInventoryClient>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<IStorageInventoryService, StorageInventoryService>();
 
         services.AddHttpClient("cluster-health", client =>
         {

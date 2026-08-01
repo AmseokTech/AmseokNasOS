@@ -1,17 +1,8 @@
 //--------------------------//
-//--------定义系统设置查询与特权客户端应用边界---------//
-//--------Defines system-settings queries and the privileged-client boundary--------//
+//--------定义系统设置查询与只读客户端应用边界---------//
+//--------Defines system-settings queries and their read-only client boundary--------//
 //-------------------------//
 namespace Nas.Application.SystemSettings;
-
-public sealed class PrivilegedOptions
-{
-    public const string SectionName = "Privileged";
-
-    public bool Enabled { get; init; }
-    public string SocketPath { get; init; } = "/run/amseoknas/privileged.sock";
-    public int TimeoutSeconds { get; init; } = 5;
-}
 
 public sealed record SystemAboutInformation(
     string HostName,
@@ -62,22 +53,10 @@ public interface ISystemSettingsService
         CancellationToken cancellationToken);
 }
 
-public interface IPrivilegedClient
+public interface ISystemSettingsClient
 {
     Task<SystemAboutInformation> GetAboutAsync(CancellationToken cancellationToken);
 
     Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(
         CancellationToken cancellationToken);
-}
-
-public sealed class PrivilegedClientException(
-    string code,
-    string message,
-    bool retryable,
-    Exception? innerException = null,
-    string? diagnosticMessage = null) : Exception(message, innerException)
-{
-    public string Code { get; } = code;
-    public bool Retryable { get; } = retryable;
-    public string? DiagnosticMessage { get; } = diagnosticMessage;
 }

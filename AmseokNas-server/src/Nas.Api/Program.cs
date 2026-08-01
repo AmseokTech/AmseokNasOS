@@ -55,6 +55,12 @@ builder.Services.AddAuthorization(options =>
             .RequireAuthenticatedUser()
             .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.NetworkRead)
             .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
+    options.AddPolicy(
+        AuthenticationDefaults.StorageReadPolicy,
+        policy => policy
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.StorageRead)
+            .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
 });
 builder.Services.AddAntiforgery(options =>
 {
