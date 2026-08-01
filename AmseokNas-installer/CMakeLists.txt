@@ -85,20 +85,32 @@ if(AMSEOKOS_ENABLE_DEVELOPER_PREVIEW)
     get_target_property(qt_qmake_executable Qt6::qmake IMPORTED_LOCATION)
     get_filename_component(qt_binary_directory "${qt_qmake_executable}" DIRECTORY)
     find_program(amseokos_qmlpreview_executable
-        NAMES qmlpreview
+        NAMES qmlpreview qmlpreview6
         HINTS "${qt_binary_directory}"
-        REQUIRED
     )
 
-    add_custom_target(developer-preview
-        COMMAND "${amseokos_qmlpreview_executable}"
-            "$<TARGET_FILE:amseokos-installer>"
-            --developer-preview
-        DEPENDS amseokos-installer
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        USES_TERMINAL
-        VERBATIM
-    )
+    if(amseokos_qmlpreview_executable)
+        add_custom_target(developer-preview
+            COMMAND "${amseokos_qmlpreview_executable}"
+                "$<TARGET_FILE:amseokos-installer>"
+                --developer-preview
+            DEPENDS amseokos-installer
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            USES_TERMINAL
+            VERBATIM
+        )
+    else()
+        message(STATUS
+            "qmlpreview was not found; preview builds remain available, but live reload requires Qt QML tooling"
+        )
+        add_custom_target(developer-preview
+            COMMAND "${CMAKE_COMMAND}" -E echo
+                "qmlpreview is required for live reload; install Qt QML tooling or add qmlpreview to PATH"
+            COMMAND "${CMAKE_COMMAND}" -E false
+            USES_TERMINAL
+            VERBATIM
+        )
+    endif()
 endif()
 
 install(TARGETS amseokos-installer

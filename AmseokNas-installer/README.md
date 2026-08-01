@@ -86,6 +86,8 @@ QT_CMAKE=/Users/goodgirlkihon/Qt/6.11.1/macos/bin/qt-cmake \
   AmseokNas-installer/scripts/preview.sh
 ```
 
+`qmlpreview` 只用于本地实时刷新。缺少该工具时仍可配置、构建并执行下面的无界面预览验证；只有 `developer-preview` 实时刷新目标会提示安装 Qt QML tooling。
+
 预览构建也可以单独执行无界面验证：
 
 ```bash
