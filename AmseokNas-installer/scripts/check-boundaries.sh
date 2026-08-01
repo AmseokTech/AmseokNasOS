@@ -5,7 +5,7 @@
 #-------------------------#
 set -eu
 
-installer_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+installer_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
 require_no_match() {
     pattern=$1

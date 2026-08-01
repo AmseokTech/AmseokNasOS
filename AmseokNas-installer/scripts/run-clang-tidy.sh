@@ -10,7 +10,7 @@ if [ "$#" -ne 1 ]; then
     exit 2
 fi
 
-installer_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+installer_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 build_directory=$1
 clang_tidy=${CLANG_TIDY:-clang-tidy}
 
@@ -25,7 +25,7 @@ if [ ! -f "$build_directory/compile_commands.json" ]; then
     exit 1
 fi
 
-build_directory=$(CDPATH= cd -- "$build_directory" && pwd)
+build_directory=$(CDPATH='' cd -- "$build_directory" && pwd)
 
 find "$installer_root/src" "$installer_root/tests" \
     -type f -name '*.cpp' -print0 \

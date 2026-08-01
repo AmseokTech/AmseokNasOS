@@ -281,6 +281,14 @@ jobs:
             cmake \
             live-build \
             ninja-build \
+            qml6-module-qtqml \
+            qml6-module-qtqml-models \
+            qml6-module-qtqml-workerscript \
+            qml6-module-qtquick \
+            qml6-module-qtquick-controls \
+            qml6-module-qtquick-layouts \
+            qml6-module-qtquick-templates \
+            qml6-module-qtquick-window \
             qt6-base-dev \
             qt6-declarative-dev \
             qt6-tools-dev-tools \
@@ -313,6 +321,11 @@ jobs:
 
       - name: Lint QML
         run: cmake --build build --target all_qmllint
+
+      - name: Smoke test QML startup
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./build/amseokos-installer --windowed --smoke-test
 
       - name: Run installer tests
         run: ctest --test-dir build --output-on-failure --no-tests=error

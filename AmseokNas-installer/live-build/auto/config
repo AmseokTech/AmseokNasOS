@@ -5,15 +5,26 @@
 #-------------------------#
 set -eu
 
+set --
+if lb config --usage 2>&1 | grep -q -- '--image-name'; then
+    binary_image_option=--binary-image
+    debian_installer=none
+    set -- --image-name amseokos-installer-amd64
+else
+    # Ubuntu 24.04 still ships live-build 3.0 with the old binary-images/false syntax.
+    binary_image_option=--binary-images
+    debian_installer=false
+fi
+
 lb config noauto \
     --mode debian \
     --distribution trixie \
     --architectures amd64 \
     --archive-areas "main non-free-firmware" \
-    --binary-images iso-hybrid \
-    --debian-installer none \
-    --image-name amseokos-installer-amd64 \
+    "$binary_image_option" iso-hybrid \
+    --debian-installer "$debian_installer" \
     --iso-application "AmseokOS Installer" \
     --iso-publisher "AmseokOS" \
     --iso-volume "AMSEOKOS_INSTALL" \
-    --bootappend-live "boot=live components username=amseokos hostname=amseokos-installer locales=zh_CN.UTF-8 keyboard-layouts=us"
+    --bootappend-live "boot=live components username=amseokos hostname=amseokos-installer locales=zh_CN.UTF-8 keyboard-layouts=us" \
+    "$@"

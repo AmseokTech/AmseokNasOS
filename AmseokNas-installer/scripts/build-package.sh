@@ -5,7 +5,7 @@
 #-------------------------#
 set -eu
 
-installer_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+installer_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
 if ! command -v dpkg-buildpackage >/dev/null 2>&1; then
     printf '%s\n' "dpkg-buildpackage is required; run this script on Debian trixie" >&2
