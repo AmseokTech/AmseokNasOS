@@ -327,6 +327,23 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: ./build/amseokos-installer --windowed --smoke-test
 
+      - name: Configure developer preview
+        run: >-
+          cmake -S . -B build-preview -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DAMSEOKOS_ENABLE_DEVELOPER_PREVIEW=ON
+          -DBUILD_TESTING=OFF
+
+      - name: Check and build developer preview
+        run: |
+          cmake --build build-preview --target all_qmllint
+          cmake --build build-preview --parallel
+
+      - name: Smoke test developer preview
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./build-preview/amseokos-installer --developer-preview --smoke-test
+
       - name: Run installer tests
         run: ctest --test-dir build --output-on-failure --no-tests=error
 

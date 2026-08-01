@@ -21,8 +21,16 @@ class InstallerSession final : public QObject {
   Q_PROPERTY(
       bool canStartInstallation READ can_start_installation NOTIFY planChanged)
   Q_PROPERTY(bool executionEnabled READ execution_enabled CONSTANT)
+  Q_PROPERTY(bool developerPreview READ developer_preview CONSTANT)
   Q_PROPERTY(QString distribution READ distribution CONSTANT)
   Q_PROPERTY(QString architecture READ architecture CONSTANT)
+  Q_PROPERTY(bool hasSystemDisk READ has_system_disk NOTIFY planChanged)
+  Q_PROPERTY(QString systemDiskDisplayName READ system_disk_display_name NOTIFY
+                 planChanged)
+  Q_PROPERTY(
+      QString systemDiskStableId READ system_disk_stable_id NOTIFY planChanged)
+  Q_PROPERTY(
+      QString systemDiskCapacity READ system_disk_capacity NOTIFY planChanged)
   Q_PROPERTY(
       QString validationMessage READ validation_message NOTIFY planChanged)
   Q_PROPERTY(
@@ -37,8 +45,13 @@ public:
   [[nodiscard]] bool can_go_forward() const;
   [[nodiscard]] bool can_start_installation() const;
   [[nodiscard]] bool execution_enabled() const;
+  [[nodiscard]] bool developer_preview() const;
   [[nodiscard]] QString distribution() const;
   [[nodiscard]] QString architecture() const;
+  [[nodiscard]] bool has_system_disk() const;
+  [[nodiscard]] QString system_disk_display_name() const;
+  [[nodiscard]] QString system_disk_stable_id() const;
+  [[nodiscard]] QString system_disk_capacity() const;
   [[nodiscard]] QString validation_message() const;
   [[nodiscard]] QString status_message() const;
 

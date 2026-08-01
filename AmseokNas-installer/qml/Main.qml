@@ -1,6 +1,6 @@
 //--------------------------//
-//--------承载统一的 AmseokOS 安装器窗口与页面导航---------//
-//--------Hosts the unified AmseokOS installer window and page navigation--------//
+//--------承载深色 AmseokOS 安装器窗口与页面导航---------//
+//--------Hosts the dark AmseokOS installer window and page navigation--------//
 //-------------------------//
 import QtQuick
 import QtQuick.Controls
@@ -20,56 +20,70 @@ ApplicationWindow {
     minimumHeight: 640
     visible: true
     visibility: windowedPreview ? Window.Windowed : Window.FullScreen
-    title: qsTr("AmseokOS 安装器")
-    color: "#0b1530"
+    title: qsTr("AmseokOS 安装程序")
+    color: "#080808"
 
     background: Rectangle {
-        gradient: Gradient {
-            GradientStop {
-                position: 0.0
-                color: "#09142c"
-            }
-            GradientStop {
-                position: 0.48
-                color: "#17396c"
-            }
-            GradientStop {
-                position: 1.0
-                color: "#6d8eb0"
-            }
-        }
+        color: "#080808"
+    }
 
-        Rectangle {
-            width: parent.width * 0.58
-            height: width
-            radius: width / 2
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: -width * 0.22
-            anchors.topMargin: -height * 0.38
-            color: "#26a7d6ff"
-        }
+    Rectangle {
+        id: cardOutline
+
+        anchors.centerIn: parent
+        width: installerCard.width + 2
+        height: installerCard.height + 2
+        radius: installerCard.radius + 1
+        color: "#0a0a0a"
+        border.width: 1
+        border.color: "#4a4a4d"
     }
 
     Rectangle {
         id: installerCard
 
         anchors.centerIn: parent
-        width: Math.min(parent.width - 80, 1080)
-        height: Math.min(parent.height - 80, 680)
-        radius: 26
-        color: "#f5f8fc"
-        border.width: 1
-        border.color: "#70ffffff"
+        width: root.installerSession.currentStep === 0
+               ? Math.min(parent.width - 120, 760)
+               : Math.min(parent.width - 96, 1040)
+        height: root.installerSession.currentStep === 0
+                ? Math.min(parent.height - 100, 610)
+                : Math.min(parent.height - 84, 676)
+        radius: 20
+        color: "#272727"
+        clip: true
+
+        Behavior on width {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on height {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        WelcomePage {
+            anchors.fill: parent
+            visible: root.installerSession.currentStep === 0
+            session: root.installerSession
+            onInstallRequested: root.installerSession.goForward()
+        }
 
         RowLayout {
             anchors.fill: parent
+            visible: root.installerSession.currentStep > 0
             spacing: 0
 
             StepRail {
-                Layout.preferredWidth: 245
+                Layout.preferredWidth: 230
                 Layout.fillHeight: true
                 currentStep: root.installerSession.currentStep
+                developerPreview: root.installerSession.developerPreview
             }
 
             ColumnLayout {
@@ -80,12 +94,12 @@ ApplicationWindow {
                 StackLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    currentIndex: root.installerSession.currentStep
+                    currentIndex: Math.max(0, root.installerSession.currentStep - 1)
 
-                    WelcomePage {
+                    SystemDiskPage {
                         session: root.installerSession
                     }
-                    SystemDiskPage {}
+
                     ReviewPage {
                         session: root.installerSession
                     }
@@ -93,21 +107,43 @@ ApplicationWindow {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 84
-                    color: "#f8fafc"
+                    Layout.preferredHeight: 82
+                    color: "#222222"
                     border.width: 1
-                    border.color: "#e4eaf2"
+                    border.color: "#3b3b3d"
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 42
-                        anchors.rightMargin: 42
+                        anchors.leftMargin: 34
+                        anchors.rightMargin: 34
+                        spacing: 18
 
                         Button {
+                            id: backButton
+
                             visible: root.installerSession.canGoBack
                             text: qsTr("返回")
-                            flat: true
+                            hoverEnabled: true
+                            implicitWidth: 92
+                            implicitHeight: 38
                             onClicked: root.installerSession.goBack()
+
+                            contentItem: Text {
+                                text: backButton.text
+                                color: "#f5f5f7"
+                                font.pixelSize: 14
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            background: Rectangle {
+                                radius: 8
+                                color: backButton.down
+                                       ? "#3a3a3c"
+                                       : (backButton.hovered ? "#454547" : "#363638")
+                                border.width: 1
+                                border.color: "#505054"
+                            }
                         }
 
                         Item {
@@ -116,9 +152,12 @@ ApplicationWindow {
 
                         Text {
                             visible: root.installerSession.statusMessage.length > 0
+                            Layout.maximumWidth: 330
                             text: root.installerSession.statusMessage
-                            color: "#b42318"
+                            color: root.installerSession.developerPreview ? "#64a8ff" : "#ff9f8f"
                             font.pixelSize: 13
+                            horizontalAlignment: Text.AlignRight
+                            wrapMode: Text.WordWrap
                         }
 
                         PrimaryButton {
@@ -136,6 +175,30 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+
+        Rectangle {
+            visible: root.installerSession.developerPreview
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: 18
+            width: previewLabel.implicitWidth + 24
+            height: 30
+            radius: 15
+            color: "#183b64"
+            border.width: 1
+            border.color: "#2f6cae"
+            z: 10
+
+            Text {
+                id: previewLabel
+
+                anchors.centerIn: parent
+                text: qsTr("开发者预览 · 模拟数据")
+                color: "#b9d9ff"
+                font.pixelSize: 12
+                font.weight: Font.Medium
             }
         }
     }

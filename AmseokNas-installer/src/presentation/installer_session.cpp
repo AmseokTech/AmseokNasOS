@@ -29,12 +29,40 @@ bool InstallerSession::execution_enabled() const {
   return executor_.is_available();
 }
 
+bool InstallerSession::developer_preview() const { return false; }
+
 QString InstallerSession::distribution() const {
   return QString::fromStdString(plan_.distribution);
 }
 
 QString InstallerSession::architecture() const {
   return QString::fromStdString(plan_.architecture);
+}
+
+bool InstallerSession::has_system_disk() const {
+  return plan_.system_disk.has_value();
+}
+
+QString InstallerSession::system_disk_display_name() const {
+  return plan_.system_disk.has_value()
+             ? QString::fromStdString(plan_.system_disk->display_name)
+             : QString{};
+}
+
+QString InstallerSession::system_disk_stable_id() const {
+  return plan_.system_disk.has_value()
+             ? QString::fromStdString(plan_.system_disk->stable_id)
+             : QString{};
+}
+
+QString InstallerSession::system_disk_capacity() const {
+  if (!plan_.system_disk.has_value()) {
+    return {};
+  }
+
+  constexpr std::uint64_t kBytesPerGigabyte = 1'000'000'000;
+  return QStringLiteral("%1 GB").arg(plan_.system_disk->size_bytes /
+                                     kBytesPerGigabyte);
 }
 
 QString InstallerSession::validation_message() const {

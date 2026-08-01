@@ -94,6 +94,17 @@ private slots:
     QCOMPARE(result.code, std::string("execution.disabled"));
   }
 
+  void production_session_never_exposes_developer_mock_data() {
+    amseokos::installer::DisabledInstallationExecutor executor;
+    amseokos::installer::InstallerSession session(executor);
+
+    QVERIFY(!session.developer_preview());
+    QVERIFY(!session.has_system_disk());
+    QVERIFY(session.system_disk_display_name().isEmpty());
+    QVERIFY(session.system_disk_stable_id().isEmpty());
+    QVERIFY(session.system_disk_capacity().isEmpty());
+  }
+
   void navigation_stays_inside_the_declared_steps() {
     RecordingExecutor executor;
     amseokos::installer::InstallerSession session(executor);

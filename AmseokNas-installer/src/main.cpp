@@ -32,19 +32,37 @@ int main(int argc, char* argv[]) {
       "Load the QML interface and exit without entering the event loop");
   parser.addOption(windowed_option);
   parser.addOption(smoke_test_option);
+#ifdef AMSEOKOS_ENABLE_DEVELOPER_PREVIEW
+  const QCommandLineOption developer_preview_option(
+      "developer-preview",
+      "Use simulated installer data for live QML development");
+  parser.addOption(developer_preview_option);
+#endif
   parser.process(application);
 
   amseokos::installer::DisabledInstallationExecutor executor;
   amseokos::installer::InstallerSession session(executor);
 
   QQmlApplicationEngine engine;
-  engine.setInitialProperties({
-      {"installerSession",
-       QVariant::fromValue(static_cast<QObject*>(&session))},
-      {"windowedPreview", parser.isSet(windowed_option)},
-  });
-  engine.load(
-      QUrl(QStringLiteral("qrc:/qt/qml/AmseokOS/Installer/qml/Main.qml")));
+  QUrl entry_point(
+      QStringLiteral("qrc:/qt/qml/AmseokOS/Installer/qml/Main.qml"));
+
+#ifdef AMSEOKOS_ENABLE_DEVELOPER_PREVIEW
+  if (parser.isSet(developer_preview_option)) {
+    entry_point = QUrl(QStringLiteral(
+        "qrc:/qt/qml/AmseokOS/Installer/qml/DeveloperPreview.qml"));
+  } else {
+#endif
+    engine.setInitialProperties({
+        {"installerSession",
+         QVariant::fromValue(static_cast<QObject*>(&session))},
+        {"windowedPreview", parser.isSet(windowed_option)},
+    });
+#ifdef AMSEOKOS_ENABLE_DEVELOPER_PREVIEW
+  }
+#endif
+
+  engine.load(entry_point);
 
   if (engine.rootObjects().isEmpty()) {
     return 1;
