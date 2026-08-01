@@ -69,6 +69,31 @@ QT_QPA_PLATFORM=offscreen \
   AmseokNas-installer/build/amseokos-installer --windowed --smoke-test
 ```
 
+## 开发者实时预览
+
+开发者预览使用独立的 `DeveloperPreview.qml` 模拟会话，提供模拟系统盘、步骤导航和开始安装反馈。它不会创建真实安装执行器，也不会访问本机磁盘；默认 Release 构建不包含该入口。
+
+在仓库根目录运行：
+
+```bash
+AmseokNas-installer/scripts/preview.sh
+```
+
+脚本会创建独立的 `build-preview` Debug 构建并启动 Qt `qmlpreview`。保持窗口和终端运行，保存 `qml/` 下的文件后，界面会自动刷新。首次运行如果尚未配置过 Qt，可显式指定 `qt-cmake`：
+
+```bash
+QT_CMAKE=/Users/goodgirlkihon/Qt/6.11.1/macos/bin/qt-cmake \
+  AmseokNas-installer/scripts/preview.sh
+```
+
+预览构建也可以单独执行无界面验证：
+
+```bash
+QT_QPA_PLATFORM=offscreen \
+  AmseokNas-installer/build-preview/amseokos-installer.app/Contents/MacOS/amseokos-installer \
+  --developer-preview --smoke-test
+```
+
 ## Debian 包与镜像
 
 以下命令必须在 Debian trixie amd64 构建机执行：

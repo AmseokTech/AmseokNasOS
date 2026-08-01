@@ -9,9 +9,10 @@ Rectangle {
     id: root
 
     required property int currentStep
+    required property bool developerPreview
 
-    color: "#101f3f"
-    radius: 26
+    color: "#1d1d1f"
+    radius: 20
 
     ColumnLayout {
         anchors.fill: parent
@@ -24,21 +25,23 @@ Rectangle {
             Rectangle {
                 Layout.preferredWidth: 38
                 Layout.preferredHeight: 38
-                radius: 12
-                color: "#dcecff"
+                radius: 19
+                color: "#2c2c2e"
+                border.width: 1
+                border.color: "#48484a"
 
-                Text {
-                    anchors.centerIn: parent
-                    text: "A"
-                    color: "#164c8c"
-                    font.pixelSize: 22
-                    font.bold: true
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 3
+                    source: "../../assets/installer-artwork.png"
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
                 }
             }
 
             Text {
                 text: "AmseokOS"
-                color: "#ffffff"
+                color: "#f5f5f7"
                 font.pixelSize: 20
                 font.weight: Font.DemiBold
             }
@@ -83,12 +86,14 @@ Rectangle {
                     Layout.preferredWidth: 26
                     Layout.preferredHeight: 26
                     radius: 13
-                    color: stepRow.modelData.reached ? "#dcecff" : "#26395d"
+                    color: stepRow.modelData.selected
+                           ? "#0a84ff"
+                           : (stepRow.modelData.reached ? "#3a3a3c" : "#2c2c2e")
 
                     Text {
                         anchors.centerIn: parent
                         text: stepRow.modelData.number
-                        color: stepRow.modelData.reached ? "#164c8c" : "#91a4c5"
+                        color: stepRow.modelData.reached ? "#ffffff" : "#8e8e93"
                         font.pixelSize: 13
                         font.bold: true
                     }
@@ -96,7 +101,7 @@ Rectangle {
 
                 Text {
                     text: stepRow.modelData.label
-                    color: stepRow.modelData.selected ? "#ffffff" : "#91a4c5"
+                    color: stepRow.modelData.selected ? "#f5f5f7" : "#98989d"
                     font.pixelSize: 15
                     font.weight: stepRow.modelData.selected ? Font.DemiBold : Font.Normal
                 }
@@ -109,8 +114,10 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            text: qsTr("安全预览 · 不会修改磁盘")
-            color: "#8fa6c9"
+            text: root.developerPreview
+                  ? qsTr("开发者预览 · 使用模拟数据")
+                  : qsTr("安全预览 · 不会修改磁盘")
+            color: "#8e8e93"
             font.pixelSize: 12
             wrapMode: Text.WordWrap
         }

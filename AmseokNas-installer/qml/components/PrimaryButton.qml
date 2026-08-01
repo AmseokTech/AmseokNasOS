@@ -8,21 +8,26 @@ import QtQuick.Controls
 Button {
     id: control
 
-    implicitWidth: 132
-    implicitHeight: 44
-    font.pixelSize: 15
+    hoverEnabled: true
+    implicitWidth: 124
+    implicitHeight: 40
+    font.pixelSize: 14
     font.weight: Font.DemiBold
 
     contentItem: Text {
         text: control.text
         font: control.font
-        color: control.enabled ? "#ffffff" : "#98a2b3"
+        color: control.enabled ? "#ffffff" : "#8e8e93"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
 
     background: Rectangle {
-        radius: 11
-        color: control.enabled ? (control.down ? "#164c8c" : "#1f6fbd") : "#e4e7ec"
+        radius: 8
+        color: control.enabled
+               ? (control.down ? "#006edb" : (control.hovered ? "#409cff" : "#0a84ff"))
+               : "#3a3a3c"
+        border.width: control.enabled ? 1 : 0
+        border.color: "#5fb0ff"
     }
 }

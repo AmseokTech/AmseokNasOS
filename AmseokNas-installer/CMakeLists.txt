@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.21)
 
 project(AmseokOSInstaller VERSION 0.1.0 LANGUAGES CXX)
 
+option(AMSEOKOS_ENABLE_DEVELOPER_PREVIEW
+    "Build the isolated live QML developer preview"
+    OFF
+)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -42,17 +47,26 @@ qt_add_executable(amseokos-installer
 
 set_target_properties(amseokos-installer PROPERTIES MACOSX_BUNDLE TRUE)
 
+set(amseokos_installer_qml_files
+    qml/Main.qml
+    qml/components/PrimaryButton.qml
+    qml/components/StepRail.qml
+    qml/pages/ReviewPage.qml
+    qml/pages/SystemDiskPage.qml
+    qml/pages/WelcomePage.qml
+)
+
+if(AMSEOKOS_ENABLE_DEVELOPER_PREVIEW)
+    list(APPEND amseokos_installer_qml_files qml/DeveloperPreview.qml)
+endif()
+
 qt_add_qml_module(amseokos-installer
     URI AmseokOS.Installer
     VERSION 1.0
     RESOURCE_PREFIX /qt/qml
-    QML_FILES
-        qml/Main.qml
-        qml/components/PrimaryButton.qml
-        qml/components/StepRail.qml
-        qml/pages/ReviewPage.qml
-        qml/pages/SystemDiskPage.qml
-        qml/pages/WelcomePage.qml
+    QML_FILES ${amseokos_installer_qml_files}
+    RESOURCES
+        assets/installer-artwork.png
 )
 
 target_link_libraries(amseokos-installer PRIVATE
@@ -61,6 +75,31 @@ target_link_libraries(amseokos-installer PRIVATE
     Qt6::QuickControls2
 )
 amseokos_enable_strict_warnings(amseokos-installer)
+
+if(AMSEOKOS_ENABLE_DEVELOPER_PREVIEW)
+    target_compile_definitions(amseokos-installer PRIVATE
+        AMSEOKOS_ENABLE_DEVELOPER_PREVIEW
+        QT_QML_DEBUG
+    )
+
+    get_target_property(qt_qmake_executable Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(qt_binary_directory "${qt_qmake_executable}" DIRECTORY)
+    find_program(amseokos_qmlpreview_executable
+        NAMES qmlpreview
+        HINTS "${qt_binary_directory}"
+        REQUIRED
+    )
+
+    add_custom_target(developer-preview
+        COMMAND "${amseokos_qmlpreview_executable}"
+            "$<TARGET_FILE:amseokos-installer>"
+            --developer-preview
+        DEPENDS amseokos-installer
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        USES_TERMINAL
+        VERBATIM
+    )
+endif()
 
 install(TARGETS amseokos-installer
     BUNDLE DESTINATION .
@@ -81,4 +120,15 @@ if(BUILD_TESTING)
     amseokos_enable_strict_warnings(amseokos-installer-tests)
 
     add_test(NAME amseokos-installer-tests COMMAND amseokos-installer-tests)
+
+    if(AMSEOKOS_ENABLE_DEVELOPER_PREVIEW)
+        add_test(
+            NAME amseokos-installer-developer-preview-smoke
+            COMMAND amseokos-installer --developer-preview --smoke-test
+        )
+        set_tests_properties(
+            amseokos-installer-developer-preview-smoke
+            PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        )
+    endif()
 endif()
