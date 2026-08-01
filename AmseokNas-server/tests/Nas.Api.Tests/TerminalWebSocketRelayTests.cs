@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Nas.Api.Terminal;
@@ -69,7 +70,82 @@ public sealed class TerminalWebSocketRelayTests
         Assert.Equal(WebSocketState.Closed, webSocket.State);
     }
 
-    private static TerminalWebSocketRelay CreateRelay()
+    [Fact]
+    public async Task InvalidControlMessageIsReportedAsAProtocolViolation()
+    {
+        using var webSocket = new FakeWebSocket(
+            new WebSocketFrame(
+                WebSocketMessageType.Text,
+                """{"type":"resize","columns":10,"rows":28}"""u8.ToArray()));
+        var broker = new FakeTerminalBrokerSession { HoldEventsOpen = true };
+        var logger = new RecordingLogger<TerminalWebSocketRelay>();
+        var relay = CreateRelay(logger);
+
+        await relay.RelayAsync(
+            webSocket,
+            broker,
+            Guid.NewGuid(),
+            CancellationToken.None);
+
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, webSocket.CloseStatus);
+        Assert.Contains(
+            logger.Messages,
+            message => message.Contains("ProtocolViolation", StringComparison.Ordinal));
+        Assert.Equal(1, broker.CloseCount);
+    }
+
+    [Fact]
+    public async Task BrokerIoFailureIsReportedAsFailed()
+    {
+        using var webSocket = new FakeWebSocket();
+        var broker = new FakeTerminalBrokerSession
+        {
+            EventFailure = new IOException("broker transport failed")
+        };
+        var logger = new RecordingLogger<TerminalWebSocketRelay>();
+        var relay = CreateRelay(logger);
+
+        await relay.RelayAsync(
+            webSocket,
+            broker,
+            Guid.NewGuid(),
+            CancellationToken.None);
+
+        Assert.Equal(WebSocketCloseStatus.InternalServerError, webSocket.CloseStatus);
+        Assert.Contains(
+            logger.Messages,
+            message => message.Contains("Failed", StringComparison.Ordinal));
+        Assert.Equal(1, broker.CloseCount);
+    }
+
+    [Fact]
+    public async Task CancelledRequestAbortsAStalledCloseHandshake()
+    {
+        using var requestCancellation = new CancellationTokenSource();
+        using var webSocket = new FakeWebSocket(
+            new WebSocketFrame(WebSocketMessageType.Close, []))
+        {
+            HoldCloseOpen = true
+        };
+        var broker = new FakeTerminalBrokerSession { HoldEventsOpen = true };
+        var relay = CreateRelay();
+
+        var relayTask = relay.RelayAsync(
+            webSocket,
+            broker,
+            Guid.NewGuid(),
+            requestCancellation.Token);
+        await webSocket.CloseStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        requestCancellation.Cancel();
+        await relayTask.WaitAsync(TimeSpan.FromSeconds(1));
+
+        Assert.True(webSocket.AbortCalled);
+        Assert.Equal(WebSocketState.Aborted, webSocket.State);
+    }
+
+    private static TerminalWebSocketRelay CreateRelay(
+        ILogger<TerminalWebSocketRelay>? logger = null)
     {
         return new TerminalWebSocketRelay(
             Options.Create(new TerminalOptions
@@ -77,7 +153,8 @@ public sealed class TerminalWebSocketRelayTests
                 IdleTimeoutMinutes = 15,
                 MaximumSessionMinutes = 60
             }),
-            NullLogger<TerminalWebSocketRelay>.Instance);
+            TimeProvider.System,
+            logger ?? NullLogger<TerminalWebSocketRelay>.Instance);
     }
 
     private sealed record WebSocketFrame(
@@ -92,6 +169,10 @@ public sealed class TerminalWebSocketRelayTests
         private WebSocketState state = WebSocketState.Open;
 
         public List<WebSocketFrame> SentFrames { get; } = [];
+        public TaskCompletionSource<bool> CloseStarted { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool HoldCloseOpen { get; init; }
+        public bool AbortCalled { get; private set; }
 
         public override WebSocketCloseStatus? CloseStatus => closeStatus;
         public override string? CloseStatusDescription => closeStatusDescription;
@@ -100,18 +181,25 @@ public sealed class TerminalWebSocketRelayTests
 
         public override void Abort()
         {
+            AbortCalled = true;
             state = WebSocketState.Aborted;
         }
 
-        public override Task CloseAsync(
+        public override async Task CloseAsync(
             WebSocketCloseStatus closeStatus,
             string? statusDescription,
             CancellationToken cancellationToken)
         {
             this.closeStatus = closeStatus;
             closeStatusDescription = statusDescription;
+            state = WebSocketState.CloseSent;
+            CloseStarted.TrySetResult(true);
+            if (HoldCloseOpen)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+
             state = WebSocketState.Closed;
-            return Task.CompletedTask;
         }
 
         public override Task CloseOutputAsync(
@@ -203,12 +291,18 @@ public sealed class TerminalWebSocketRelayTests
         public List<byte[]> Input { get; } = [];
         public List<(ushort Columns, ushort Rows)> Resizes { get; } = [];
         public List<TerminalBrokerEvent> Events { get; } = [];
+        public Exception? EventFailure { get; init; }
         public bool HoldEventsOpen { get; init; }
         public int CloseCount { get; private set; }
 
         public async IAsyncEnumerable<TerminalBrokerEvent> ReadEventsAsync(
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            if (EventFailure is not null)
+            {
+                throw EventFailure;
+            }
+
             foreach (var brokerEvent in Events)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -246,5 +340,34 @@ public sealed class TerminalWebSocketRelayTests
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => NullScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Messages.Add(formatter(state, exception));
+        }
+
+        private sealed class NullScope : IDisposable
+        {
+            public static NullScope Instance { get; } = new();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 }
