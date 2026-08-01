@@ -10,7 +10,7 @@ if ! command -v lb >/dev/null 2>&1; then
     exit 1
 fi
 
-installer_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+installer_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 work_directory=$(mktemp -d "${TMPDIR:-/tmp}/amseokos-live-config.XXXXXX")
 cleanup() {
     rm -rf -- "$work_directory"

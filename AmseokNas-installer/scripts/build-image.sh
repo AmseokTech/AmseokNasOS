@@ -12,7 +12,7 @@ fi
 
 package_path=$1
 output_path=$2
-installer_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+installer_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 
 if [ ! -f "$package_path" ]; then
     printf 'installer package not found: %s\n' "$package_path" >&2

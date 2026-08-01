@@ -5,7 +5,7 @@
 #-------------------------#
 set -eu
 
-installer_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+installer_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 clang_format=${CLANG_FORMAT:-clang-format}
 
 if ! command -v "$clang_format" >/dev/null 2>&1; then
