@@ -1,0 +1,8 @@
+#!/bin/sh
+#--------------------------#
+#--------进入 Live 会话后只启动 AmseokOS 安装器---------#
+#--------Starts only the AmseokOS installer after entering the Live session--------#
+#-------------------------#
+xset -dpms
+xset s off
+exec /usr/bin/amseokos-installer

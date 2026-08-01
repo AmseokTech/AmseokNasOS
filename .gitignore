@@ -9,6 +9,15 @@ coverage/
 **/dist/
 **/build/
 **/target/
+*.deb
+*.ddeb
+*.udeb
+*.iso
+*.img
+*.qcow2
+*.buildinfo
+*.changes
+*.dsc
 node_modules/
 .angular/
 .next/

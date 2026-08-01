@@ -1,0 +1,22 @@
+# Live 图形会话
+live-boot
+live-config
+systemd-sysv
+xserver-xorg
+lightdm
+openbox
+dbus-x11
+libgl1-mesa-dri
+fonts-noto-cjk
+locales
+
+# 安装器只读基础与未来受控执行依赖
+ca-certificates
+network-manager
+debootstrap
+parted
+gdisk
+dosfstools
+e2fsprogs
+grub-efi-amd64-bin
+grub-pc-bin
