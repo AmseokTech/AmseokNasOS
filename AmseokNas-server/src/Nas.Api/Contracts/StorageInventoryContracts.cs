@@ -9,6 +9,8 @@ namespace Nas.Api.Contracts;
 public sealed record BlockDeviceResponse(
     string Id,
     bool Stable,
+    bool IdentityConflict,
+    bool TopologyComplete,
     string Name,
     string Path,
     string? Model,
@@ -24,13 +26,17 @@ public sealed record BlockDeviceResponse(
     IReadOnlyList<string> MountPoints,
     bool SystemDevice,
     bool Swap,
-    bool RaidMember)
+    bool RaidMember,
+    bool InUse,
+    IReadOnlyList<BlockDependencyResponse> DependentDevices)
 {
     public static BlockDeviceResponse From(BlockDeviceInformation information)
     {
         return new(
             information.Id,
             information.Stable,
+            information.IdentityConflict,
+            information.TopologyComplete,
             information.Name,
             information.Path,
             information.Model,
@@ -46,7 +52,11 @@ public sealed record BlockDeviceResponse(
             information.MountPoints,
             information.SystemDevice,
             information.Swap,
-            information.RaidMember);
+            information.RaidMember,
+            information.InUse,
+            (information.DependentDevices ?? [])
+                .Select(BlockDependencyResponse.From)
+                .ToArray());
     }
 }
 
@@ -55,8 +65,12 @@ public sealed record BlockPartitionResponse(
     string Path,
     long SizeBytes,
     IReadOnlyList<string> MountPoints,
+    bool TopologyComplete,
+    bool SystemDevice,
     bool Swap,
-    bool RaidMember)
+    bool RaidMember,
+    bool InUse,
+    IReadOnlyList<BlockDependencyResponse> DependentDevices)
 {
     public static BlockPartitionResponse From(BlockPartitionInformation information)
     {
@@ -65,8 +79,32 @@ public sealed record BlockPartitionResponse(
             information.Path,
             information.SizeBytes,
             information.MountPoints,
+            information.TopologyComplete,
+            information.SystemDevice,
             information.Swap,
-            information.RaidMember);
+            information.RaidMember,
+            information.InUse,
+            (information.DependentDevices ?? [])
+                .Select(BlockDependencyResponse.From)
+                .ToArray());
+    }
+}
+
+public sealed record BlockDependencyResponse(
+    string Name,
+    string Path,
+    string Kind,
+    IReadOnlyList<string> MountPoints,
+    bool Swap)
+{
+    public static BlockDependencyResponse From(BlockDependencyInformation information)
+    {
+        return new(
+            information.Name,
+            information.Path,
+            information.Kind,
+            information.MountPoints,
+            information.Swap);
     }
 }
 

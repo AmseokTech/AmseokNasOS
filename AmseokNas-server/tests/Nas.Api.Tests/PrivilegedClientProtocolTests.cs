@@ -63,6 +63,8 @@ public sealed class PrivilegedClientProtocolTests
                 {
                     id = "wwn:test",
                     stable = true,
+                    identityConflict = false,
+                    topologyComplete = true,
                     name = "sda",
                     path = "/dev/sda",
                     model = "Test Disk",
@@ -78,14 +80,66 @@ public sealed class PrivilegedClientProtocolTests
                     mountPoints = new[] { "/" },
                     systemDevice = true,
                     swap = false,
-                    raidMember = false
+                    raidMember = false,
+                    inUse = true,
+                    dependentDevices = new[]
+                    {
+                        new
+                        {
+                            name = "dm-1",
+                            path = "/dev/dm-1",
+                            kind = "lvm",
+                            mountPoints = new[] { "/" },
+                            swap = false
+                        }
+                    }
                 }
             },
             (client, token) => client.GetBlockDevicesAsync(token));
 
         var device = Assert.Single(devices);
         Assert.Equal("wwn:test", device.Id);
+        Assert.True(device.TopologyComplete);
         Assert.True(device.SystemDevice);
+        Assert.True(device.InUse);
+        Assert.Equal("lvm", Assert.Single(device.DependentDevices!).Kind);
+    }
+
+    [Fact]
+    public async Task MissingTopologyFieldsFromAnOlderDaemonFailClosed()
+    {
+        var devices = await QueryFakeDaemonAsync(
+            "storage.inspectBlockDevices",
+            new[]
+            {
+                new
+                {
+                    id = "wwn:old-daemon",
+                    stable = true,
+                    name = "sda",
+                    path = "/dev/sda",
+                    model = "Old Test Disk",
+                    serialNumber = "SERIAL",
+                    wwn = "WWN",
+                    sizeBytes = 4096L,
+                    logicalSectorBytes = 512L,
+                    physicalSectorBytes = 4096L,
+                    rotational = true,
+                    removable = false,
+                    readOnly = false,
+                    partitions = Array.Empty<object>(),
+                    mountPoints = Array.Empty<string>(),
+                    systemDevice = false,
+                    swap = false,
+                    raidMember = false
+                }
+            },
+            (client, token) => client.GetBlockDevicesAsync(token));
+
+        var device = Assert.Single(devices);
+        Assert.False(device.TopologyComplete);
+        Assert.True(device.InUse);
+        Assert.Empty(device.DependentDevices);
     }
 
     [Fact]
