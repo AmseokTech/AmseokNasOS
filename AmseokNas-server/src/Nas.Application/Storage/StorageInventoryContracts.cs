@@ -7,6 +7,8 @@ namespace Nas.Application.Storage;
 public sealed record BlockDeviceInformation(
     string Id,
     bool Stable,
+    bool IdentityConflict,
+    bool TopologyComplete,
     string Name,
     string Path,
     string? Model,
@@ -22,15 +24,28 @@ public sealed record BlockDeviceInformation(
     IReadOnlyList<string> MountPoints,
     bool SystemDevice,
     bool Swap,
-    bool RaidMember);
+    bool RaidMember,
+    bool InUse,
+    IReadOnlyList<BlockDependencyInformation> DependentDevices);
 
 public sealed record BlockPartitionInformation(
     string Name,
     string Path,
     long SizeBytes,
     IReadOnlyList<string> MountPoints,
+    bool TopologyComplete,
+    bool SystemDevice,
     bool Swap,
-    bool RaidMember);
+    bool RaidMember,
+    bool InUse,
+    IReadOnlyList<BlockDependencyInformation> DependentDevices);
+
+public sealed record BlockDependencyInformation(
+    string Name,
+    string Path,
+    string Kind,
+    IReadOnlyList<string> MountPoints,
+    bool Swap);
 
 public sealed record RaidArrayInformation(
     string Id,

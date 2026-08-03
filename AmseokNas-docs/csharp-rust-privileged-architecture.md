@@ -2,7 +2,7 @@
 
 状态：第一阶段只读查询已开始实现；关于本机、物理网卡、物理块设备和现有 MD RAID 阵列查询代码已完成，写操作尚未开放
 
-最后确认日期：2026-08-01
+最后确认日期：2026-08-03
 
 ## 1. 设计结论
 
@@ -257,9 +257,9 @@ storage.inspectBlockDevices
 raid.inspectArrays
 ```
 
-这些动作只从受信任的 `/proc`、`/sys`、`/run` 和文件系统接口读取数据，不接受参数，也不执行外部命令。块设备查询返回 WWN/序列号优先的身份、分区、直接挂载、swap 和 MD 成员标记；阵列查询返回级别、状态、UUID、成员、降级数和内核同步进度。`ID_PATH` 和内核主次设备号明确标记为非稳定身份，不能作为未来写操作的唯一目标凭据。Rust 守护进程要求显式配置唯一允许的 API 进程 UID，并在 Unix Socket 上校验 peer credentials；C# 端通过独立的 `system.read`、`network.read` 与 `storage.read` 权限策略开放 HTTP 查询。
+这些动作只从受信任的 `/proc`、`/sys`、`/run` 和文件系统接口读取数据，不接受参数，也不执行外部命令。块设备查询返回 WWN/序列号优先的身份、分区、直接挂载、swap、占用状态和传递式依赖设备；它沿 sysfs `holders` 关系追踪 MD、dm-crypt、LVM 与通用 device-mapper，使根文件系统经过多层块设备后仍能保护底层物理盘。阵列查询返回级别、状态、UUID、成员、降级数和内核同步进度。`ID_PATH` 和内核主次设备号明确标记为非稳定身份，重复 WWN/序列号也会标记 `identityConflict` 并撤销稳定身份；若 holder 无法完整解析，`topologyComplete` 为 `false`，后续危险流程必须失败关闭。Rust 守护进程要求显式配置唯一允许的 API 进程 UID，并在 Unix Socket 上校验 peer credentials；C# 端通过独立的 `system.read`、`network.read` 与 `storage.read` 权限策略开放 HTTP 查询。
 
-当前只读实现尚未完成 LVM、device-mapper、LUKS 等多层块设备上的传递式系统盘识别，也未执行 SMART 查询。第二阶段的任何写动作必须等待稳定身份解析、完整占用拓扑和系统盘保护测试完成，不能直接复用当前展示字段作为“可写”判断。
+当前只读实现已用伪 sysfs 集成测试覆盖分区经 dm-crypt 与 LVM 承载根文件系统，以及 MD 经加密层承载数据挂载的组合关系；尚未在真实 Linux loop device、测试机物理磁盘或实际 LUKS/LVM/MD 设备上验证，也未执行 SMART 查询。第二阶段的任何写动作仍必须等待真实设备集成测试、Operation、资源锁和执行前二次复核完成，不能只依据展示字段判断“可写”。
 
 第一阶段还可以继续提供不接触真实存储的受控测试动作，用于验证 socket、peer credentials、超时、取消、错误映射和协议兼容性。
 
@@ -495,14 +495,14 @@ Rust 第一版建议使用最小依赖集合：
 
 ## 15. 当前实施状态
 
-截至 2026-08-01：
+截至 2026-08-03：
 
 - C# 控制面骨架、身份认证和 PostgreSQL/SQLite 基础已经存在
 - Domain 已定义统一 `OperationStatus`，权限中已包含 `storage.read`、`storage.format` 和 `raid.manage`
 - `AmseokNas-privileged` 已建立 1 MiB 有界版本化 Unix Socket 协议、peer UID 校验和固定只读动作白名单，不提供任意命令执行入口
 - C# Application 已按系统设置与存储清单用例拆分客户端端口；Infrastructure 复用单一 Unix Socket 适配器；HTTP Controller 只负责 `storage.read` 授权、协议映射和脱敏错误响应
-- Rust 已实现 `system.getAbout`、`network.inspectInterfaces`、`storage.inspectBlockDevices` 和 `raid.inspectArrays`；新增存储与 RAID 模块已通过 `aarch64-unknown-linux-gnu` 的 `cargo check --tests` 和 Clippy `-D warnings`，本机 macOS 不能运行 Linux 专用 daemon 测试
-- C# 存储查询新增 7 项 Controller/协议测试并全部通过；除项目原有 macOS Unix Socket 长路径测试外的 22 项 xUnit 全部通过，解决方案格式验证通过
+- Rust 已实现 `system.getAbout`、`network.inspectInterfaces`、`storage.inspectBlockDevices` 和 `raid.inspectArrays`；存储拓扑已补充 MD、dm-crypt、LVM、通用 device-mapper 的传递式 holders 遍历、系统/管理目录挂载保护、swap 传播、稳定身份冲突和拓扑完整性标记。存储模块 11 项独立测试已实际执行通过，Linux 目标 `cargo check --tests` 与 Clippy `-D warnings` 通过；完整 daemon 仍需在 Linux 环境执行测试
+- C# 存储查询相关 8 项 Controller/协议测试全部通过，并覆盖旧 daemon 缺少拓扑字段时规范化为占用状态；除项目原有 macOS Unix Socket 长路径测试外的 23 项 xUnit 全部通过，解决方案格式验证通过
 - 独立 `AmseokNas-terminal` Rust workspace、C# WebSocket Gateway 和 Angular Material/xterm.js 弹窗已经实现并通过本地及测试机构建；测试机已验证独立账户、systemd 沙箱、服务保活、Unix Socket/PTY、秘密与网络隔离、权限迁移和未登录拦截，浏览器登录后的 WebSocket 交互以及生产 Nginx 长连接仍待验证；该实现不属于 privileged daemon
 - 当前开发环境已安装 Rust 1.97.1 toolchain，并已补充 Linux 交叉检查目标和 Clippy 组件
 - 当前完成的是只读清单代码闭环，不代表 RAID 创建、删除、扩容、替换、文件系统或挂载功能已经完成

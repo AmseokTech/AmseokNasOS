@@ -36,9 +36,10 @@ public sealed class UnixSocketPrivilegedClient(
     public async Task<IReadOnlyList<BlockDeviceInformation>> GetBlockDevicesAsync(
         CancellationToken cancellationToken)
     {
-        return await SendAsync<BlockDeviceInformation[]>(
+        var devices = await SendAsync<BlockDeviceInformation[]>(
             "storage.inspectBlockDevices",
             cancellationToken);
+        return devices.Select(NormalizeBlockDevice).ToArray();
     }
 
     public async Task<IReadOnlyList<RaidArrayInformation>> GetRaidArraysAsync(
@@ -143,6 +144,25 @@ public sealed class UnixSocketPrivilegedClient(
             "request.deadline_exceeded" => "底层系统查询已超时",
             "inventory.read_failed" => "底层系统信息读取失败",
             _ => "底层系统查询被拒绝"
+        };
+    }
+
+    private static BlockDeviceInformation NormalizeBlockDevice(
+        BlockDeviceInformation device)
+    {
+        var partitions = (device.Partitions ?? [])
+            .Select(partition => partition with
+            {
+                // 旧 daemon 不包含拓扑字段；缺失信息必须按占用处理，不能默认为空闲
+                InUse = partition.InUse || !partition.TopologyComplete,
+                DependentDevices = partition.DependentDevices ?? []
+            })
+            .ToArray();
+        return device with
+        {
+            InUse = device.InUse || !device.TopologyComplete,
+            Partitions = partitions,
+            DependentDevices = device.DependentDevices ?? []
         };
     }
 

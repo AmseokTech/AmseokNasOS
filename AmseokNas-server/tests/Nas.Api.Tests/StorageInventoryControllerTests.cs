@@ -29,8 +29,12 @@ public sealed class StorageInventoryControllerTests
         var devices = Assert.IsType<BlockDeviceResponse[]>(ok.Value);
         var device = Assert.Single(devices);
         Assert.Equal("wwn:test", device.Id);
+        Assert.True(device.TopologyComplete);
         Assert.True(device.SystemDevice);
+        Assert.True(device.InUse);
         Assert.False(device.RaidMember);
+        var dependency = Assert.Single(device.DependentDevices);
+        Assert.Equal("lvm", dependency.Kind);
     }
 
     [Fact]
@@ -80,6 +84,8 @@ public sealed class StorageInventoryControllerTests
                 new BlockDeviceInformation(
                     "wwn:test",
                     true,
+                    false,
+                    true,
                     "sda",
                     "/dev/sda",
                     "Test Disk",
@@ -95,7 +101,14 @@ public sealed class StorageInventoryControllerTests
                     ["/"],
                     true,
                     false,
-                    false)
+                    false,
+                    true,
+                    [new BlockDependencyInformation(
+                        "dm-1",
+                        "/dev/dm-1",
+                        "lvm",
+                        ["/"],
+                        false)])
             ];
             return Task.FromResult(devices);
         }
