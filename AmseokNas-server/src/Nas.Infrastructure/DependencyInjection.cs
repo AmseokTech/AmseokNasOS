@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nas.Application.Authentication;
+using Nas.Application.NetworkConfiguration;
 using Nas.Application.Privileged;
 using Nas.Application.Storage;
 using Nas.Application.Terminal;
@@ -130,8 +131,15 @@ public static class DependencyInjection
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<IStorageInventoryClient>(provider =>
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        services.AddSingleton<INetworkConfigurationInventory>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        // Keep the HTTP command surface fail-closed until the Rust executor owns
+        // atomic apply, confirmation deadlines, and rollback recovery.
+        services.AddSingleton<INetworkConfigurationExecutor,
+            UnavailableNetworkConfigurationExecutor>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IStorageInventoryService, StorageInventoryService>();
+        services.AddScoped<INetworkConfigurationService, NetworkConfigurationService>();
 
         services.AddHttpClient("cluster-health", client =>
         {

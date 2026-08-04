@@ -86,7 +86,7 @@ public sealed class IdentityAuthenticationService(
         var valid = await userManager.CheckPasswordAsync(user, password);
         cancellationToken.ThrowIfCancellationRequested();
         logger.LogInformation(
-            "Administrator {UserId} terminal reauthentication result was {Result}",
+            "Administrator {UserId} sensitive action reauthentication result was {Result}",
             userId,
             valid ? "Succeeded" : "Failed");
         return valid;

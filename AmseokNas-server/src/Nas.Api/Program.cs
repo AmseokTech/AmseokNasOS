@@ -56,6 +56,12 @@ builder.Services.AddAuthorization(options =>
             .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.NetworkRead)
             .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
     options.AddPolicy(
+        AuthenticationDefaults.NetworkManagePolicy,
+        policy => policy
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.NetworkManage)
+            .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
+    options.AddPolicy(
         AuthenticationDefaults.StorageReadPolicy,
         policy => policy
             .RequireAuthenticatedUser()
@@ -93,6 +99,30 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 3,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("network-preview", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("network-change", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
                 QueueLimit = 0,
                 Window = TimeSpan.FromMinutes(1),
                 AutoReplenishment = true

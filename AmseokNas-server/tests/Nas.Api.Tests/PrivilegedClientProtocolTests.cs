@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Nas.Application.NetworkConfiguration;
 using Nas.Application.Privileged;
 using Nas.Application.Storage;
 using Nas.Application.SystemSettings;
@@ -50,6 +51,30 @@ public sealed class PrivilegedClientProtocolTests
         Assert.Equal("nas-test", about.HostName);
         Assert.Equal("Test CPU", about.Cpu.Model);
         Assert.Equal(32L * 1024 * 1024 * 1024, about.Memory.TotalBytes);
+    }
+
+    [Fact]
+    public async Task NetworkConfigurationInventoryUsesTheRegisteredReadAction()
+    {
+        var interfaces = await QueryFakeDaemonAsync(
+            "network.inspectInterfaces",
+            new[]
+            {
+                new
+                {
+                    id = "mac:00:11:22:33:44:55",
+                    name = "enp1s0",
+                    configurationMode = "dhcp",
+                    addresses = new[] { "192.168.1.10/24" },
+                    gateway = "192.168.1.1"
+                }
+            },
+            (client, token) => client.InspectInterfacesAsync(token));
+
+        var networkInterface = Assert.Single(interfaces);
+        Assert.Equal("mac:00:11:22:33:44:55", networkInterface.Id);
+        Assert.Equal("dhcp", networkInterface.ConfigurationMode);
+        Assert.Equal("192.168.1.10/24", Assert.Single(networkInterface.Addresses));
     }
 
     [Fact]
