@@ -66,7 +66,7 @@ pub fn inspect_interfaces() -> io::Result<Vec<NetworkInterfaceInformation>> {
             name: name.clone(),
             model,
             driver,
-            mac_address,
+            mac_address: mac_address.clone(),
             link_state: read_trimmed(path.join("operstate"))
                 .unwrap_or_else(|| "unknown".to_owned()),
             speed_mbps: read_trimmed(path.join("speed")).and_then(|value| value.parse().ok()),
@@ -74,7 +74,12 @@ pub fn inspect_interfaces() -> io::Result<Vec<NetworkInterfaceInformation>> {
             mtu: read_trimmed(path.join("mtu"))
                 .and_then(|value| value.parse().ok())
                 .unwrap_or_default(),
-            configuration_mode: configuration_mode(if_index, &interface_addresses),
+            configuration_mode: configuration_mode(
+                if_index,
+                &interface_addresses,
+                &format!("mac:{}", mac_address.to_ascii_lowercase()),
+                &crate::network_write::configuration_directory_from_environment(),
+            ),
             addresses: interface_addresses,
             gateway: gateways.get(&name).cloned(),
             dns_servers: dns_servers.clone(),
@@ -169,9 +174,21 @@ fn dns_servers() -> Vec<String> {
         .collect()
 }
 
-fn configuration_mode(if_index: u32, addresses: &[String]) -> String {
+fn configuration_mode(
+    if_index: u32,
+    addresses: &[String],
+    interface_id: &str,
+    managed_configuration_directory: &Path,
+) -> String {
     if Path::new(&format!("/run/systemd/netif/leases/{if_index}")).is_file() {
         "dhcp".to_owned()
+    } else if crate::network_write::managed_static_declaration(
+        managed_configuration_directory,
+        interface_id,
+    ) {
+        // 只认本系统按同一命名约定生成的静态文件，
+        // 绝不能把 NetworkManager 或人工配置猜成静态模式
+        "static".to_owned()
     } else if addresses.iter().any(|address| {
         !address.starts_with("169.254.") && !address.to_ascii_lowercase().starts_with("fe80:")
     }) {
@@ -221,5 +238,54 @@ mod tests {
     #[test]
     fn counts_ipv4_prefix_bits() {
         assert_eq!(ipv4_prefix_length([255, 255, 255, 0]), 24);
+    }
+
+    #[test]
+    fn reports_static_only_for_the_matching_managed_declaration() {
+        let directory =
+            crate::network_write::test_support::temporary_directory("inventory-network-static");
+        let interface_id = "mac:aa:bb:cc:dd:ee:ff";
+        let managed_name =
+            crate::network_write::managed_file_name(interface_id).expect("受管文件名应当有效");
+        fs::write(
+            directory.join(managed_name),
+            "[Match]\nMACAddress=aa:bb:cc:dd:ee:ff\n\n[Network]\nDHCP=no\nAddress=192.168.1.10/24\n",
+        )
+        .expect("测试受管文件应当写入成功");
+        let addresses = vec!["192.168.1.10/24".to_owned()];
+
+        assert_eq!(
+            configuration_mode(u32::MAX, &addresses, interface_id, &directory),
+            "static"
+        );
+        assert_eq!(
+            configuration_mode(u32::MAX, &addresses, "mac:00:11:22:33:44:55", &directory,),
+            "unknown"
+        );
+    }
+
+    #[test]
+    fn keeps_the_existing_mode_when_no_managed_file_exists() {
+        let directory =
+            crate::network_write::test_support::temporary_directory("inventory-network-unmanaged");
+
+        assert_eq!(
+            configuration_mode(
+                u32::MAX,
+                &["192.168.1.10/24".to_owned()],
+                "mac:aa:bb:cc:dd:ee:ff",
+                &directory,
+            ),
+            "unknown"
+        );
+        assert_eq!(
+            configuration_mode(
+                u32::MAX,
+                &["169.254.1.5/16".to_owned()],
+                "mac:aa:bb:cc:dd:ee:ff",
+                &directory,
+            ),
+            "unconfigured"
+        );
     }
 }
