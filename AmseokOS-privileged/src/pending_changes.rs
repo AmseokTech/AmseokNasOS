@@ -126,10 +126,7 @@ impl PendingChangeRegistry {
         if state.rollback_claims.contains(operation_id) {
             return None;
         }
-        let change = match state.entries.get(operation_id) {
-            Some(change) => change.clone(),
-            None => return None,
-        };
+        let change = state.entries.get(operation_id)?.clone();
         state.rollback_claims.insert(operation_id.to_owned());
         Some(change)
     }
