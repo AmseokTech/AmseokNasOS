@@ -1,0 +1,51 @@
+#--------------------------#
+#--------隔离 tty1 上的只读 AmseokOS 状态页---------#
+#--------Isolates the read-only AmseokOS status screen on tty1--------#
+#-------------------------#
+[Unit]
+Description=AmseokOS local console status screen
+Documentation=file:/usr/share/doc/amseoknas-console/README.md
+ConditionPathExists=/etc/amseoknas/console-enabled
+After=systemd-user-sessions.service network-online.target
+Wants=network-online.target
+Conflicts=getty@tty1.service
+Before=getty@tty1.service
+
+[Service]
+Type=simple
+DynamicUser=yes
+EnvironmentFile=-/etc/default/amseoknas-console
+ExecStart=/usr/libexec/amseoknas/amseoknas-console-dashboard
+Restart=always
+RestartSec=3s
+StandardInput=tty
+StandardOutput=tty
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+UMask=0077
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

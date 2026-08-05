@@ -1,0 +1,171 @@
+#!/bin/sh
+#--------------------------#
+#--------在本地 tty1 展示只读的 AmseokOS 管理入口状态---------#
+#--------Shows read-only AmseokOS management status on local tty1--------#
+#-------------------------#
+set -eu
+
+mode=loop
+
+case ${1:-} in
+    '')
+        ;;
+    --once)
+        mode=once
+        ;;
+    --preview)
+        mode=preview
+        ;;
+    --help)
+        printf '%s\n' "usage: amseoknas-console-dashboard [--once|--preview|--help]"
+        exit 0
+        ;;
+    *)
+        printf '%s\n' "unknown option: $1" >&2
+        exit 2
+        ;;
+esac
+
+if [ "$#" -gt 1 ]; then
+    printf '%s\n' "only one option may be specified" >&2
+    exit 2
+fi
+
+title=${AMSEOKOS_CONSOLE_TITLE:-AmseokOS}
+subtitle=${AMSEOKOS_CONSOLE_SUBTITLE:-Your private server platform}
+footer=${AMSEOKOS_CONSOLE_FOOTER:-Open the management address in a browser to continue setup}
+web_port=${AMSEOKOS_CONSOLE_WEB_PORT:-6521}
+refresh_seconds=${AMSEOKOS_CONSOLE_REFRESH_SECONDS:-5}
+
+case $web_port in
+    ''|*[!0-9]*) web_port=6521 ;;
+esac
+
+if [ "$web_port" -lt 1 ] || [ "$web_port" -gt 65535 ]; then
+    web_port=6521
+fi
+
+case $refresh_seconds in
+    ''|*[!0-9]*) refresh_seconds=5 ;;
+esac
+
+if [ "$refresh_seconds" -lt 1 ] || [ "$refresh_seconds" -gt 3600 ]; then
+    refresh_seconds=5
+fi
+
+read_release_value() {
+    release_file=$1
+    release_key=$2
+
+    if [ ! -r "$release_file" ]; then
+        return 1
+    fi
+
+    release_value=$(/usr/bin/sed -n "s/^${release_key}=//p" "$release_file" | /usr/bin/sed -n '1p')
+    release_value=${release_value#\"}
+    release_value=${release_value%\"}
+
+    if [ -z "$release_value" ]; then
+        return 1
+    fi
+
+    printf '%s\n' "$release_value"
+}
+
+discover_version() {
+    read_release_value /etc/amseokos-release VERSION_ID \
+        || read_release_value /etc/os-release VERSION_ID \
+        || printf '%s\n' "development"
+}
+
+discover_hostname() {
+    /usr/bin/hostname 2>/dev/null || printf '%s\n' "amseokos"
+}
+
+discover_ipv4() {
+    if [ ! -x /usr/sbin/ip ]; then
+        return 1
+    fi
+
+    /usr/sbin/ip -o -4 address show scope global up 2>/dev/null \
+        | /usr/bin/awk '{ split($4, address, "/"); print address[1]; exit }'
+}
+
+render_frame() {
+    node_name=$1
+    ipv4_address=$2
+    version=$3
+
+    if [ -n "$ipv4_address" ]; then
+        management_address="https://${ipv4_address}:${web_port}"
+        network_status="Connected"
+    else
+        management_address="Waiting for network"
+        network_status="Disconnected"
+    fi
+
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+        clear_sequence='\033[2J\033[H\033[?25l'
+        accent='\033[1;34m'
+        strong='\033[1;37m'
+        muted='\033[0;37m'
+        reset='\033[0m'
+    else
+        clear_sequence=''
+        accent=''
+        strong=''
+        muted=''
+        reset=''
+    fi
+
+    printf '%b' "$clear_sequence"
+    printf '%b%s%b\n' "$accent" '     _                         _      ___  ____' "$reset"
+    printf '%b%s%b\n' "$accent" '    / \   _ __ ___  ___  ___ | | __/ _ \/ ___|' "$reset"
+    printf '%b%s%b\n' "$accent" "   / _ \\ | '_ \` _ \\/ __|/ _ \\| |/ / | | \\___ \\" "$reset"
+    printf '%b%s%b\n' "$accent" '  / ___ \| | | | | \__ \  __/|   <| |_| |___) |' "$reset"
+    printf '%b%s%b\n' "$accent" ' /_/   \_\_| |_| |_|___/\___||_|\_\\___/|____/' "$reset"
+    printf '\n'
+    printf '  %b%s%b\n' "$strong" "$title" "$reset"
+    printf '  %b%s%b\n\n' "$muted" "$subtitle" "$reset"
+    printf '  %-18s %s\n' "System name" "$node_name"
+    printf '  %-18s %s\n' "Management" "$management_address"
+    printf '  %-18s %s\n' "Version" "$version"
+    printf '  %-18s %s\n' "Network" "$network_status"
+    printf '\n'
+    printf '  %s\n' "$footer"
+    printf '  %s\n' "Maintenance login: press Ctrl+Alt+F2"
+    printf '\n'
+}
+
+restore_terminal() {
+    if [ -t 1 ]; then
+        printf '\033[0m\033[?25h'
+    fi
+}
+
+stop_dashboard() {
+    exit 0
+}
+
+trap restore_terminal 0
+trap stop_dashboard HUP INT TERM
+
+while :; do
+    if [ "$mode" = preview ]; then
+        node_name=amseokos-node
+        ipv4_address=192.168.1.100
+        version=0.1.0-preview
+    else
+        node_name=$(discover_hostname)
+        ipv4_address=$(discover_ipv4 || true)
+        version=$(discover_version)
+    fi
+
+    render_frame "$node_name" "$ipv4_address" "$version"
+
+    if [ "$mode" != loop ]; then
+        break
+    fi
+
+    /bin/sleep "$refresh_seconds"
+done

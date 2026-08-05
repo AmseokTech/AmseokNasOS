@@ -1,4 +1,4 @@
-# AmseokNas 单节点基础设施部署
+# AmseokOS 单节点基础设施部署
 
 本配置用于第一阶段单节点开发和首次部署，不代表 PostgreSQL、etcd 或 NATS 已具备高可用能力。
 
@@ -10,12 +10,12 @@
 
 ## 配置与启动
 
-复制 `AmseokNas-deploy/.env.example` 为不提交的 `AmseokNas-deploy/.env`，为 `POSTGRES_PASSWORD` 生成随机密码。使用 `nats server passwd` 为 NATS 客户端密码生成 bcrypt 哈希，将哈希以单引号包围后写入 `NATS_PASSWORD_HASH`，再执行：
+复制 `AmseokOS-deploy/.env.example` 为不提交的 `AmseokOS-deploy/.env`，为 `POSTGRES_PASSWORD` 生成随机密码。使用 `nats server passwd` 为 NATS 客户端密码生成 bcrypt 哈希，将哈希以单引号包围后写入 `NATS_PASSWORD_HASH`，再执行：
 
 ```bash
 docker compose \
-  --env-file AmseokNas-deploy/.env \
-  -f AmseokNas-deploy/compose.single-node.yaml \
+  --env-file AmseokOS-deploy/.env \
+  -f AmseokOS-deploy/compose.single-node.yaml \
   up -d
 ```
 
@@ -46,8 +46,8 @@ NATS 客户端使用生成哈希前的原始密码连接。原始密码必须进
 
 ```bash
 docker compose \
-  --env-file AmseokNas-deploy/.env \
-  -f AmseokNas-deploy/compose.single-node.yaml \
+  --env-file AmseokOS-deploy/.env \
+  -f AmseokOS-deploy/compose.single-node.yaml \
   ps
 ```
 

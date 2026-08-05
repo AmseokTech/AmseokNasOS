@@ -3,7 +3,7 @@
 #--------Isolates the read-only system inventory daemon--------#
 #-------------------------#
 [Unit]
-Description=AmseokNas read-only system inventory daemon
+Description=AmseokOS read-only system inventory daemon
 After=local-fs.target
 
 [Service]

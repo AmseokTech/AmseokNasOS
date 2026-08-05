@@ -12,20 +12,20 @@ Cookie 使用 HTTPS 安全属性。
 先启动 API：
 
 ```bash
-dotnet run --project AmseokNas-server/src/Nas.Api
+dotnet run --project AmseokOS-server/src/Nas.Api
 ```
 
 再启动前端：
 
 ```bash
-cd AmseokNas-web
+cd AmseokOS-web
 npm start
 ```
 
 `npm start` 会自动完成以下操作：
 
 1. 探测开发机所有 RFC1918 局域网 IPv4 地址和主机名。
-2. 首次启动时在 `AmseokNas-web/.certs/` 创建开发 CA。
+2. 首次启动时在 `AmseokOS-web/.certs/` 创建开发 CA。
 3. 签发包含所有探测地址的服务器证书，地址变化或证书临近过期时自动续签。
 4. 以 HTTPS 启动 Angular，并打印全部局域网访问地址。
 
@@ -40,7 +40,7 @@ AMSEOK_DEV_HOSTS=nas.dev.lan,192.168.1.20 npm start
 局域网中的手机或其他电脑必须安装并信任以下根证书，浏览器才不会显示证书警告：
 
 ```text
-AmseokNas-web/.certs/amseok-dev-ca.crt
+AmseokOS-web/.certs/amseok-dev-ca.crt
 ```
 
 只分发 `.crt` 文件。不得复制或分发 `.key` 文件；CA 私钥可以签发受信任证书，必须只保留在开发机。
