@@ -1,10 +1,14 @@
-# AmseokOS
+<p align="center">
+  <img src="AmseokOS-docs/assets/amseok-banner.png" alt="Amseok 品牌横幅" width="100%">
+</p>
 
-**让数据与 AI 留在本地。**
+<h1 align="center">AmseokOS</h1>
 
+**让数据与 AI 留在本地。**<br>
 *Keep your data and AI local.*
 
-**统一管理私有数据、本地 AI、应用服务与计算资源。**
+**统一管理私有数据、本地 AI、应用服务与计算资源。**<br>
+*Manage private data, local AI, application services, and computing resources—all in one place.*
 
 AmseokOS 是一个以 Debian 为底座的本地智能基础设施操作系统，通过统一的 Web 桌面管理私有存储、本地 AI、应用服务、网络与计算资源。
 
