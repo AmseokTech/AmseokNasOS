@@ -47,16 +47,20 @@ jobs:
         env:
           POSTGRES_PASSWORD: ci-placeholder
           NATS_PASSWORD_HASH: ci-placeholder
-        run: docker compose --file AmseokNas-deploy/compose.single-node.yaml config --quiet
+        run: docker compose --file AmseokOS-deploy/compose.single-node.yaml config --quiet
 
       - name: Validate systemd units
         run: |
           sudo install -D -m 0755 /bin/true /usr/libexec/amseoknas/amseoknas-privileged
           sudo install -D -m 0755 /bin/true /usr/libexec/amseoknas/amseoknas-terminal-broker
-          sudo install -D -m 0644 AmseokNas-deploy/systemd/privileged.env.example /etc/amseoknas/privileged.env
+          sudo install -D -m 0755 AmseokOS-deploy/console/amseoknas-console-dashboard /usr/libexec/amseoknas/amseoknas-console-dashboard
+          sudo install -D -m 0644 AmseokOS-deploy/systemd/privileged.env.example /etc/amseoknas/privileged.env
+          sudo install -D -m 0644 AmseokOS-deploy/systemd/getty@tty1.service.d/50-amseoknas-console.conf /etc/systemd/system/getty@tty1.service.d/50-amseoknas-console.conf
           systemd-analyze verify \
-            AmseokNas-deploy/systemd/amseoknas-privileged.service \
-            AmseokNas-deploy/systemd/amseoknas-terminal.service
+            AmseokOS-deploy/systemd/amseoknas-console.service \
+            AmseokOS-deploy/systemd/amseoknas-privileged.service \
+            AmseokOS-deploy/systemd/amseoknas-terminal.service \
+            getty@tty1.service
 
   dependency-review:
     name: Dependency review
@@ -79,7 +83,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: AmseokNas-web
+        working-directory: AmseokOS-web
 
     steps:
       - name: Checkout repository
@@ -90,7 +94,7 @@ jobs:
         with:
           node-version: 22.22.3
           cache: npm
-          cache-dependency-path: AmseokNas-web/package-lock.json
+          cache-dependency-path: AmseokOS-web/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -109,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: frontend-coverage
-          path: AmseokNas-web/coverage
+          path: AmseokOS-web/coverage
           if-no-files-found: warn
           retention-days: 14
 
@@ -122,7 +126,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: AmseokNas-server
+        working-directory: AmseokOS-server
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_NOLOGO: true
@@ -134,10 +138,10 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
-          dotnet-version: 10.0.301
+          dotnet-version: 10.0.302
 
       - name: Restore solution
-        run: dotnet restore AmseokNas.sln
+        run: dotnet restore AmseokOS.sln
 
       - name: Restore tests
         run: dotnet restore tests/Nas.Api.Tests/Nas.Api.Tests.csproj
@@ -147,12 +151,12 @@ jobs:
 
       - name: Verify formatting and analyzers
         run: |
-          dotnet format AmseokNas.sln --verify-no-changes --no-restore
+          dotnet format AmseokOS.sln --verify-no-changes --no-restore
           dotnet format tests/Nas.Api.Tests/Nas.Api.Tests.csproj --verify-no-changes --no-restore
 
       - name: Audit NuGet dependencies
         run: |
-          dotnet list AmseokNas.sln package \
+          dotnet list AmseokOS.sln package \
             --vulnerable \
             --include-transitive \
             --no-restore \
@@ -167,7 +171,7 @@ jobs:
           ' "${RUNNER_TEMP}/nuget-audit.json"
 
       - name: Build solution with warnings as errors
-        run: dotnet build AmseokNas.sln --configuration Release --no-restore --warnaserror
+        run: dotnet build AmseokOS.sln --configuration Release --no-restore --warnaserror
 
       - name: Check Entity Framework migrations
         run: |
@@ -192,7 +196,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: backend-coverage
-          path: AmseokNas-server/TestResults/**/coverage.cobertura.xml
+          path: AmseokOS-server/TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
           retention-days: 14
 
@@ -202,7 +206,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: AmseokNas-terminal
+        working-directory: AmseokOS-terminal
     env:
       CARGO_TERM_COLOR: always
 
@@ -234,7 +238,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: AmseokNas-privileged
+        working-directory: AmseokOS-privileged
     env:
       CARGO_TERM_COLOR: always
 
@@ -266,7 +270,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: AmseokNas-installer
+        working-directory: AmseokOS-installer
 
     steps:
       - name: Checkout repository
@@ -299,6 +303,11 @@ jobs:
         run: >-
           shellcheck scripts/*.sh live-build/auto/config
           live-build/config/includes.chroot/etc/skel/.config/openbox/autostart
+          ../AmseokOS-deploy/console/amseoknas-console-dashboard
+          ../AmseokOS-deploy/console/tests/*.sh
+
+      - name: Test local console dashboard
+        run: ../AmseokOS-deploy/console/tests/console-dashboard-test.sh
 
       - name: Check C++ formatting
         run: ./scripts/check-cpp-format.sh

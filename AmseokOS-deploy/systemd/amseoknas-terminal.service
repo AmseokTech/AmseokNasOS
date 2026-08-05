@@ -3,7 +3,7 @@
 #--------Isolates the low-privilege Web Terminal broker--------#
 #-------------------------#
 [Unit]
-Description=AmseokNas low-privilege Web Terminal broker
+Description=AmseokOS low-privilege Web Terminal broker
 After=local-fs.target
 
 [Service]

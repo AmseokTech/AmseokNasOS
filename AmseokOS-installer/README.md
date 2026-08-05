@@ -30,22 +30,22 @@ live-build 只消费已构建的 Debian 包
 
 ```bash
 cmake \
-  -S AmseokNas-installer \
-  -B AmseokNas-installer/build \
+  -S AmseokOS-installer \
+  -B AmseokOS-installer/build \
   -G Ninja \
   -DCMAKE_PREFIX_PATH=/Users/goodgirlkihon/Qt/6.11.1/macos \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_BUILD_TYPE=Debug
 
-cmake --build AmseokNas-installer/build
-ctest --test-dir AmseokNas-installer/build --output-on-failure --no-tests=error
+cmake --build AmseokOS-installer/build
+ctest --test-dir AmseokOS-installer/build --output-on-failure --no-tests=error
 ```
 
 C++ 质量检查：
 
 ```bash
-AmseokNas-installer/scripts/check-cpp-format.sh
-AmseokNas-installer/scripts/run-clang-tidy.sh AmseokNas-installer/build
+AmseokOS-installer/scripts/check-cpp-format.sh
+AmseokOS-installer/scripts/run-clang-tidy.sh AmseokOS-installer/build
 ```
 
 静态分析依赖 CMake 使用 `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` 生成编译数据库。GitHub Actions 会在任意分支每次 push 时执行 ShellCheck、C++ 格式、依赖边界、clang-tidy、Release 构建、QML lint、Qt Test、安装布局和 `live-build` 配置检查。
@@ -53,20 +53,20 @@ AmseokNas-installer/scripts/run-clang-tidy.sh AmseokNas-installer/build
 macOS 窗口预览：
 
 ```bash
-open AmseokNas-installer/build/amseokos-installer.app --args --windowed
+open AmseokOS-installer/build/amseokos-installer.app --args --windowed
 ```
 
 Linux 构建后运行：
 
 ```bash
-AmseokNas-installer/build/amseokos-installer --windowed
+AmseokOS-installer/build/amseokos-installer --windowed
 ```
 
 无界面启动冒烟检查：
 
 ```bash
 QT_QPA_PLATFORM=offscreen \
-  AmseokNas-installer/build/amseokos-installer --windowed --smoke-test
+  AmseokOS-installer/build/amseokos-installer --windowed --smoke-test
 ```
 
 ## 开发者实时预览
@@ -76,14 +76,14 @@ QT_QPA_PLATFORM=offscreen \
 在仓库根目录运行：
 
 ```bash
-AmseokNas-installer/scripts/preview.sh
+AmseokOS-installer/scripts/preview.sh
 ```
 
 脚本会创建独立的 `build-preview` Debug 构建并启动 Qt `qmlpreview`。保持窗口和终端运行，保存 `qml/` 下的文件后，界面会自动刷新。首次运行如果尚未配置过 Qt，可显式指定 `qt-cmake`：
 
 ```bash
 QT_CMAKE=/Users/goodgirlkihon/Qt/6.11.1/macos/bin/qt-cmake \
-  AmseokNas-installer/scripts/preview.sh
+  AmseokOS-installer/scripts/preview.sh
 ```
 
 `qmlpreview` 只用于本地实时刷新。缺少该工具时仍可配置、构建并执行下面的无界面预览验证；只有 `developer-preview` 实时刷新目标会提示安装 Qt QML tooling。
@@ -92,7 +92,7 @@ QT_CMAKE=/Users/goodgirlkihon/Qt/6.11.1/macos/bin/qt-cmake \
 
 ```bash
 QT_QPA_PLATFORM=offscreen \
-  AmseokNas-installer/build-preview/amseokos-installer.app/Contents/MacOS/amseokos-installer \
+  AmseokOS-installer/build-preview/amseokos-installer.app/Contents/MacOS/amseokos-installer \
   --developer-preview --smoke-test
 ```
 
@@ -101,7 +101,7 @@ QT_QPA_PLATFORM=offscreen \
 以下命令必须在 Debian trixie amd64 构建机执行：
 
 ```bash
-cd AmseokNas-installer
+cd AmseokOS-installer
 ./scripts/build-package.sh
 ./scripts/build-image.sh ../amseokos-installer_0.1.0_amd64.deb ../out/amseokos-installer-amd64.iso
 ```

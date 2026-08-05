@@ -1,4 +1,4 @@
-# AmseokNas C# 与 Rust 特权执行架构
+# AmseokOS C# 与 Rust 特权执行架构
 
 状态：第一阶段只读查询已开始实现；关于本机、物理网卡、物理块设备和现有 MD RAID 阵列查询代码已完成，写操作尚未开放
 
@@ -6,7 +6,7 @@
 
 ## 1. 设计结论
 
-AmseokNas 使用 C# 控制面与独立 Rust 特权执行面：
+AmseokOS 使用 C# 控制面与独立 Rust 特权执行面：
 
 ```text
 浏览器
@@ -379,14 +379,14 @@ C# 负责 Web 认证、重新认证、会话、并发限制、空闲超时和审
 
 当前 C# API 中，`TerminalController` 只处理授权、Origin、子协议、WebSocket 升级和 HTTP 结果映射；`ITerminalSessionService` 编排重新认证与一次性授权会话，`ITerminalWebSocketRelay` 负责浏览器和 broker 之间的有界双向转发及超时关闭，`ITerminalBrokerClient` 封装独立 Unix Socket 协议。
 
-当前已按该边界建立 `AmseokNas-terminal` 独立 Rust broker、C# WebSocket Gateway，以及由 Material Dialog 承载的 Angular xterm.js 终端。测试机已完成独立 Linux 账户、systemd 沙箱、异常自动重启、Unix Socket/PTY 和跨权限访问验证，并通过 HTTPS Angular 开发代理启用；仍需使用当前 Web 管理员账户完成浏览器重新认证与 WebSocket 交互端到端验证，生产 Nginx 长连接也尚未验证。部署约束见 `AmseokNas-docs/web-terminal.md`。
+当前已按该边界建立 `AmseokOS-terminal` 独立 Rust broker、C# WebSocket Gateway，以及由 Material Dialog 承载的 Angular xterm.js 终端。测试机已完成独立 Linux 账户、systemd 沙箱、异常自动重启、Unix Socket/PTY 和跨权限访问验证，并通过 HTTPS Angular 开发代理启用；仍需使用当前 Web 管理员账户完成浏览器重新认证与 WebSocket 交互端到端验证，生产 Nginx 长连接也尚未验证。部署约束见 `AmseokOS-docs/web-terminal.md`。
 
 ## 12. 推荐实现结构
 
 ### 12.1 C#
 
 ```text
-AmseokNas-server/src/
+AmseokOS-server/src/
   Nas.Domain/
     Operations/
     Errors/
@@ -410,7 +410,7 @@ AmseokNas-server/src/
 ### 12.2 Rust
 
 ```text
-AmseokNas-privileged/
+AmseokOS-privileged/
   Cargo.toml
   Cargo.lock
   src/
@@ -499,10 +499,10 @@ Rust 第一版建议使用最小依赖集合：
 
 - C# 控制面骨架、身份认证和 PostgreSQL/SQLite 基础已经存在
 - Domain 已定义统一 `OperationStatus`，权限中已包含 `storage.read`、`storage.format` 和 `raid.manage`
-- `AmseokNas-privileged` 已建立 1 MiB 有界版本化 Unix Socket 协议、peer UID 校验和固定只读动作白名单，不提供任意命令执行入口
+- `AmseokOS-privileged` 已建立 1 MiB 有界版本化 Unix Socket 协议、peer UID 校验和固定只读动作白名单，不提供任意命令执行入口
 - C# Application 已按系统设置与存储清单用例拆分客户端端口；Infrastructure 复用单一 Unix Socket 适配器；HTTP Controller 只负责 `storage.read` 授权、协议映射和脱敏错误响应
 - Rust 已实现 `system.getAbout`、`network.inspectInterfaces`、`storage.inspectBlockDevices` 和 `raid.inspectArrays`；存储拓扑已补充 MD、dm-crypt、LVM、通用 device-mapper 的传递式 holders 遍历、系统/管理目录挂载保护、swap 传播、稳定身份冲突和拓扑完整性标记。存储模块 11 项独立测试已实际执行通过，Linux 目标 `cargo check --tests` 与 Clippy `-D warnings` 通过；完整 daemon 仍需在 Linux 环境执行测试
 - C# 存储查询相关 8 项 Controller/协议测试全部通过，并覆盖旧 daemon 缺少拓扑字段时规范化为占用状态；除项目原有 macOS Unix Socket 长路径测试外的 23 项 xUnit 全部通过，解决方案格式验证通过
-- 独立 `AmseokNas-terminal` Rust workspace、C# WebSocket Gateway 和 Angular Material/xterm.js 弹窗已经实现并通过本地及测试机构建；测试机已验证独立账户、systemd 沙箱、服务保活、Unix Socket/PTY、秘密与网络隔离、权限迁移和未登录拦截，浏览器登录后的 WebSocket 交互以及生产 Nginx 长连接仍待验证；该实现不属于 privileged daemon
+- 独立 `AmseokOS-terminal` Rust workspace、C# WebSocket Gateway 和 Angular Material/xterm.js 弹窗已经实现并通过本地及测试机构建；测试机已验证独立账户、systemd 沙箱、服务保活、Unix Socket/PTY、秘密与网络隔离、权限迁移和未登录拦截，浏览器登录后的 WebSocket 交互以及生产 Nginx 长连接仍待验证；该实现不属于 privileged daemon
 - 当前开发环境已安装 Rust 1.97.1 toolchain，并已补充 Linux 交叉检查目标和 Clippy 组件
 - 当前完成的是只读清单代码闭环，不代表 RAID 创建、删除、扩容、替换、文件系统或挂载功能已经完成

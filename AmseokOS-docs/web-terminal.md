@@ -1,4 +1,4 @@
-# AmseokNas Web Terminal 部署与安全边界
+# AmseokOS Web Terminal 部署与安全边界
 
 状态：已实现且默认关闭，已在 `nastest` 完成独立账户、systemd 沙箱、真实 PTY、自动重启和未登录拒绝验证；仍待使用当前 Web 管理员密码完成登录后的浏览器交互端到端验证
 
@@ -27,8 +27,8 @@ Relay 在会话结束后为 broker、转发任务和 WebSocket 关闭共用 5 �
 构建并安装 broker：
 
 ```text
-cargo build --manifest-path AmseokNas-terminal/Cargo.toml --release
-install -o root -g root -m 0755 AmseokNas-terminal/target/release/amseoknas-terminal-broker /usr/libexec/amseoknas/amseoknas-terminal-broker
+cargo build --manifest-path AmseokOS-terminal/Cargo.toml --release
+install -o root -g root -m 0755 AmseokOS-terminal/target/release/amseoknas-terminal-broker /usr/libexec/amseoknas/amseoknas-terminal-broker
 ```
 
 创建独立系统账户，并只允许 API 用户通过专用组连接 socket：
@@ -38,7 +38,7 @@ useradd --system --home-dir /var/lib/amseoknas-terminal --shell /usr/sbin/nologi
 usermod -aG amseoknas-terminal amseoknas-api
 ```
 
-安装 `AmseokNas-deploy/systemd/amseoknas-terminal.service` 后启用服务。API 用户组发生变化后必须重启 API 服务，才能获得新的 supplementary group。
+安装 `AmseokOS-deploy/systemd/amseoknas-terminal.service` 后启用服务。API 用户组发生变化后必须重启 API 服务，才能获得新的 supplementary group。
 
 若 API 服务用户不是 `amseoknas-api`，通过受保护的 systemd drop-in 设置：
 
@@ -60,7 +60,7 @@ Terminal__IdleTimeoutMinutes=15
 Terminal__MaximumSessionMinutes=60
 ```
 
-Origin 必须包含 scheme、host 和非默认端口，不接受通配符。Nginx HTTPS server block 需要包含 `AmseokNas-deploy/nginx/web-terminal.conf` 中的 WebSocket location。
+Origin 必须包含 scheme、host 和非默认端口，不接受通配符。Nginx HTTPS server block 需要包含 `AmseokOS-deploy/nginx/web-terminal.conf` 中的 WebSocket location。
 
 ## 4. 验证
 

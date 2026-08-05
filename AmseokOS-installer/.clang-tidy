@@ -13,6 +13,6 @@ Checks: >
   readability-misleading-indentation,
   readability-redundant-*
 WarningsAsErrors: '*'
-HeaderFilterRegex: '.*/AmseokNas-installer/(src|tests)/.*'
+HeaderFilterRegex: '.*/AmseokOS-installer/(src|tests)/.*'
 SystemHeaders: false
 FormatStyle: file

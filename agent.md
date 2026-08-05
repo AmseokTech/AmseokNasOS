@@ -1,8 +1,8 @@
-# AmseokNas 项目开发约定与实施路线
+# AmseokOS 项目开发约定与实施路线
 
 ## 1. 文档目的
 
-本文件是 AmseokNas 项目的长期开发约定、架构说明、阶段计划和 AI 协作规则
+本文件是 AmseokOS 项目的长期开发约定、架构说明、阶段计划和 AI 协作规则
 
 任何参与本项目的 AI 或开发者在开始工作前，都必须先阅读本文件，再检查项目目录、源码、配置、测试和 Git 状态，并根据实际代码判断当前进度
 
@@ -12,16 +12,17 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-07-30
+最后检查日期：2026-08-05
 
-当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口管理已建立，支持最小化、最大化/还原、关闭、拖动、缩放和布局持久化，并已接入只读系统设置窗口，Dashboard 和磁盘列表仍未实现；C# 与 Rust 特权边界已完成首批“关于本机”和物理网卡只读查询代码闭环，但尚未安装到测试机，DHCP/固定 IP 写入仍保持关闭；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；终端重新认证与一次性会话流程已从 Controller 移入 Application 用例，浏览器与 broker 的双向转发也已移入独立 API Relay，但本工作区缺少 .NET 工具链，新增拆分与测试尚待实际构建验证；Data Protection 外部密钥保护尚未完成
+当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口管理已建立，支持最小化、最大化/还原、关闭、拖动、缩放和布局持久化，并已接入只读系统设置窗口，Dashboard 和磁盘列表仍未实现；C# 与 Rust 特权边界已完成“关于本机”、物理网卡、物理块设备和现有 MD RAID 阵列只读查询代码闭环，C# 已新增独立网络配置安全预览边界，但 privileged daemon 尚未安装到测试机，任何存储与网络实际写操作仍保持关闭；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；终端重新认证与一次性会话流程已从 Controller 移入 Application 用例，浏览器与 broker 的双向转发也已移入独立 API Relay，拆分后的累计 15 项 xUnit 已由构建机验证，本次 Relay 关闭预算和故障分类修复新增的 3 项测试仍待在 .NET 10 环境执行；作为用户明确要求的 CI/CD 基础设施插入项，OneDev 已部署到 `console`，管理员初始化、容器持久化、AmseokOS 项目导入、独立 Agent、远程 Shell 执行器、版本化 Build Spec、完整测试构建、OneDev 制品保留和存储机上传链路均已真实验证；作为用户明确要求的 Debian 发行版插入项，Qt/QML 图形安装器、Debian source package 和 live-build 镜像配置的只读架构骨架已建立，真实磁盘探测与安装执行保持关闭；Data Protection 外部密钥保护尚未完成
 
 检查结果：
 
 - 已初始化本地 Git 仓库，本地 `devkihon` 基于并跟踪远端 `origin/devkihon`
 - 已配置远端 `origin` 为 `git@github.com:AmseokTech/AmseokOS.git`
 - 当前开发基线提交为 `bfb666a web(fix):修复dock无法打开设置页面以及AmseokOS显示位置`
-- 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokNas-<用途>` 命名
+- 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokOS-<用途>` 命名
+- 已建立根级 `README.md`，使用“让数据与 AI 留在本地 / Keep your data and AI local”作为品牌口号，以“统一管理私有数据、本地 AI、应用服务与计算资源”说明用户向定位，并集中提供开发状态、安全边界、架构、目录、启动、验证和文档入口；本地 AI 的具体支持范围、部署方式与硬件兼容说明仍待对应模块文档补充
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
 - 已初始化 .NET 10 后端解决方案，建立 `Nas.Domain`、`Nas.Application`、`Nas.Infrastructure` 和 `Nas.Api` 项目及单向项目引用
@@ -43,7 +44,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
 - 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；所有成功登录统一进入懒加载的 `/desktop` 路由，强制改密会话在桌面右上角显示可复用内容投影提醒，刷新桌面后通过会话接口恢复提醒；Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
 - 已将桌面手绘渐变背景替换为用户提供的 16:9 山景壁纸，使用 `cover` 保持宽高比并保留深蓝色加载兜底；Angular 25 项测试与生产构建通过，构建产物包含与源文件一致的壁纸资源
-- 已将前端用户可见产品名从 `AmseokNas` 统一为 `AmseokOS`，移除桌面品牌区的 CSS 手绘 Logo，将“更便捷地管理你的服务器”与产品名移至桌面右下角，并在窄屏避让底部 Dock；Angular 26 项测试与生产构建通过
+- 已将前端用户可见的旧产品名统一为 `AmseokOS`，移除桌面品牌区的 CSS 手绘 Logo，将“更便捷地管理你的服务器”与产品名移至桌面右下角，并在窄屏避让底部 Dock；Angular 26 项测试与生产构建通过
 - 已将系统设置注册为桌面窗口管理器中的单例应用，Dock 可打开、聚焦、最小化和恢复窗口；设置页面采用左侧“关于本机/网络”导航，关于本机展示操作系统、内核、运行时间、CPU 型号/核心/频率、内存和系统盘容量，网络页展示物理网卡型号、驱动、链路、速率、地址、网关和 DNS；当前仅在检测到 systemd DHCP 租约时标记 DHCP，其他已配置来源显示未知，避免把 NetworkManager、ifupdown 或 SLAAC 地址误报为固定地址；尚未具备安全回滚能力的 IP 写入按钮保持禁用
 - 已新增独立 C# `NetworkConfiguration` Application 模块和 `POST /api/network/configuration-previews` 安全预览接口，使用 `network.manage` 独立授权策略、CSRF、按用户限速和管理员密码重新认证；DHCP 模式拒绝静态字段，固定 IPv4 模式严格校验四段十进制地址、连续且 `/1` 至 `/30` 的子网掩码、主机地址、网关同子网及重复/缺失网卡身份，返回规范化地址、掩码、前缀、当前配置、警告与结构化错误。C# 已增加 `POST /api/network/configuration-operations`、`POST /api/network/configuration-operations/{operationId}/confirm` 和 `POST /api/network/configuration-operations/{operationId}/rollback` 三个受保护接口，将参数复核、两分钟确认期限、调用身份和执行结果映射集中在 Application，并通过独立 `INetworkConfigurationExecutor` 隔离 Rust 写入边界；生产环境暂时注册拒绝型适配器，因此 Rust 原子写入、连通性确认和自动回滚尚未实现时，三个接口统一以 `503 network.write_unavailable` 关闭且不会假报成功，预览仍返回 `CanApply=false`，前端按钮也保持禁用。网络配置相关 32 项 xUnit 与 Release 构建 0 警告/0 错误通过；Operation 持久化、资源锁和审计仍未接入此流程
 - 已建立 `NodeDbContext` 与 SQLite 初始迁移，覆盖节点状态、本地 Operation、资源锁、Inbox 和 Outbox，并通过临时 SQLite 数据库验证迁移、WAL、`quick_check` 和外键检查
@@ -65,9 +66,24 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已针对 Dock 点击“系统设置”未见窗口的问题完成端到端链路核对：测试机当前 Web Release `20260724T075839Z` 已包含 `windowAppId: settings`、设置懒加载块和 WindowManager 打开逻辑，本地测试改为真实点击 Dock 按钮并确认 WindowHost 渲染“系统设置 窗口”和设置布局，完整前端门禁通过。测试机 Nginx 当前未为 `index.html` 设置 `Cache-Control`，部署前已经打开的浏览器标签仍会继续运行旧 JavaScript；旧实现点击设置只更新顶部标题而不创建窗口，需强制刷新后加载当前哈希资源。浏览器强制刷新后的人工结果仍待用户确认
 - 已按 Application 用例边界拆分 Web Terminal 会话授权：新增 `ITerminalSessionService` 与明确的创建/消费结果类型，集中处理终端开关、密码重新认证、一次性会话创建和消费；`TerminalController` 不再直接编排 `IAuthenticationService` 与 `ITerminalSessionStore`，只保留 HTTP/WebSocket 协议检查和响应映射；新增 3 项用例测试覆盖禁用、重新认证失败、成功创建及一次性消费。拆分时工作区未包含 Git 元数据且未安装 .NET 工具链，本次仅完成静态检查，构建和测试执行仍待验证
 - 已将 Web Terminal 双向转发从 `TerminalController` 拆入 API 传输层 `ITerminalWebSocketRelay`：Relay 集中管理浏览器输入、broker 输出、控制消息、帧大小、空闲和最长时限、关闭握手及字节统计，Controller 只建立经过检查的 WebSocket 与 broker 会话后委托转发；新增 2 项 Relay 测试覆盖输入/resize/close 和输出/exit 两个方向。当前工作区仍无 .NET 工具链，本次新增代码和累计 15 项 xUnit 测试尚待实际构建执行
-- Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon 测试机安装、物理磁盘查询和网络安全写入仍未实现，第一阶段验收条件尚未满足
+- 已修复 `ITerminalWebSocketRelay` 评审发现的两个问题：broker、转发任务和 WebSocket 关闭共用 5 秒关闭预算，请求取消时中止未完成的 WebSocket 关闭握手；非法 JSON、非法控制消息和超大消息保留对应 WebSocket 关闭码并记录为 `ProtocolViolation`，I/O 等未预期传输异常记录为 `Failed`，不再伪装成正常关闭。新增 3 项测试覆盖协议违规分类、broker I/O 故障分类和卡住的关闭握手中止，累计测试数为 18；当前工作区没有 .NET SDK，已完成差异、格式和依赖边界静态检查，新增测试仍待实际执行
+- 已在目标机 `console` 停止原有 `shipit-frontend` 与 `shipit-backend` 容器，按镜像摘要部署 OneDev 15.0.6；服务使用 `onedev-data` 持久卷、`unless-stopped` 重启策略、1 CPU、768 MiB 内存和 2 GiB 含 swap 上限，Web 端口 `6610` 已从开发机验证可达，Git SSH 端口 `6611` 已发布但首次管理员初始化前 OneDev 尚未监听。容器重启后 462 个持久化文件保持不变，Web 在约 39 秒后恢复 200，未发生 OOM；已将无语言 Cookie 时的默认界面从英文改为 OneDev 内置中文，并将浏览器标签标题本地化为“OneDev - 集 Git、CI/CD、看板与软件包于一体”，使用无 Cookie 的新请求和浏览器实际页面确认首次初始化页显示“服务器设置”“创建管理员账户”等中文文本，修改前的 15.0.6 核心包已备份到持久卷内 `/opt/onedev/backup/localization-20260731/`，可直接回滚。目标机仅 1 核和约 1 GB 内存，低于 OneDev 官方建议的 2 核和 2 GB；管理员初始化和实际流水线现已完成，HTTPS、持久卷备份与 Git SSH 端到端验证仍未配置
+- 已确认 OneDev 首次管理员初始化已经完成；已为 `build@192.168.188.4` 安装用户级 Git 2.47.3、Node.js 22.22.3、.NET SDK 10.0.302、Rust 1.97.1 和隔离 GCC 14，并建立到 `storage@192.168.188.8:/home/storage/storeage/AmseokOS/Test` 的受限专用 SSH 上传通道。基于提交 `7712d3d` 的真实构建已验证 Angular 生产构建、15 项 xUnit、Terminal 4 项 Rust 测试、特权守护进程 8 项 Rust 测试和 Release 构建通过；发现 .NET 10.0.9 的 `System.Security.Cryptography.Xml` 高危公告后，已将项目 ASP.NET Core/EF Core 补丁版本和 `dotnet-ef` 提升至 10.0.10、GitHub CI SDK 提升至 10.0.302，重新验证漏洞包数量为 0。安全测试包 `amseokos_0.1.0+git20260731.7712d3da.security2_amd64.deb` 已上传并通过 SHA-256 与包内容检查，SHA-256 为 `41496d3cf15c31aa616e0f22bef74d95b6b209b72eae57169f291b051fc7e739`；早期含 10.0.9 运行时的包已移动到存储目录下 `quarantine/`
+- 已在 OneDev 导入 `AmseokOS` 项目和 `devkihon` 分支，将在线 Agent `amseokos-build-01` 绑定到远程 Shell 执行器 `amseokos-debian-builder`，并在仓库内保存版本化 `.onedev-buildspec.yml`。Build Spec 提交 `eebb8162ddc787feba663fb1252249d9650af29d` 的构建 #1 已在真实 Agent 上完成：Angular ESLint、29 项测试和生产构建通过，.NET 0 警告/0 错误、15 项测试及漏洞包数量 0，Terminal 4 项和 privileged 8 项 Rust 测试及 musl Release 构建通过；生成的 `amseokos_0.1.0+git20260731.eebb8162.b1_amd64.deb` 大小 39,503,624 字节，已同时保存为 OneDev 制品并上传到 `/home/storage/storeage/AmseokOS/Test`，远端 `sha256sum -c` 通过，SHA-256 为 `c8743b6c6c46710d5b86c3b88cf9093234fe1b0dadde86aad01c3b9560ea0ae7`
+- 已将 OneDev Debian 流水线从单体包改为组件拆包；提交 `bc64a0a5a411b60b251ba3ac5bef01dc12d28543` 的构建 #5 已生成版本 `0.1.1+git20260731.b111024.bc64a0a5` 的 `amseokos-web`、`amseokos-api`、`amseokos-terminal`、`amseokos-privileged` 四个组件包和精确依赖它们的 `amseokos` 整套元包。Angular ESLint、29 项测试和生产构建、.NET 15 项测试与漏洞检查、Terminal 4 项及 privileged 8 项 Rust 测试和 Release 构建均通过；OneDev 制品中包含 5 个 `.deb` 与 5 个 `.sha256`，同版本 10 个文件已上传到 `/home/storage/storeage/AmseokOS/Test`，远端逐包 `sha256sum -c` 全部通过
+- 已将仅人工触发的 OneDev Debian 流水线复制到 OneDev 内部 `main`：提交 `741025536ff3ee24354cdaf27cbedd3876eaaec9` 在 `AmseokOS-deploy/` 恢复经过验证的拆包、受限上传与签名发布脚本，提交 `39206a7dfd808d7b0ec66ca5c276e605154cd73f` 在仓库根目录加入 `.onedev-buildspec.yml`。OneDev GUI 已识别“构建 Debian 测试包”和 7 个步骤；参数与触发器面板均显示“未指定”，因此只会由人工点击运行，运行时先 `fetch` 并检出当时的 `main` 最新提交再构建。当前 `main` 提交显示没有关联构建，构建列表仍为此前已有的 7 个，最新 #7 是本次配置前在 `devkihon` 上取消的构建；本次未启动新构建。以上两个提交只存在于 OneDev 内部仓库，没有推送 GitHub，`devkihon` 上的历史配置也未删除
+- 已在 `storage@192.168.188.8` 建立签名 APT 测试仓库 `/home/storage/storeage/AmseokOS/Repository`：使用存储机本地专用 Ed25519 OpenPGP 密钥生成 `InRelease`、`Release.gpg`、`Packages`、`SHA256SUMS` 及其签名，签名指纹为 `26A99F575933CE0A9DE2E2EA246904FC24AD8939`，密钥有效期至 2028-07-30，私钥目录和私钥文件权限分别为 `0700`、`0600`。现有 18 个 `.deb` 均先通过原始 SHA-256 和 `dpkg-deb` 结构检查再进入仓库，独立临时公钥环验证三个签名通过，使用 `signed-by` 的真实 `apt-get update` 成功并识别全部 18 个包；仓库 `Valid-Until` 为每次发布后 30 天。构建机专用 SSH 公钥现由 forced command 限制为仅可向固定测试目录使用旧版 SCP 上传或执行 `amseokos-publish`，任意远程命令已验证被拒绝；签名发布脚本最初由 OneDev 内部提交 `784b59ff` 验证，现已随上述提交复制到 OneDev 内部 `main`。仓库当前仅生成在文件系统中，尚未通过 HTTP/HTTPS 对客户端发布
+- 已新增独立 `AmseokOS-installer` 模块，使用 Qt Quick/QML 提供欢迎、系统盘和安装摘要三页只读预览，C++ 按 `presentation -> domain/ports <- adapters` 单向依赖拆分，QML 只访问 `InstallerSession`，默认 `DisabledInstallationExecutor` 始终拒绝执行；`InstallationPlan` 固定 Debian trixie amd64、ext4、稳定系统盘身份、危险动作确认和非目标磁盘保护条件。已加入 CMake 严格告警构建、固定 `.clang-format`、clang-tidy analyzer/bugprone/performance/portability 静态分析、6 项 Qt Test、QML lint、自动依赖边界检查、Debian `debian/` source package、隔离临时目录镜像脚本、LightDM/Openbox Live 会话和 GitHub CI 安装器门禁；CI 已取消 push 分支过滤，任意分支每次 push 都会执行 ShellCheck、C++ 格式、边界、Release 构建、clang-tidy、QML lint、测试、安装布局和 `live-build` 配置检查。本机使用 Qt 6.11.1 与 Qt Creator 内置 LLVM 22.1.8 在全新构建目录验证上述 C++/Qt 门禁、6 项测试、Shell 语法、CI YAML 和无界面 QML 运行加载通过。GitHub `ubuntu-24.04` Runner 的首次实际执行仍待人工 push 后确认；当前 macOS 没有 `live-build`、`dpkg-buildpackage` 与 ShellCheck，既有 Debian 构建机也未发现这些命令，因此 Debian 包、真实 `live-build` 配置、ISO 和 QEMU 启动仍未验证，不能标记为可安装发行版
+- GitHub CI 已完成 Qt/C++ Debian 安装器在 Ubuntu 24.04 Runner 上的兼容性回归：运行 `30680454537` 暴露的 7 处 ShellCheck `SC1007` 已由提交 `49b9bf4` 修复；运行 `30680592242` 暴露的 Qt 6.4 不支持 `QQmlApplicationEngine::loadFromModule` 已由提交 `59be985` 改为固定 `qrc:` URL，并加入无界面启动冒烟；运行 `30680777594` 与 `30682762095` 暴露的 QML 模块拆包依赖已由提交 `1406539`、`5fe540f` 补齐并同步 Debian 运行依赖；运行 `30682998784` 暴露的 Ubuntu 旧版 `live-build` 参数差异已由提交 `8d6a932` 按能力选择兼容语法。最终运行 `30683248128` 的 Qt/C++ job 已确认 ShellCheck、C++ 格式、依赖边界、Release 严格告警构建、clang-tidy、QML lint、无界面启动、6 项 Qt 测试、安装布局和 `live-build` 配置验证全部通过；真实 Debian trixie 包构建、ISO 构建与 QEMU 启动仍未执行
+- 已新增默认关闭且与正式安装链路隔离的 Qt/QML 开发者实时预览：独立 `DeveloperPreview.qml` 只提供纯 QML 模拟会话、模拟系统盘、步骤导航与安装反馈，不创建真实执行器、不访问设备；正式构建既不打包该 QML，也不编译 `--developer-preview` 参数。`scripts/preview.sh` 会配置独立 Debug 构建并通过 Qt `qmlpreview` 启动，保存 QML 后可实时刷新；GitHub CI 增加预览构建、QML lint 和无界面冒烟。本机 Qt 6.11.1 已实际连接 `qmlpreview` 并完成人工界面检查，正式/预览严格告警构建、QML lint、clang-tidy、依赖边界、Shell 语法、正式无界面启动、预览无界面启动及正式 7 项/预览 2 个 CTest 条目均通过；本次 GitHub 托管 Runner 尚未执行
+- 已将 Qt/QML 安装器整体视觉改为 macOS 安装器式深色布局：纯黑全屏背景承载居中的深灰圆角面板，欢迎页使用原创圆形 AmseokOS 数字插画、`AmseokOS 安装程序` 标题和蓝色安装按钮，系统盘、安装摘要、步骤栏与后续操作区同步采用深色配色；按钮只调用既有 `InstallerSession` 导航，未改变领域模型、执行器或真实写盘默认关闭边界。插画由内置图像生成工具制作，透明裁切后作为 768×768 PNG 编入 Qt 资源，不包含 Apple Logo、macOS 图案或第三方字体。本机已通过正式/开发者预览构建、QML lint、正式 7 项 Qt 测试、预览 2 个 CTest 条目、依赖边界和无界面启动，并实际打开开发者预览完成窗口截图视觉检查；GitHub 托管 Runner 尚未执行本次改动
+- GitHub 托管 Runner 首次执行开发者预览配置时确认 Ubuntu 环境没有 `qmlpreview`，原 CMake 将仅供本地热刷新的工具错误设为预览构建硬依赖，导致配置阶段失败；现已将 `qmlpreview`/`qmlpreview6` 改为可选工具，缺少时仍可编译预览二进制并执行无界面冒烟，只有显式运行 `developer-preview` 热刷新目标才返回清晰错误。本机已模拟无 `qmlpreview` 环境验证配置、构建、QML lint 和预览冒烟通过，并确认已安装工具时实时预览目标保持可用；GitHub 托管 Runner 修复后复跑仍待提交推送验证
+- 已新增目标系统本地控制台状态页骨架：`tty1` 通过独立 systemd 服务循环显示 AmseokOS 品牌、主机名、Web 管理地址、版本和网络状态，`tty2` 至 `tty6` 保留 Debian 维护登录；服务只有在 `/etc/amseoknas/console-enabled` 标记存在时才替代 tty1 getty，进程使用动态用户、空 capabilities、只读系统和受限地址族，不接入安装执行器、privileged daemon 或 Web Terminal broker。控制台脚本支持无副作用 `--preview`/`--once`，环境文件可配置标题、提示语、端口和刷新间隔；本机已通过 dash 语法、预览输出、参数回退、systemd 关键边界断言、CI YAML 和差异检查。当前真实安装器仍未写入目标 rootfs，Linux 上的 systemd 解析与真实 tty 显示需由 GitHub Runner 和后续 Debian/QEMU 镜像验证
+- 已完成 AmseokOS 命名迁移第一阶段：7 个顶层模块目录统一为 `AmseokOS-<用途>`，.NET 解决方案改为 `AmseokOS.sln`，Web 工程包标识改为 `amseok-os-web`，CI、Qt clang-tidy、构建命令和开发文档全部切换到新路径；为避免破坏已部署系统，本阶段明确保留 `Nas.*` 程序集与命名空间、`amseoknas-*` 包/服务/账户/Socket、旧 Cookie 名和管理员初始化凭据兼容行为，并在 `AmseokOS-docs/naming-migration.md` 记录后续迁移门禁。新路径下 .NET Release 构建为 0 警告/0 错误且 56 项 xUnit 全部通过，Qt Debug 构建、正式测试和开发者预览冒烟 2 项通过，两套 Rust 均通过 `aarch64-unknown-linux-gnu` 目标检查，安装器边界、控制台测试、Shell 语法、CI YAML、前端包 JSON 和旧仓库路径扫描通过；前端依赖安装、Angular lint/测试/构建及 Linux systemd/Compose 仍待 CI 验证
+- 已完成 RAID 开发第一步的只读清单代码闭环：Rust privileged daemon 新增固定 `storage.inspectBlockDevices` 与 `raid.inspectArrays` 动作，从 `/sys`、`/proc` 和 udev 数据返回物理盘身份、分区、直接挂载、swap、MD 成员及现有阵列状态/成员/同步进度，不执行 `mdadm` 或任何写命令；C# 新增独立 Storage Application 端口、共享 Unix Socket 适配器、`storage.read` 授权策略和 `GET /api/storage/disks`、`GET /api/raid/arrays` 只读 API，Controller 仅做 HTTP 授权、映射和脱敏错误处理。存储拓扑现已沿 sysfs `holders` 传递追踪 MD、dm-crypt、LVM 与通用 device-mapper，根文件系统或管理目录经过多层设备后仍会向底层盘传播 `systemDevice`、`inUse` 和 swap 状态；API 同时返回依赖设备类型、`identityConflict` 与失败关闭的 `topologyComplete`，重复硬件身份不再视为稳定，旧 daemon 缺少拓扑字段时 Infrastructure 也会规范化为 `inUse=true`。伪 sysfs 集成测试覆盖 dm-crypt→LVM→根挂载，独立存储模块 11 项测试、8 项相关 xUnit、排除项目原有 macOS 终端 Socket 长路径用例后的 23 项 xUnit、Linux 目标编译检查和 Clippy `-D warnings` 通过。当前尚未完成 SMART、前端磁盘列表、真实 loop device/测试机设备验证或 RAID 写操作
+- Data Protection 外部密钥保护、密码修改后旧密码失效的部署验证、会话跨重启持久化验证、PostgreSQL HA、etcd Leader/fencing 应用接入、NATS Inbox/Outbox 工作者、privileged daemon 测试机安装、物理磁盘与 RAID 查询端到端验证、网络配置执行与自动回滚仍未实现，第一阶段验收条件尚未满足
 
-下一建议工作项：先在具备 .NET 10 SDK 的仓库工作区运行格式、警告即错误构建和全部 15 项 xUnit 测试，确认 Web Terminal 会话用例与 Relay 拆分通过，并补一次真实 HTTP 创建会话和 WebSocket 双向交互回归；随后观察 `devkihon` 首次 GitHub Actions 运行，确认 Compose/systemd、依赖变更审查、固定版本 `cargo-audit` 和 CodeQL 在托管 Runner 上通过；再由独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。之后再设计网络写入阶段：必须先完成 `network.manage` 授权、重新认证、配置预览、稳定网卡 ID、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation 与审计，不得直接把当前禁用按钮接到写配置动作。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
+下一建议工作项：先在隔离的 Debian trixie amd64 构建环境安装 `live-build`、Qt 6 开发包、Debian 打包工具和 ShellCheck，执行安装器 CI 等价门禁、`dpkg-buildpackage`、`validate-live-config.sh` 和只读 ISO 构建，再使用 QEMU 覆盖 BIOS 与 UEFI 启动、中文字体、软件渲染和全屏自动进入安装器；在稳定设备枚举、系统盘保护、安装计划二次确认及其测试完成前，不得替换 `DisabledInstallationExecutor` 或加入真实磁盘写入。并行由人工在 OneDev 的 `main` 页面点击“构建 Debian 测试包”完成一次流水线回归，核对 5 个拆分包、OneDev 制品、存储目录和签名 APT 索引；随后为 OneDev 和签名 APT 仓库配置 HTTPS，完成 OneDev 持久卷备份、签名私钥的离线加密备份与轮换演练以及 Git SSH 端到端验证，并观察低配 `console` 在持续构建和制品增长时的内存与磁盘使用。同时在具备 .NET 10 SDK 的仓库工作区运行完整 xUnit，确认 Web Terminal 会话用例、Relay 拆分、关闭预算和故障分类通过，并补一次真实 HTTP 创建会话和 WebSocket 双向交互回归；随后观察 `devkihon` 首次 GitHub Actions 运行，确认 Compose/systemd、依赖变更审查、固定版本 `cargo-audit` 和 CodeQL 在托管 Runner 上通过；再由独立构建机生成 Rust、.NET 与 Angular Release 产物，将只读 daemon 以专用账户安装到 `nastest`，按实际 API 服务 UID 写入仓库外 `privileged.env`，启用 C# `Privileged` 配置并完成浏览器端“关于本机/网络/磁盘/RAID”端到端验证，同时确认其他账户和 Terminal 用户无法连接 Socket。RAID 下一步在隔离 Linux 环境使用 loop device 建立真实的 MD、LUKS 和 LVM 组合，验证系统盘传播、swap、缺失 holder、身份冲突及重启后拓扑恢复，再实现前端只读磁盘列表和 SMART 摘要；以上门禁全部通过后，再设计 `mdadm` 预检与操作预览，仍不得直接开放创建、删除、扩容或替换动作。网络下一步在已建立的 C# 预览边界后选择并锁定首版受支持的网络管理器，再实现 Rust 结构化白名单写入、配置备份、旧/新 IP 并行生效、连通性确认、超时自动回滚、Operation、资源锁和审计；这些门禁通过前，预览必须继续返回不可应用，且不得启用当前前端按钮。仍需完成 Web Terminal 浏览器端回归、共享 Data Protection 密钥保护及会话跨重启验证
 
 每次完成工作后，AI 应更新本节中的最后检查日期、当前阶段、已完成项、验证结果和下一建议工作项，但不得把未经验证的内容标记为完成
 
@@ -229,7 +245,7 @@ Debian 负责真正执行 SMB、NFS、mdadm、SMART、systemd、Docker、网络�
 推荐目录：
 
 ```text
-AmseokNas-web/
+AmseokOS-web/
   src/app/
     core/
       auth/
@@ -288,7 +304,7 @@ SignalR 用于状态变化通知，REST API 是最终状态来源，断线重连
 推荐目录：
 
 ```text
-AmseokNas-server/
+AmseokOS-server/
   src/
     Nas.Api/
       Controllers/
@@ -317,10 +333,10 @@ AmseokNas-server/
   tests/
 ```
 
-推荐增加独立 Rust 特权进程，详细边界见 `AmseokNas-docs/csharp-rust-privileged-architecture.md`：
+推荐增加独立 Rust 特权进程，详细边界见 `AmseokOS-docs/csharp-rust-privileged-architecture.md`：
 
 ```text
-AmseokNas-privileged/
+AmseokOS-privileged/
   Cargo.toml
   Cargo.lock
   src/
@@ -530,7 +546,7 @@ Web 账户使用 ASP.NET Core Identity 管理，账户、密码哈希、角色�
 
 ### 8.8 PostgreSQL 与 SQLite 持久化
 
-数据库详细设计见 `AmseokNas-docs/database-architecture.md`
+数据库详细设计见 `AmseokOS-docs/database-architecture.md`
 
 PostgreSQL 是集群身份、权限、全局期望状态和调度的事实源；每个节点的 SQLite 是本机实际状态、Operation 执行、资源锁、Inbox 和 Outbox 的事实源。两者不使用分布式事务，通过 NATS JetStream、幂等键、版本号和状态对账同步
 
