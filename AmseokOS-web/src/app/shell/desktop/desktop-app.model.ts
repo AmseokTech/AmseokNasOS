@@ -52,6 +52,13 @@ export const DESKTOP_APPS: readonly DesktopApp[] = [
     launch: 'terminal'
   },
   {
+    id: 'app-store',
+    label: '应用商店',
+    iconPath: 'M7.1 2.5h9.8L20 6.1v13.4H4V6.1l3.1-3.6Zm.9 2L6.5 6.2h11L16 4.5H8Zm-.9 3.7v9.3h10V8.2H7Zm2.1 2.1h5.6v2H9.1v-2Zm0 3.5h5.6v2H9.1v-2Z',
+    iconBackground: 'linear-gradient(145deg, #74c3ff, #2c78e6)',
+    windowAppId: 'app-store'
+  },
+  {
     id: 'settings',
     label: '系统设置',
     iconPath: 'm19.43 12.98.04-.98-.04-.98 2.11-1.65-2-3.46-2.49 1a7.6 7.6 0 0 0-1.69-.98L15 3.27h-4L10.64 5a7.6 7.6 0 0 0-1.69.98l-2.49-1-2 3.46 2.11 1.65-.04.98.04.98-2.11 1.65 2 3.46 2.49-1c.52.4 1.09.73 1.69.98L11 20.73h4l.36-2.66a7.6 7.6 0 0 0 1.69-.98l2.49 1 2-3.46-2.11-1.65ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z',

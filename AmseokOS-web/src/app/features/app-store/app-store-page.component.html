@@ -1,0 +1,140 @@
+<div class="app-store">
+  <aside class="app-store__sidebar">
+    <div class="app-store__identity">
+      <span class="app-store__identity-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M7 3h10l4 4v13H3V7l4-4Zm1 3L6.6 7.4h10.8L16 6H8Zm-1 3.4v7.9h10V9.4H7Zm2.1 2.1h5.8v2H9.1v-2Z" /></svg>
+      </span>
+      <strong>AmseokOS</strong>
+      <span>应用商店</span>
+    </div>
+
+    @if (activeView() === 'catalog') {
+      <label class="app-store__search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.8 4.5.1 0a6.3 6.3 0 1 1-4.5 10.8l-3 3-1.4-1.4 3-3A6.3 6.3 0 0 1 10.8 4.5Zm0 2a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Z" /></svg>
+        <input
+          type="search"
+          placeholder="搜索应用"
+          aria-label="搜索应用"
+          [value]="searchTerm()"
+          (input)="setSearch($any($event.target).value)"
+        />
+      </label>
+    }
+
+    <nav class="app-store__nav" aria-label="应用商店导航">
+      @for (category of categories; track category.id) {
+        <button
+          type="button"
+          [class.app-store__nav-item--active]="activeView() === 'catalog' && activeCategory() === category.id"
+          [attr.aria-current]="activeView() === 'catalog' && activeCategory() === category.id ? 'page' : null"
+          (click)="selectCategory(category.id)"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="category.iconPath" /></svg>
+          {{ category.label }}
+        </button>
+      }
+
+      <span class="app-store__nav-label">产品服务</span>
+      <button
+        type="button"
+        [class.app-store__nav-item--active]="activeView() === 'subscription'"
+        [attr.aria-current]="activeView() === 'subscription' ? 'page' : null"
+        (click)="selectView('subscription')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 1 5 5c0 2-1.17 3.73-2.86 4.53A7 7 0 0 1 19 18v2H5v-2a7 7 0 0 1 4.86-6.47A5 5 0 0 1 7 7a5 5 0 0 1 5-5Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 9a5 5 0 0 0-4.9 4h9.8A5 5 0 0 0 12 13Z" /></svg>
+        产品订阅
+      </button>
+      <button
+        type="button"
+        [class.app-store__nav-item--active]="activeView() === 'downloads'"
+        [attr.aria-current]="activeView() === 'downloads' ? 'page' : null"
+        (click)="selectView('downloads')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4 3.5 3.5V3ZM5 19h14v2H5v-2Z" /></svg>
+        更新与下载
+      </button>
+    </nav>
+
+    <p class="app-store__sidebar-note">当前仅展示内置应用规划</p>
+  </aside>
+
+  <main class="app-store__content">
+    @switch (activeView()) {
+      @case ('subscription') {
+        <app-app-store-subscription-center />
+      }
+      @case ('downloads') {
+        <app-app-store-download-center />
+      }
+      @default {
+        <section class="app-store__masthead" aria-labelledby="app-store-title">
+          <p>内置应用中心</p>
+          <h1 id="app-store-title">探索</h1>
+          <span>{{ visibleApps().length }} 个精选应用</span>
+        </section>
+
+        <section class="app-store__hero" aria-label="应用商店精选">
+          <div class="app-store__hero-copy">
+            <p>精选应用</p>
+            <h2>连接数据，延展你的 NAS</h2>
+            <span>从媒体整理到团队协作，为日常工作准备清晰的工具入口。</span>
+            <button type="button" (click)="selectCategory('work')">查看工作应用</button>
+          </div>
+        </section>
+
+        <section class="app-store__collection" aria-labelledby="recommended-title">
+          <div class="app-store__section-heading">
+            <div>
+              <p>今日推荐</p>
+              <h2 id="recommended-title">让 NAS 更懂你的工作流</h2>
+            </div>
+            <span aria-live="polite">{{ visibleApps().length }} 个应用</span>
+          </div>
+
+          @if (notice()) {
+            <div class="app-store__notice" role="status">{{ notice() }}</div>
+          }
+
+          @if (visibleApps().length) {
+            <div class="app-store__grid">
+              @for (app of visibleApps(); track app.id) {
+                <article class="app-store-card">
+                  <div class="app-store-card__copy">
+                    <p>{{ app.eyebrow }}</p>
+                    <h3>{{ app.name }}</h3>
+                    <span>{{ app.description }}</span>
+                    <button type="button" (click)="showInstallNotice(app.name)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4 3.5 3.5V3ZM5 19h14v2H5v-2Z" /></svg>
+                      查看
+                    </button>
+                  </div>
+                  <div class="app-store-card__art" [class]="'app-store-card__art app-store-card__art--' + app.accent" aria-hidden="true">
+                    @switch (app.icon) {
+                      @case ('photo') {
+                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><path d="M44 110 70 84l17 17 15-14 20 23H44Z" /><circle cx="63" cy="60" r="10" /></svg>
+                      }
+                      @case ('sync') {
+                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><rect x="38" y="36" width="84" height="88" rx="10" /><path d="M57 77h46m-12-15 15 15-15 15M103 97H57m12 15-15-15 15-15" /></svg>
+                      }
+                      @case ('monitor') {
+                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><rect x="30" y="40" width="100" height="66" rx="8" /><path d="M64 124h32m-16-18v18M51 59h58M51 73h40" /></svg>
+                      }
+                      @default {
+                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><path d="M47 50h66v70H47z" /><path d="M55 50V38h50v12m-50 24h50m-50 16h50m-50 16h31" /></svg>
+                      }
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="app-store__empty" role="status">
+              没有找到匹配的应用。
+              <button type="button" (click)="setSearch(''); selectCategory('explore')">清除筛选</button>
+            </div>
+          }
+        </section>
+      }
+    }
+  </main>
+</div>
