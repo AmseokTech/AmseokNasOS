@@ -22,7 +22,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已配置远端 `origin` 为 `git@github.com:AmseokTech/AmseokOS.git`
 - 当前开发基线提交为 `bfb666a web(fix):修复dock无法打开设置页面以及AmseokOS显示位置`
 - 已建立前端、后端、特权进程、部署和文档的第一阶段顶层目录，并统一使用 `AmseokOS-<用途>` 命名
-- 已建立根级 `README.md`，使用“让数据与 AI 留在本地 / Keep your data and AI local”作为品牌口号，以“统一管理私有数据、本地 AI、应用服务与计算资源”说明用户向定位，并集中提供开发状态、安全边界、架构、目录、启动、验证和文档入口；本地 AI 的具体支持范围、部署方式与硬件兼容说明仍待对应模块文档补充
+- 已建立根级 `README.md`，顶部使用仓库内品牌横幅并居中展示 `AmseokOS` 标题，使用“让数据与 AI 留在本地 / Keep your data and AI local”作为品牌口号，以“统一管理私有数据、本地 AI、应用服务与计算资源 / Manage private data, local AI, application services, and computing resources—all in one place”说明用户向定位，两组文案均按中文在上、英文在下展示，并集中提供开发状态、安全边界、架构、目录、启动、验证和文档入口；2172×724 品牌横幅已使用 oxipng 10.1.1 无损压缩，从 1,167,806 字节降至 730,868 字节，解码像素、8-bit RGB 和 sRGB 配置保持一致；本地 AI 的具体支持范围、部署方式与硬件兼容说明仍待对应模块文档补充
 - 已将 standalone 前端迁移至 Angular 22.0.6 和 TypeScript 6.0.3，包含路由、SCSS、严格 TypeScript、API 健康检查状态、本地反向代理配置和固定的 `6521` 开发端口
 - Angular 构建器已迁移至 `@angular/build:application`，组件测试已从 Karma 浏览器执行器迁移至 Vitest 4.1.10 和 jsdom
 - 已初始化 .NET 10 后端解决方案，建立 `Nas.Domain`、`Nas.Application`、`Nas.Infrastructure` 和 `Nas.Api` 项目及单向项目引用
