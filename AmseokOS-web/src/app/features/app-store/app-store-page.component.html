@@ -8,18 +8,16 @@
       <span>应用商店</span>
     </div>
 
-    @if (activeView() === 'catalog') {
-      <label class="app-store__search">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.8 4.5.1 0a6.3 6.3 0 1 1-4.5 10.8l-3 3-1.4-1.4 3-3A6.3 6.3 0 0 1 10.8 4.5Zm0 2a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Z" /></svg>
-        <input
-          type="search"
-          placeholder="搜索应用"
-          aria-label="搜索应用"
-          [value]="searchTerm()"
-          (input)="setSearch($any($event.target).value)"
-        />
-      </label>
-    }
+    <label class="app-store__search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10.8 4.5.1 0a6.3 6.3 0 1 1-4.5 10.8l-3 3-1.4-1.4 3-3A6.3 6.3 0 0 1 10.8 4.5Zm0 2a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Z" /></svg>
+      <input
+        type="search"
+        placeholder="搜索应用"
+        aria-label="搜索应用"
+        [value]="searchTerm()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </label>
 
     <nav class="app-store__nav" aria-label="应用商店导航">
       @for (category of categories; track category.id) {
@@ -72,7 +70,10 @@
   <main class="app-store__content">
     @switch (activeView()) {
       @case ('preview') {
-        <app-app-store-preview-center />
+        <app-app-store-preview-center
+          [studioSyncJoined]="studioSyncPreviewJoined()"
+          (joinStudioSync)="joinStudioSyncPreview()"
+        />
       }
       @case ('subscription') {
         <app-app-store-subscription-center />
@@ -89,7 +90,9 @@
             </button>
 
             <div class="app-store-detail__hero">
-              <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" />
+              <div class="app-store-detail__art">
+                <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" width="512" height="512" />
+              </div>
               <div class="app-store-detail__hero-copy">
                 <p>{{ app.eyebrow }}</p>
                 <h1 [id]="'app-detail-' + app.id">{{ app.name }}</h1>
@@ -168,7 +171,7 @@
                     </button>
                   </div>
                   <div class="app-store-card__art">
-                    <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" loading="lazy" />
+                    <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" width="512" height="512" loading="lazy" />
                   </div>
                 </article>
               }

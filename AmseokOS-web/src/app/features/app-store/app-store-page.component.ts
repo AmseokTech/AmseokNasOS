@@ -65,7 +65,7 @@ const STORE_APPS: readonly StoreApp[] = [
     description: '把家庭影像按时间、人物和相册清晰整理。',
     overview: '集中查看家庭照片和视频，为按时间整理、相册管理及日后的设备同步预留清晰入口。',
     features: ['按时间线和相册浏览影像', '为家庭资料建立可识别的归档入口', '后续同步能力将遵循权限边界开放'],
-    imagePath: '/assets/app-store/photo-library-card.png'
+    imagePath: '/assets/app-store/photo-library-card.jpg'
   },
   {
     id: 'studio-sync',
@@ -75,7 +75,7 @@ const STORE_APPS: readonly StoreApp[] = [
     description: '让素材、项目文件和成员进度始终保持同步。',
     overview: '为创作素材、项目文件与团队进度准备统一入口，减少分散文件带来的协作成本。',
     features: ['汇总项目资料的协作状态', '为成员同步保留清晰的工作上下文', '当前仅展示产品规划，不会修改本地文件'],
-    imagePath: '/assets/app-store/studio-sync-card.png'
+    imagePath: '/assets/app-store/studio-sync-card.jpg'
   },
   {
     id: 'screen-cast',
@@ -85,7 +85,7 @@ const STORE_APPS: readonly StoreApp[] = [
     description: '在可信设备之间轻松投送演示和媒体内容。',
     overview: '将演示内容和媒体资料投送到可信设备，适合会议展示与日常协作场景。',
     features: ['为可信设备间的内容投送提供入口', '保留演示与媒体资料的使用场景', '设备发现和投送操作尚未开放'],
-    imagePath: '/assets/app-store/screen-cast-card.png'
+    imagePath: '/assets/app-store/screen-cast-card.jpg'
   },
   {
     id: 'backup-vault',
@@ -95,7 +95,7 @@ const STORE_APPS: readonly StoreApp[] = [
     description: '为项目快照和构建产物预留统一归档入口。',
     overview: '为项目快照和构建产物提供可追溯的归档视图，便于后续管理备份策略。',
     features: ['为构建产物与快照保留统一视图', '突出可靠归档和恢复的产品方向', '备份任务和存储写入均保持关闭'],
-    imagePath: '/assets/app-store/backup-vault-card.png'
+    imagePath: '/assets/app-store/backup-vault-card.jpg'
   }
 ];
 
@@ -116,6 +116,7 @@ export class AppStorePageComponent {
   readonly activeCategory = signal<AppStoreCategoryId>('explore');
   readonly searchTerm = signal('');
   readonly selectedApp = signal<StoreApp | null>(null);
+  readonly studioSyncPreviewJoined = signal(false);
   readonly visibleApps = computed(() => {
     const term = this.searchTerm().trim().toLocaleLowerCase();
     const category = this.activeCategory();
@@ -144,6 +145,12 @@ export class AppStorePageComponent {
 
   setSearch(value: string): void {
     this.searchTerm.set(value);
+
+    if (value.trim()) {
+      this.activeView.set('catalog');
+      this.activeCategory.set('explore');
+      this.selectedApp.set(null);
+    }
   }
 
   openAppDetail(app: StoreApp): void {
@@ -154,5 +161,9 @@ export class AppStorePageComponent {
   returnToCatalog(): void {
     this.selectedApp.set(null);
     this.activeView.set('catalog');
+  }
+
+  joinStudioSyncPreview(): void {
+    this.studioSyncPreviewJoined.set(true);
   }
 }

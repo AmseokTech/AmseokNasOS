@@ -27,6 +27,8 @@
         正在下载 {{ downloadProgress() }}%
       } @else if (downloadState() === 'completed') {
         再次下载
+      } @else if (downloadState() === 'failed') {
+        重新下载
       } @else {
         下载演示包
       }

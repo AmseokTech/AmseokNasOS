@@ -20,7 +20,7 @@
         <h2>Studio Sync Preview</h2>
         <span>提前查看素材同步与项目协作的产品方向。</span>
       </div>
-      <button type="button" (click)="joinStudioSyncPreview()" [disabled]="studioSyncJoined()">
+      <button type="button" (click)="requestStudioSyncPreview()" [disabled]="studioSyncJoined()">
         {{ studioSyncJoined() ? '已加入体验' : '立即尝鲜' }}
       </button>
     </article>
@@ -35,7 +35,7 @@
     </article>
   </section>
 
-  @if (previewNotice()) {
-    <div class="preview-center__notice" role="status" aria-live="polite">{{ previewNotice() }}</div>
+  @if (studioSyncJoined()) {
+    <div class="preview-center__notice" role="status" aria-live="polite">已加入 Studio Sync 尝鲜体验。该状态仅保留在当前应用商店窗口，不会安装应用。</div>
   }
 </section>
