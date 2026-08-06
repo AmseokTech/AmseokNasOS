@@ -34,6 +34,17 @@
         </button>
       }
 
+      <span class="app-store__nav-label">应用体验</span>
+      <button
+        type="button"
+        [class.app-store__nav-item--active]="activeView() === 'preview'"
+        [attr.aria-current]="activeView() === 'preview' ? 'page' : null"
+        (click)="selectView('preview')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v2l2.5 3.8a5.4 5.4 0 0 1 .9 3v.7a7 7 0 1 1-13.8 0v-.7a5.4 5.4 0 0 1 .9-3L9 4V2Zm2 2v.6L7.2 10a3.4 3.4 0 0 0-.6 1.9v.6a5 5 0 1 0 10 0v-.6a3.4 3.4 0 0 0-.6-1.9L13 4.6V4h-2Zm-1.2 8h4.4v2H9.8v-2Z" /></svg>
+        应用尝鲜
+      </button>
+
       <span class="app-store__nav-label">产品服务</span>
       <button
         type="button"
@@ -60,11 +71,63 @@
 
   <main class="app-store__content">
     @switch (activeView()) {
+      @case ('preview') {
+        <app-app-store-preview-center />
+      }
       @case ('subscription') {
         <app-app-store-subscription-center />
       }
       @case ('downloads') {
         <app-app-store-download-center />
+      }
+      @case ('detail') {
+        @if (selectedApp(); as app) {
+          <section class="app-store-detail" [attr.aria-labelledby]="'app-detail-' + app.id">
+            <button type="button" class="app-store-detail__back" (click)="returnToCatalog()">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7 1.4-1.4L9.8 12l5.6-5.6L14 5Z" /></svg>
+              返回探索
+            </button>
+
+            <div class="app-store-detail__hero">
+              <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" />
+              <div class="app-store-detail__hero-copy">
+                <p>{{ app.eyebrow }}</p>
+                <h1 [id]="'app-detail-' + app.id">{{ app.name }}</h1>
+                <span>{{ app.description }}</span>
+                <dl>
+                  <div>
+                    <dt>状态</dt>
+                    <dd>规划展示</dd>
+                  </div>
+                  <div>
+                    <dt>分类</dt>
+                    <dd>{{ app.eyebrow }}</dd>
+                  </div>
+                </dl>
+                <button type="button" disabled>安装功能暂未开放</button>
+              </div>
+            </div>
+
+            <div class="app-store-detail__sections">
+              <section aria-labelledby="app-detail-overview">
+                <p>应用概览</p>
+                <h2 id="app-detail-overview">为 NAS 准备的内置应用方向</h2>
+                <span>{{ app.overview }}</span>
+              </section>
+              <section aria-labelledby="app-detail-features">
+                <p>核心能力</p>
+                <h2 id="app-detail-features">功能规划</h2>
+                <ul>
+                  @for (feature of app.features; track feature) {
+                    <li>{{ feature }}</li>
+                  }
+                </ul>
+              </section>
+            </div>
+
+            <p class="app-store-detail__notice" role="status">此页面仅用于应用介绍，未接入安装、订阅、权限申请或本地数据写入。</p>
+          </section>
+        }
       }
       @default {
         <section class="app-store__masthead" aria-labelledby="app-store-title">
@@ -91,10 +154,6 @@
             <span aria-live="polite">{{ visibleApps().length }} 个应用</span>
           </div>
 
-          @if (notice()) {
-            <div class="app-store__notice" role="status">{{ notice() }}</div>
-          }
-
           @if (visibleApps().length) {
             <div class="app-store__grid">
               @for (app of visibleApps(); track app.id) {
@@ -103,26 +162,13 @@
                     <p>{{ app.eyebrow }}</p>
                     <h3>{{ app.name }}</h3>
                     <span>{{ app.description }}</span>
-                    <button type="button" (click)="showInstallNotice(app.name)">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4 3.5 3.5V3ZM5 19h14v2H5v-2Z" /></svg>
-                      查看
+                    <button type="button" (click)="openAppDetail(app)">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11h10.2L11.7 7.5l1.4-1.4 5.9 5.9-5.9 5.9-1.4-1.4 3.5-3.5H5v-2Z" /></svg>
+                      查看详情
                     </button>
                   </div>
-                  <div class="app-store-card__art" [class]="'app-store-card__art app-store-card__art--' + app.accent" aria-hidden="true">
-                    @switch (app.icon) {
-                      @case ('photo') {
-                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><path d="M44 110 70 84l17 17 15-14 20 23H44Z" /><circle cx="63" cy="60" r="10" /></svg>
-                      }
-                      @case ('sync') {
-                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><rect x="38" y="36" width="84" height="88" rx="10" /><path d="M57 77h46m-12-15 15 15-15 15M103 97H57m12 15-15-15 15-15" /></svg>
-                      }
-                      @case ('monitor') {
-                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><rect x="30" y="40" width="100" height="66" rx="8" /><path d="M64 124h32m-16-18v18M51 59h58M51 73h40" /></svg>
-                      }
-                      @default {
-                        <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" /><path d="M47 50h66v70H47z" /><path d="M55 50V38h50v12m-50 24h50m-50 16h50m-50 16h31" /></svg>
-                      }
-                    }
+                  <div class="app-store-card__art">
+                    <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" loading="lazy" />
                   </div>
                 </article>
               }

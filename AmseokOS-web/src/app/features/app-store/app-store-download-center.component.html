@@ -12,21 +12,42 @@
     <div>
       <p>下载演示</p>
       <h2 id="demo-title">Studio Sync 演示包</h2>
-      <span>包含产品说明和下载流程示例，约 1 KB。</span>
+      <span>包含产品说明和下载流程示例，约 1 KB，不包含安装程序。</span>
     </div>
-    <a
+    <button
+      type="button"
       class="download-center__download"
-      href="/downloads/studio-sync-demo.txt"
-      download="studio-sync-demo.txt"
       (click)="startDemoDownload()"
+      [class.download-center__download--downloading]="downloadState() === 'downloading'"
+      [disabled]="downloadState() === 'downloading'"
+      [attr.aria-busy]="downloadState() === 'downloading'"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4 3.5 3.5V3ZM5 19h14v2H5v-2Z" /></svg>
-      下载演示包
-    </a>
+      @if (downloadState() === 'downloading') {
+        正在下载 {{ downloadProgress() }}%
+      } @else if (downloadState() === 'completed') {
+        再次下载
+      } @else {
+        下载演示包
+      }
+    </button>
   </section>
 
   @if (downloadNotice()) {
-    <div class="download-center__notice" role="status">{{ downloadNotice() }}</div>
+    <div class="download-center__notice" role="status" aria-live="polite">{{ downloadNotice() }}</div>
+  }
+
+  @if (downloadState() === 'downloading') {
+    <div
+      class="download-center__progress"
+      role="progressbar"
+      aria-label="Studio Sync 演示包下载进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-valuenow]="downloadProgress()"
+    >
+      <span [style.width.%]="downloadProgress()"></span>
+    </div>
   }
 
   <section class="download-center__updates" aria-labelledby="updates-title">
