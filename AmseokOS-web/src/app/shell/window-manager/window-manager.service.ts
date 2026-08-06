@@ -9,7 +9,8 @@ import {
   AppWindowState,
   RestorableWindowDisplayState,
   WindowBounds,
-  WindowOpenOptions
+  WindowOpenOptions,
+  WindowResizeDirection
 } from './window-state.model';
 
 interface PersistedWindowLayouts {
@@ -165,6 +166,22 @@ export class WindowManagerService {
     }
   }
 
+  resizeFromHandle(
+    windowId: string,
+    startBounds: WindowBounds,
+    direction: WindowResizeDirection,
+    deltaX: number,
+    deltaY: number,
+    persist = true
+  ): void {
+    this.updateNormalBounds(windowId, (_bounds, definition) =>
+      this.clampResizeBounds(startBounds, direction, deltaX, deltaY, definition)
+    );
+    if (persist) {
+      this.persistLayout(windowId);
+    }
+  }
+
   persistLayout(windowId: string): void {
     const windowState = this.findWindow(windowId);
     if (!windowState) {
@@ -269,6 +286,46 @@ export class WindowManagerService {
       width,
       height
     };
+  }
+
+  private clampResizeBounds(
+    startBounds: WindowBounds,
+    direction: WindowResizeDirection,
+    deltaX: number,
+    deltaY: number,
+    definition: AppComponentDefinition
+  ): WindowBounds {
+    const workspace = this.workspaceBounds();
+    const minWidth = Math.min(definition.minWidth, workspace.width);
+    const minHeight = Math.min(definition.minHeight, workspace.height);
+    const right = startBounds.x + startBounds.width;
+    const bottom = startBounds.y + startBounds.height;
+    let x = startBounds.x;
+    let y = startBounds.y;
+    let width = startBounds.width;
+    let height = startBounds.height;
+
+    if (direction.includes('left')) {
+      x = Math.min(Math.max(startBounds.x + deltaX, 0), right - minWidth);
+      width = right - x;
+    } else if (direction.includes('right')) {
+      width = Math.min(
+        Math.max(startBounds.width + deltaX, minWidth),
+        workspace.width - startBounds.x
+      );
+    }
+
+    if (direction.includes('top')) {
+      y = Math.min(Math.max(startBounds.y + deltaY, 0), bottom - minHeight);
+      height = bottom - y;
+    } else if (direction.includes('bottom')) {
+      height = Math.min(
+        Math.max(startBounds.height + deltaY, minHeight),
+        workspace.height - startBounds.y
+      );
+    }
+
+    return this.clampBounds({ x, y, width, height }, definition);
   }
 
   private restorableState(windowState: AppWindowState): RestorableWindowDisplayState {

@@ -2,6 +2,15 @@ import { InjectionToken, Signal } from '@angular/core';
 
 export type WindowDisplayState = 'normal' | 'minimized' | 'maximized';
 export type RestorableWindowDisplayState = Exclude<WindowDisplayState, 'minimized'>;
+export type WindowResizeDirection =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right';
 
 export interface WindowBounds {
   readonly x: number;

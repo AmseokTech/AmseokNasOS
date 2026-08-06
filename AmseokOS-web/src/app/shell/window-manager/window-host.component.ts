@@ -18,6 +18,8 @@ import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import { WindowFrameComponent } from '../../shared/components/window-frame/window-frame.component';
 import {
   AppWindowState,
+  WindowBounds,
+  WindowResizeDirection,
   WINDOW_DATA,
   WINDOW_DISPLAY_STATE,
   WINDOW_ID
@@ -27,10 +29,10 @@ import { WindowManagerService } from './window-manager.service';
 interface ActiveResize {
   readonly windowId: string;
   readonly pointerId: number;
+  readonly direction: WindowResizeDirection;
   readonly startX: number;
   readonly startY: number;
-  readonly startWidth: number;
-  readonly startHeight: number;
+  readonly startBounds: WindowBounds;
 }
 
 @Component({
@@ -55,6 +57,16 @@ export class WindowHostComponent implements AfterViewInit, OnDestroy {
 
   readonly manager = inject(WindowManagerService);
   readonly windows = this.manager.windows;
+  readonly resizeHandles: readonly WindowResizeDirection[] = [
+    'top',
+    'right',
+    'bottom',
+    'left',
+    'top-left',
+    'top-right',
+    'bottom-left',
+    'bottom-right'
+  ];
 
   constructor() {
     effect(() => this.synchronizeRuntimeResources(this.windows()));
@@ -124,7 +136,11 @@ export class WindowHostComponent implements AfterViewInit, OnDestroy {
     event.source.reset();
   }
 
-  beginResize(windowState: AppWindowState, event: PointerEvent): void {
+  beginResize(
+    windowState: AppWindowState,
+    event: PointerEvent,
+    direction: WindowResizeDirection
+  ): void {
     if (windowState.displayState !== 'normal') {
       return;
     }
@@ -135,10 +151,10 @@ export class WindowHostComponent implements AfterViewInit, OnDestroy {
     this.activeResize = {
       windowId: windowState.id,
       pointerId: event.pointerId,
+      direction,
       startX: event.clientX,
       startY: event.clientY,
-      startWidth: bounds.width,
-      startHeight: bounds.height
+      startBounds: bounds
     };
     (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
   }
@@ -178,10 +194,13 @@ export class WindowHostComponent implements AfterViewInit, OnDestroy {
     if (!resize || resize.pointerId !== event.pointerId) {
       return;
     }
-    this.manager.resize(
+    event.preventDefault();
+    this.manager.resizeFromHandle(
       resize.windowId,
-      resize.startWidth + event.clientX - resize.startX,
-      resize.startHeight + event.clientY - resize.startY,
+      resize.startBounds,
+      resize.direction,
+      event.clientX - resize.startX,
+      event.clientY - resize.startY,
       false
     );
   };
