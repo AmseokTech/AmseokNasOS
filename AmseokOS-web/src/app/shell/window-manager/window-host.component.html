@@ -36,13 +36,17 @@
       </app-window-frame>
 
       @if (windowState.displayState === 'normal') {
-        <button
-          class="managed-window__resize-handle"
-          type="button"
-          aria-label="调整窗口大小；使用方向键微调，Shift 加速"
-          (pointerdown)="beginResize(windowState, $event)"
-          (keydown)="resizeWithKeyboard(windowState, $event)"
-        ></button>
+        @for (direction of resizeHandles; track direction) {
+          <button
+            class="managed-window__resize-handle managed-window__resize-handle--{{ direction }}"
+            type="button"
+            [attr.aria-label]="direction === 'bottom-right' ? '调整窗口大小；使用方向键微调，Shift 加速' : null"
+            [attr.aria-hidden]="direction === 'bottom-right' ? null : 'true'"
+            [attr.tabindex]="direction === 'bottom-right' ? 0 : -1"
+            (pointerdown)="beginResize(windowState, $event, direction)"
+            (keydown)="resizeWithKeyboard(windowState, $event)"
+          ></button>
+        }
       }
     </article>
   }

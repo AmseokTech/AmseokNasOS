@@ -130,6 +130,33 @@ describe('WindowManagerService', () => {
     expect(manager.windowForApp('terminal')!.bounds).toEqual(normalBounds);
   });
 
+  it('resizes from edges and corners while preserving the opposite sides', () => {
+    const id = manager.open('terminal');
+    const start = manager.windowForApp('terminal')!.bounds;
+    const right = start.x + start.width;
+    const bottom = start.y + start.height;
+
+    manager.resizeFromHandle(id, start, 'left', 120, 0, false);
+    const fromLeft = manager.windowForApp('terminal')!.bounds;
+    expect(fromLeft.x).toBe(start.x + 120);
+    expect(fromLeft.width).toBe(start.width - 120);
+    expect(fromLeft.x + fromLeft.width).toBe(right);
+
+    manager.resizeFromHandle(id, fromLeft, 'top-left', 2_000, 2_000, false);
+    const minimum = manager.windowForApp('terminal')!.bounds;
+    expect(minimum.width).toBe(320);
+    expect(minimum.height).toBe(240);
+    expect(minimum.x + minimum.width).toBe(right);
+    expect(minimum.y + minimum.height).toBe(bottom);
+
+    manager.resizeFromHandle(id, start, 'bottom-right', 2_000, 2_000, false);
+    const workspaceEdge = manager.windowForApp('terminal')!.bounds;
+    expect(workspaceEdge.x).toBe(start.x);
+    expect(workspaceEdge.y).toBe(start.y);
+    expect(workspaceEdge.width).toBe(1000 - start.x);
+    expect(workspaceEdge.height).toBe(700 - start.y);
+  });
+
   it('persists only validated, versioned app bounds and restores no running windows', () => {
     const id = manager.open('terminal', { data: { token: 'secret' } });
     manager.resize(id, 640, 480);

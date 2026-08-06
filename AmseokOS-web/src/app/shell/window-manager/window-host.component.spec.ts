@@ -70,8 +70,12 @@ describe('WindowHostComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const handle = fixture.nativeElement.querySelector(
+    const handles = fixture.nativeElement.querySelectorAll(
       '.managed-window__resize-handle'
+    ) as NodeListOf<HTMLButtonElement>;
+    expect(handles).toHaveLength(8);
+    const handle = fixture.nativeElement.querySelector(
+      '.managed-window__resize-handle--bottom-right'
     ) as HTMLButtonElement;
     const initialBounds = manager.windowForApp('test-app')!.bounds;
     const right = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true });

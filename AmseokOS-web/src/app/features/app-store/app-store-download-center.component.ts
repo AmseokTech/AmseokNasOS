@@ -5,7 +5,7 @@
 import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnDestroy, inject, signal } from '@angular/core';
 
-type DemoDownloadState = 'idle' | 'downloading' | 'completed';
+type DemoDownloadState = 'idle' | 'downloading' | 'completed' | 'failed';
 
 const DEMO_DOWNLOAD_URL = '/downloads/studio-sync-demo.txt';
 const DEMO_DOWNLOAD_FILE_NAME = 'studio-sync-demo.txt';
@@ -49,15 +49,35 @@ export class AppStoreDownloadCenterComponent implements OnDestroy {
 
     if (progress === 100) {
       this.stopDownloadAnimation();
-      this.triggerBrowserDownload();
-      this.downloadState.set('completed');
-      this.downloadNotice.set('演示包已交给浏览器下载，将保存到浏览器默认下载目录。');
+      void this.fetchAndSaveDemoPackage();
     }
   }
 
-  private triggerBrowserDownload(): void {
+  private async fetchAndSaveDemoPackage(): Promise<void> {
+    try {
+      const response = await fetch(DEMO_DOWNLOAD_URL, { credentials: 'same-origin' });
+      if (!response.ok) {
+        throw new Error(`Download request failed with status ${response.status}.`);
+      }
+
+      const downloadUrl = URL.createObjectURL(await response.blob());
+      try {
+        this.triggerBrowserDownload(downloadUrl);
+      } finally {
+        URL.revokeObjectURL(downloadUrl);
+      }
+
+      this.downloadState.set('completed');
+      this.downloadNotice.set('演示包已开始保存到浏览器默认下载目录。');
+    } catch {
+      this.downloadState.set('failed');
+      this.downloadNotice.set('演示包下载失败，请稍后重试。');
+    }
+  }
+
+  private triggerBrowserDownload(downloadUrl: string): void {
     const downloadLink = this.document.createElement('a');
-    downloadLink.href = DEMO_DOWNLOAD_URL;
+    downloadLink.href = downloadUrl;
     downloadLink.download = DEMO_DOWNLOAD_FILE_NAME;
     downloadLink.hidden = true;
     this.document.body.append(downloadLink);
