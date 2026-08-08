@@ -1,0 +1,32 @@
+[Unit]
+Description=AmseokNAS control-plane API
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=amseoknas-api
+Group=amseoknas-api
+WorkingDirectory=/usr/lib/amseoknas/api
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+EnvironmentFile=/etc/amseoknas/api.env
+ExecStart=/usr/lib/amseoknas/api/Nas.Api
+Restart=on-failure
+RestartSec=3s
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/amseoknas
+CapabilityBoundingSet=
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
