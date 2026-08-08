@@ -1,10 +1,10 @@
 #--------------------------#
-#--------隔离只读系统查询守护进程---------#
-#--------Isolates the read-only system inventory daemon--------#
+#--------隔离受限系统查询与网络配置守护进程---------#
+#--------Isolates constrained system queries and network configuration actions--------#
 #-------------------------#
 [Unit]
 Description=AmseokOS read-only system inventory daemon
-After=local-fs.target
+After=local-fs.target systemd-networkd.service
 
 [Service]
 Type=simple
@@ -12,6 +12,8 @@ User=amseoknas-privileged
 Group=amseoknas
 UMask=0007
 EnvironmentFile=/etc/amseoknas/privileged.env
+# 网络写入只认 systemd-networkd 的受管目录，不能由调用方选择其他路径
+Environment=AMSEOKNAS_PRIVILEGED_NETWORK_CONFIG_DIRECTORY=/etc/systemd/network
 RuntimeDirectory=amseoknas
 RuntimeDirectoryMode=0750
 ExecStart=/usr/libexec/amseoknas/amseoknas-privileged
@@ -28,15 +30,18 @@ ProtectKernelLogs=yes
 ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectSystem=strict
-ReadWritePaths=/run/amseoknas
+# 严格系统保护保持开启，只额外放行 Socket 运行目录与唯一受管网络目录
+ReadWritePaths=/run/amseoknas /etc/systemd/network
 RestrictAddressFamilies=AF_UNIX AF_NETLINK
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
 LockPersonality=yes
 MemoryDenyWriteExecute=yes
-CapabilityBoundingSet=
-AmbientCapabilities=
+# CAP_DAC_OVERRIDE 仅用于原子替换 root 所有的受管文件，写范围仍被 ProtectSystem 限死
+# CAP_NET_ADMIN 仅供固定的 networkctl reload 使用，不开放任意命令或网络参数
+CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_NET_ADMIN
+AmbientCapabilities=CAP_DAC_OVERRIDE CAP_NET_ADMIN
 SystemCallArchitectures=native
 
 [Install]

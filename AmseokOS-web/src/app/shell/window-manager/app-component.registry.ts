@@ -41,6 +41,22 @@ const BUILT_IN_APP_COMPONENTS: ReadonlyMap<string, AppComponentDefinition> = new
       loadComponent: () =>
         import('../../features/settings/settings-page.component').then(
           ({ SettingsPageComponent }) => SettingsPageComponent
+      )
+    }
+  ],
+  [
+    'app-store',
+    {
+      appId: 'app-store',
+      title: '应用商店',
+      singleton: true,
+      defaultWidth: 1180,
+      defaultHeight: 760,
+      minWidth: 800,
+      minHeight: 520,
+      loadComponent: () =>
+        import('../../features/app-store/app-store-page.component').then(
+          ({ AppStorePageComponent }) => AppStorePageComponent
         )
     }
   ]
