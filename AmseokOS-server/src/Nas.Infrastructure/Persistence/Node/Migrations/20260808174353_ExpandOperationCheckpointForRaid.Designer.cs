@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Nas.Infrastructure.Persistence.Node;
 
@@ -10,9 +11,11 @@ using Nas.Infrastructure.Persistence.Node;
 namespace Nas.Infrastructure.Persistence.Node.Migrations
 {
     [DbContext(typeof(NodeDbContext))]
-    partial class NodeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808174353_ExpandOperationCheckpointForRaid")]
+    partial class ExpandOperationCheckpointForRaid
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");

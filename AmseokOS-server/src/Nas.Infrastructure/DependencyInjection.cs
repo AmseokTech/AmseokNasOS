@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nas.Application.Authentication;
 using Nas.Application.NetworkConfiguration;
+using Nas.Application.RaidManagement;
 using Nas.Application.Privileged;
 using Nas.Application.Storage;
 using Nas.Application.Terminal;
@@ -66,7 +67,8 @@ public static class DependencyInjection
                 options => !options.Enabled || Path.IsPathFullyQualified(options.SocketPath),
                 "Enabled privileged client requires an absolute socket path")
             .Validate(
-                options => options.TimeoutSeconds is >= 1 and <= 15,
+                options => options.TimeoutSeconds is >= 1 and <= 15
+                    && options.RaidTimeoutSeconds is >= 15 and <= 120,
                 "Privileged client timeout is outside the supported range")
             .ValidateOnStart();
 
@@ -133,6 +135,8 @@ public static class DependencyInjection
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<INetworkConfigurationInventory>(provider =>
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        services.AddSingleton<IRaidCommandExecutor>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
         // Keep the HTTP command surface fail-closed until the Rust executor owns
         // atomic apply, confirmation deadlines, and rollback recovery.
         services.AddSingleton<INetworkConfigurationExecutor,
@@ -140,6 +144,9 @@ public static class DependencyInjection
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IStorageInventoryService, StorageInventoryService>();
         services.AddScoped<INetworkConfigurationService, NetworkConfigurationService>();
+        services.AddSingleton<IRaidPreviewStore, InMemoryRaidPreviewStore>();
+        services.AddScoped<IRaidOperationStore, SqliteRaidOperationStore>();
+        services.AddScoped<IRaidManagementService, RaidManagementService>();
 
         services.AddHttpClient("cluster-health", client =>
         {

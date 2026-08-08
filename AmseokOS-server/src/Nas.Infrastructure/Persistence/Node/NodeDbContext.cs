@@ -33,7 +33,7 @@ public sealed class NodeDbContext(DbContextOptions<NodeDbContext> options) : DbC
             entity.Property(operation => operation.Status)
                 .HasConversion<string>()
                 .HasMaxLength(32);
-            entity.Property(operation => operation.Checkpoint).HasMaxLength(4_096);
+            entity.Property(operation => operation.Checkpoint).HasMaxLength(32_768);
             entity.Property(operation => operation.ErrorCode).HasMaxLength(100);
             entity.HasIndex(operation => new { operation.NodeId, operation.IdempotencyKey }).IsUnique();
             entity.HasIndex(operation => new { operation.Status, operation.CreatedAt });
@@ -44,7 +44,7 @@ public sealed class NodeDbContext(DbContextOptions<NodeDbContext> options) : DbC
             entity.ToTable("ResourceLocks");
             entity.HasKey(resourceLock => resourceLock.ResourceId);
             entity.Property(resourceLock => resourceLock.ResourceId).HasMaxLength(300);
-            entity.HasIndex(resourceLock => resourceLock.OperationId).IsUnique();
+            entity.HasIndex(resourceLock => resourceLock.OperationId);
         });
 
         builder.Entity<InboxMessage>(entity =>

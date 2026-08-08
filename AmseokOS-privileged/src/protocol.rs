@@ -16,6 +16,7 @@ use crate::pending_changes::{
     PendingChange, STATUS_AWAITING_CONFIRMATION, STATUS_CONFIRMED, STATUS_ROLLED_BACK,
     SharedPendingChangeRegistry,
 };
+use crate::raid_write::{RaidAction, RaidExecutionParameters, RaidWriteContext, RaidWriteError};
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const MAXIMUM_FRAME_BYTES: usize = 1024 * 1024;
@@ -94,6 +95,7 @@ pub fn handle_connection(
     stream: &mut (impl Read + Write),
     registry: &SharedPendingChangeRegistry,
     environment: &NetworkWriteEnvironment,
+    raid_context: Option<&RaidWriteContext>,
 ) -> io::Result<()> {
     let started = Instant::now();
     let request_payload = read_frame(stream)?;
@@ -113,7 +115,7 @@ pub fn handle_connection(
         }
     };
 
-    let response = process_request(request, registry, environment, started);
+    let response = process_request(request, registry, environment, raid_context, started);
     write_response(stream, response)
 }
 
@@ -121,6 +123,7 @@ fn process_request(
     request: RequestEnvelope,
     registry: &SharedPendingChangeRegistry,
     environment: &NetworkWriteEnvironment,
+    raid_context: Option<&RaidWriteContext>,
     started: Instant,
 ) -> ResponseEnvelope {
     if request.protocol_version != PROTOCOL_VERSION {
@@ -207,6 +210,69 @@ fn process_request(
                 started,
             );
         }
+        "raid.createArray" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::Create,
+                started,
+            );
+        }
+        "raid.deleteArray" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::Delete,
+                started,
+            );
+        }
+        "raid.addDevice" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::AddDevice,
+                started,
+            );
+        }
+        "raid.removeDevice" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::RemoveDevice,
+                started,
+            );
+        }
+        "raid.replaceDevice" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::ReplaceDevice,
+                started,
+            );
+        }
+        "raid.growArray" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::Grow,
+                started,
+            );
+        }
+        "raid.shrinkArray" => {
+            return raid_action(
+                &parameters,
+                request_id,
+                raid_context,
+                RaidAction::Shrink,
+                started,
+            );
+        }
         _ => {
             return ResponseEnvelope::failure(
                 request_id,
@@ -228,6 +294,59 @@ fn process_request(
             started,
         ),
     }
+}
+
+fn raid_action(
+    parameters: &Value,
+    request_id: String,
+    context: Option<&RaidWriteContext>,
+    action: RaidAction,
+    started: Instant,
+) -> ResponseEnvelope {
+    let parameters = match serde_json::from_value::<RaidExecutionParameters>(parameters.clone()) {
+        Ok(parameters) => parameters,
+        Err(error) => {
+            return raid_failure(
+                request_id,
+                RaidWriteError {
+                    code: "request.invalid",
+                    message: error.to_string(),
+                    retryable: false,
+                },
+                started,
+            );
+        }
+    };
+    let Some(context) = context else {
+        return raid_failure(
+            request_id,
+            RaidWriteError::unavailable("RAID 写入服务未就绪"),
+            started,
+        );
+    };
+    match context.execute(action, parameters) {
+        Ok(result) => match to_json_value(result) {
+            Ok(value) => ResponseEnvelope::success(request_id, value, started),
+            Err(error) => ResponseEnvelope::failure(
+                request_id,
+                "raid.write_unavailable",
+                error.to_string(),
+                true,
+                started,
+            ),
+        },
+        Err(error) => raid_failure(request_id, error, started),
+    }
+}
+
+fn raid_failure(request_id: String, error: RaidWriteError, started: Instant) -> ResponseEnvelope {
+    ResponseEnvelope::failure(
+        request_id,
+        error.code,
+        error.message,
+        error.retryable,
+        started,
+    )
 }
 
 /// 只读动作的空参数守卫：只读查询不接受任何参数，
@@ -579,7 +698,7 @@ mod tests {
         input.extend_from_slice(&payload);
         let mut stream = Cursor::new(input);
 
-        handle_connection(&mut stream, registry, environment).unwrap();
+        handle_connection(&mut stream, registry, environment, None).unwrap();
 
         decode_response(stream.into_inner(), payload.len())
     }
@@ -656,7 +775,7 @@ mod tests {
         let (registry, environment) = read_only_context("protocol-oversized");
         let mut stream = Cursor::new(((MAXIMUM_FRAME_BYTES + 1) as u32).to_be_bytes());
 
-        let error = handle_connection(&mut stream, &registry, &environment).unwrap_err();
+        let error = handle_connection(&mut stream, &registry, &environment, None).unwrap_err();
 
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     }
@@ -818,6 +937,37 @@ mod tests {
             response["error"]["code"],
             crate::network_write::CODE_INVALID_CONFIGURATION
         );
+    }
+
+    #[test]
+    fn rejects_a_raid_request_with_an_unknown_field_before_write_context_lookup() {
+        let (registry, environment) = read_only_context("protocol-raid-unknown-field");
+
+        let response = round_trip(
+            envelope(
+                "request-raid-unknown-field",
+                "raid.createArray",
+                json!({
+                    "operationId": "00000000-0000-0000-0000-000000000001",
+                    "idempotencyKey": "create-data-1",
+                    "fencingToken": 1,
+                    "arrayId": null,
+                    "arrayName": "data",
+                    "level": "raid1",
+                    "deviceIds": ["wwn:a", "wwn:b"],
+                    "sourceDeviceId": null,
+                    "targetDeviceCount": null,
+                    "expectedMemberDeviceIds": [],
+                    "snapshotFingerprint": "a".repeat(64),
+                    "shellCommand": "mdadm --create"
+                }),
+            ),
+            &registry,
+            &environment,
+        );
+
+        assert_eq!(response["success"], false);
+        assert_eq!(response["error"]["code"], "request.invalid");
     }
 
     #[test]

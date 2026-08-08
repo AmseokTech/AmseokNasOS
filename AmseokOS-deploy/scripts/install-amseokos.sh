@@ -239,6 +239,7 @@ write_runtime_configuration() {
         printf 'Privileged__Enabled=true\n'
         printf 'Privileged__SocketPath=/run/amseoknas/privileged.sock\n'
         printf 'Privileged__TimeoutSeconds=5\n'
+        printf 'Privileged__RaidTimeoutSeconds=60\n'
     } >"$api_environment"
     install -o root -g root -m 0600 "$api_environment" /etc/amseoknas/api.env
 

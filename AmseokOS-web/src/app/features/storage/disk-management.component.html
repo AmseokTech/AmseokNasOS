@@ -11,7 +11,7 @@
   </header>
 
   <aside class="security-note" id="raid-write-status">
-    当前仅开放安全查询。创建、删除、扩容和成员变更将在预检、重新认证、资源锁、审计及底层二次设备校验完成后启用。
+    RAID 修改采用两阶段预检：每次都需要重新认证、输入确认短语，并由后端加资源锁；特权端执行前还会再次核对稳定磁盘身份和占用状态。
   </aside>
 
   @if (loading()) {
@@ -46,9 +46,8 @@
         </div>
         <button
           type="button"
-          disabled
           aria-describedby="raid-write-status"
-          title="安全写入链路完成后开放"
+          (click)="openCreate()"
         >
           创建阵列
         </button>
@@ -102,9 +101,8 @@
               <footer>
                 <button
                   type="button"
-                  disabled
                   aria-describedby="raid-write-status"
-                  title="安全写入链路完成后开放"
+                  (click)="openModify(array)"
                 >
                   修改阵列
                 </button>
@@ -156,3 +154,153 @@
     </section>
   }
 </section>
+
+@if (dialogOpen()) {
+  <div class="operation-backdrop" (click)="closeDialog()" aria-hidden="true"></div>
+  <section
+    class="operation-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="raid-operation-title"
+  >
+    <header>
+      <div>
+        <span class="eyebrow">高风险操作</span>
+        <h2 id="raid-operation-title">{{ actionLabel(action()) }}</h2>
+        @if (selectedArray(); as array) {
+          <p>{{ array.name }} · {{ array.level.toUpperCase() }} · {{ array.id }}</p>
+        }
+      </div>
+      <button type="button" class="dialog-close" aria-label="关闭" (click)="closeDialog()">×</button>
+    </header>
+
+    @if (selectedArray(); as array) {
+      <label class="form-field">
+        <span>操作</span>
+        <select [value]="action()" [disabled]="actionBusy() || !!operation()"
+          (change)="selectAction($any($event.target).value)">
+          @for (availableAction of actionsFor(array); track availableAction) {
+            <option [value]="availableAction">{{ actionLabel(availableAction) }}</option>
+          }
+        </select>
+      </label>
+    } @else {
+      <div class="form-grid">
+        <label class="form-field">
+          <span>阵列名称</span>
+          <input type="text" maxlength="32" [value]="arrayName()" [disabled]="!!operation()"
+            (input)="updateArrayName($any($event.target).value)" />
+        </label>
+        <label class="form-field">
+          <span>RAID 级别</span>
+          <select [value]="level()" [disabled]="!!operation()" (change)="updateLevel($any($event.target).value)">
+            <option value="raid0">RAID0</option>
+            <option value="raid1">RAID1</option>
+            <option value="raid5">RAID5</option>
+            <option value="raid6">RAID6</option>
+            <option value="raid10">RAID10</option>
+          </select>
+        </label>
+      </div>
+    }
+
+    @if (usesTargetCount()) {
+      <label class="form-field">
+        <span>目标成员数量</span>
+        <input type="number" min="2" max="64" [value]="targetDeviceCount()" [disabled]="!!operation()"
+          (input)="updateTargetDeviceCount($any($event.target).value)" />
+        @if (selectedArray(); as array) {
+          <small>当前配置为 {{ array.configuredDeviceCount }} 块</small>
+        }
+      </label>
+    }
+
+    @if (usesSourceDevice()) {
+      <label class="form-field">
+        <span>当前成员磁盘</span>
+        <select [value]="sourceDeviceId()" [disabled]="!!operation()" (change)="updateSourceDevice($any($event.target).value)">
+          <option value="">请选择</option>
+          @for (member of memberDevices(selectedArray()); track member.id) {
+            <option [value]="member.id">{{ member.label }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    @if (usesNewDevices()) {
+      <fieldset class="disk-selector">
+        <legend>{{ action() === 'create' ? '阵列磁盘' : '新增磁盘' }}</legend>
+        @if (eligibleDisks().length === 0) {
+          <p>没有符合条件的空闲整盘。系统盘、有分区、已占用或身份不稳定的设备不会显示。</p>
+        } @else {
+          @for (disk of eligibleDisks(); track disk.id) {
+            <label>
+              <input type="checkbox" [checked]="selectedDeviceIds().includes(disk.id)" [disabled]="!!operation()"
+                (change)="toggleDevice(disk.id, $any($event.target).checked)" />
+              <span><b>{{ disk.model || disk.name }}</b><small>{{ disk.path }} · {{ formatBytes(disk.sizeBytes) }} · {{ disk.id }}</small></span>
+            </label>
+          }
+        }
+      </fieldset>
+    }
+
+    @if (!preview() && !operation()) {
+      <label class="form-field">
+        <span>当前管理员密码</span>
+        <input type="password" autocomplete="current-password" maxlength="256"
+          [value]="password()" (input)="password.set($any($event.target).value)" />
+      </label>
+      <button type="button" class="primary-button" [disabled]="actionBusy()" (click)="createPreview()">
+        {{ actionBusy() ? '正在预检…' : '检查风险与当前状态' }}
+      </button>
+    }
+
+    @if (preview(); as currentPreview) {
+      <section class="preview-result" [class.preview-result--blocked]="!currentPreview.canExecute">
+        <h3>{{ currentPreview.canExecute ? '预检通过' : '当前不能执行' }}</h3>
+        @for (issue of currentPreview.blockingIssues; track issue.code + issue.field) {
+          <p class="issue-message">{{ issue.message }}</p>
+        }
+        @for (warning of currentPreview.warnings; track warning) {
+          <p class="warning-message">{{ warningLabel(warning) }}</p>
+        }
+      </section>
+
+      @if (currentPreview.canExecute) {
+        <div class="confirmation-panel">
+          <p>请原样输入确认短语：<strong>{{ currentPreview.confirmationPhrase }}</strong></p>
+          <label class="form-field">
+            <span>确认短语</span>
+            <input type="text" maxlength="256" autocomplete="off" [value]="confirmationInput()"
+              (input)="confirmationInput.set($any($event.target).value)" />
+          </label>
+          <label class="form-field">
+            <span>再次输入管理员密码</span>
+            <input type="password" maxlength="256" autocomplete="current-password"
+              [value]="confirmationPassword()"
+              (input)="confirmationPassword.set($any($event.target).value)" />
+          </label>
+          <button type="button" class="danger-button" [disabled]="actionBusy()" (click)="execute()">
+            {{ actionBusy() ? '正在提交…' : '确认并执行' }}
+          </button>
+        </div>
+      } @else {
+        <button type="button" (click)="invalidatePreview()">修改后重新预检</button>
+      }
+    }
+
+    @if (operation(); as currentOperation) {
+      <section class="operation-status" [class.operation-status--error]="currentOperation.status !== 'running' && currentOperation.status !== 'succeeded'">
+        <h3>{{ operationLabel(currentOperation) }}</h3>
+        <p class="technical-value">Operation {{ currentOperation.operationId }}</p>
+        @if (currentOperation.progressPercentage !== null) {
+          <progress max="100" [value]="currentOperation.progressPercentage"></progress>
+        }
+      </section>
+    }
+
+    @if (actionError()) {
+      <p class="dialog-error" role="alert">{{ actionError() }}</p>
+    }
+  </section>
+}

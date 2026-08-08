@@ -11,6 +11,7 @@ public sealed class PrivilegedOptions
     public bool Enabled { get; init; }
     public string SocketPath { get; init; } = "/run/amseoknas/privileged.sock";
     public int TimeoutSeconds { get; init; } = 5;
+    public int RaidTimeoutSeconds { get; init; } = 60;
 }
 
 public sealed class PrivilegedClientException(

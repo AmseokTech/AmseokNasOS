@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Nas.Application.NetworkConfiguration;
 using Nas.Application.Privileged;
+using Nas.Application.RaidManagement;
 using Nas.Application.Storage;
 using Nas.Application.SystemSettings;
 
@@ -18,7 +19,8 @@ public sealed class UnixSocketPrivilegedClient(
     TimeProvider timeProvider) :
     ISystemSettingsClient,
     IStorageInventoryClient,
-    INetworkConfigurationInventory
+    INetworkConfigurationInventory,
+    IRaidCommandExecutor
 {
     private const ushort ProtocolVersion = 1;
     private const int MaximumFrameBytes = 1024 * 1024;
@@ -62,7 +64,85 @@ public sealed class UnixSocketPrivilegedClient(
             cancellationToken);
     }
 
+    public async Task<RaidExecutionOutcome> ExecuteAsync(
+        RaidExecutionCommand command,
+        CancellationToken cancellationToken)
+    {
+        var action = command.Requested.Kind switch
+        {
+            RaidOperationKind.Create => "raid.createArray",
+            RaidOperationKind.Delete => "raid.deleteArray",
+            RaidOperationKind.AddDevice => "raid.addDevice",
+            RaidOperationKind.RemoveDevice => "raid.removeDevice",
+            RaidOperationKind.ReplaceDevice => "raid.replaceDevice",
+            RaidOperationKind.Grow => "raid.growArray",
+            RaidOperationKind.Shrink => "raid.shrinkArray",
+            _ => throw new InvalidOperationException("Unsupported RAID operation kind")
+        };
+        var parameters = new RaidExecutionParameters(
+            command.OperationId.ToString("D"),
+            command.IdempotencyKey,
+            command.FencingToken,
+            command.Requested.ArrayId,
+            command.Requested.ArrayName,
+            command.Requested.Level,
+            command.Requested.DeviceIds,
+            command.Requested.SourceDeviceId,
+            command.Requested.TargetDeviceCount,
+            command.ExpectedMemberDeviceIds,
+            command.SnapshotFingerprint);
+        try
+        {
+            var result = await SendAsync<RaidExecutionResult>(
+                action,
+                parameters,
+                options.Value.RaidTimeoutSeconds,
+                cancellationToken);
+            return new RaidExecutionAccepted(
+                result.ArrayId,
+                result.InProgress,
+                result.ProgressPercentage);
+        }
+        catch (PrivilegedClientException exception)
+        {
+            var uncertain = exception.Code is "privileged.unavailable"
+                or "request.deadline_exceeded"
+                or "tool.timeout"
+                or "operation.duplicate_requires_reconciliation";
+            return new RaidExecutionRejected(
+                exception.Code,
+                exception.Retryable,
+                uncertain);
+        }
+    }
+
     private async Task<T> SendAsync<T>(string action, CancellationToken cancellationToken)
+        where T : class
+    {
+        return await SendAsync<T>(
+            action,
+            new Dictionary<string, object?>(),
+            cancellationToken);
+    }
+
+    private async Task<T> SendAsync<T>(
+        string action,
+        object parameters,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        return await SendAsync<T>(
+            action,
+            parameters,
+            options.Value.TimeoutSeconds,
+            cancellationToken);
+    }
+
+    private async Task<T> SendAsync<T>(
+        string action,
+        object parameters,
+        int timeoutSeconds,
+        CancellationToken cancellationToken)
         where T : class
     {
         var configuration = options.Value;
@@ -75,22 +155,23 @@ public sealed class UnixSocketPrivilegedClient(
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
+        timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
         var requestId = Guid.NewGuid().ToString("D");
         var request = new RequestEnvelope(
             ProtocolVersion,
             requestId,
             action,
             timeProvider.GetUtcNow()
-                .AddSeconds(configuration.TimeoutSeconds)
+                .AddSeconds(timeoutSeconds)
                 .ToUnixTimeMilliseconds(),
-            new Dictionary<string, object?>());
+            parameters);
         var payload = JsonSerializer.SerializeToUtf8Bytes(request, JsonOptions);
         if (payload.Length > MaximumFrameBytes)
         {
             throw new InvalidOperationException("Privileged request exceeds the protocol limit");
         }
 
+        var connected = false;
         try
         {
             using var socket = new Socket(
@@ -100,6 +181,7 @@ public sealed class UnixSocketPrivilegedClient(
             await socket.ConnectAsync(
                 new UnixDomainSocketEndPoint(configuration.SocketPath),
                 timeout.Token);
+            connected = true;
             await using var stream = new NetworkStream(socket, ownsSocket: false);
             await WriteFrameAsync(stream, payload, timeout.Token);
             var responsePayload = await ReadFrameAsync(stream, timeout.Token);
@@ -140,7 +222,9 @@ public sealed class UnixSocketPrivilegedClient(
                 or OperationCanceledException)
         {
             throw new PrivilegedClientException(
-                "privileged.unavailable",
+                connected
+                    ? "privileged.unavailable"
+                    : "privileged.unavailable_before_dispatch",
                 "底层系统查询服务当前不可用",
                 true,
                 exception);
@@ -155,6 +239,14 @@ public sealed class UnixSocketPrivilegedClient(
             "request.invalid" => "底层系统查询请求无效",
             "request.deadline_exceeded" => "底层系统查询已超时",
             "inventory.read_failed" => "底层系统信息读取失败",
+            "resource.not_found" => "RAID 目标资源不存在",
+            "resource.identity_changed" => "RAID 目标身份已经变化",
+            "resource.system_disk" => "系统盘禁止用于 RAID 写操作",
+            "resource.busy" => "RAID 目标资源正在使用中",
+            "tool.not_available" => "mdadm 工具不可用",
+            "tool.timeout" => "mdadm 操作超时",
+            "tool.failed" => "mdadm 操作失败",
+            "result.verification_failed" => "RAID 操作结果复核失败",
             _ => "底层系统查询被拒绝"
         };
     }
@@ -212,7 +304,7 @@ public sealed class UnixSocketPrivilegedClient(
         string RequestId,
         string Action,
         long DeadlineUnixMilliseconds,
-        IReadOnlyDictionary<string, object?> Parameters);
+        object Parameters);
 
     private sealed record ResponseEnvelope<T>(
         ushort ProtocolVersion,
@@ -222,4 +314,22 @@ public sealed class UnixSocketPrivilegedClient(
         ResponseError? Error);
 
     private sealed record ResponseError(string Code, string Message, bool Retryable);
+
+    private sealed record RaidExecutionParameters(
+        string OperationId,
+        string IdempotencyKey,
+        long FencingToken,
+        string? ArrayId,
+        string? ArrayName,
+        string? Level,
+        IReadOnlyList<string> DeviceIds,
+        string? SourceDeviceId,
+        int? TargetDeviceCount,
+        IReadOnlyList<string> ExpectedMemberDeviceIds,
+        string SnapshotFingerprint);
+
+    private sealed record RaidExecutionResult(
+        string? ArrayId,
+        bool InProgress,
+        int? ProgressPercentage);
 }

@@ -17,12 +17,12 @@ const SWAPS: &str = "/proc/swaps";
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockDeviceInformation {
-    id: String,
-    stable: bool,
-    identity_conflict: bool,
-    topology_complete: bool,
-    name: String,
-    path: String,
+    pub(crate) id: String,
+    pub(crate) stable: bool,
+    pub(crate) identity_conflict: bool,
+    pub(crate) topology_complete: bool,
+    pub(crate) name: String,
+    pub(crate) path: String,
     model: Option<String>,
     serial_number: Option<String>,
     wwn: Option<String>,
@@ -30,22 +30,22 @@ pub struct BlockDeviceInformation {
     logical_sector_bytes: u64,
     physical_sector_bytes: u64,
     rotational: bool,
-    removable: bool,
-    read_only: bool,
-    partitions: Vec<BlockPartitionInformation>,
-    mount_points: Vec<String>,
-    system_device: bool,
-    swap: bool,
-    raid_member: bool,
-    in_use: bool,
-    dependent_devices: Vec<BlockDependencyInformation>,
+    pub(crate) removable: bool,
+    pub(crate) read_only: bool,
+    pub(crate) partitions: Vec<BlockPartitionInformation>,
+    pub(crate) mount_points: Vec<String>,
+    pub(crate) system_device: bool,
+    pub(crate) swap: bool,
+    pub(crate) raid_member: bool,
+    pub(crate) in_use: bool,
+    pub(crate) dependent_devices: Vec<BlockDependencyInformation>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct BlockPartitionInformation {
-    name: String,
-    path: String,
+pub(crate) struct BlockPartitionInformation {
+    pub(crate) name: String,
+    pub(crate) path: String,
     size_bytes: u64,
     mount_points: Vec<String>,
     topology_complete: bool,
@@ -58,7 +58,7 @@ struct BlockPartitionInformation {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct BlockDependencyInformation {
+pub(crate) struct BlockDependencyInformation {
     name: String,
     path: String,
     kind: String,

@@ -158,9 +158,10 @@ fn parse_memory_total_bytes(memory_info: &str) -> Option<u64> {
 fn system_storage_information(source: String) -> io::Result<SystemStorageInformation> {
     let statistics = statvfs(Path::new("/")).map_err(io::Error::other)?;
     let block_size = statistics.fragment_size();
-    let total_bytes = statistics.blocks().saturating_mul(block_size);
-    let available_bytes = statistics.blocks_available().saturating_mul(block_size);
-    let free_bytes = statistics.blocks_free().saturating_mul(block_size);
+    let total_bytes = block_count_as_u64(statistics.blocks()).saturating_mul(block_size);
+    let available_bytes =
+        block_count_as_u64(statistics.blocks_available()).saturating_mul(block_size);
+    let free_bytes = block_count_as_u64(statistics.blocks_free()).saturating_mul(block_size);
     let used_bytes = total_bytes.saturating_sub(free_bytes);
     let block_name = source
         .strip_prefix("/dev/")
@@ -176,6 +177,10 @@ fn system_storage_information(source: String) -> io::Result<SystemStorageInforma
         used_bytes,
         available_bytes,
     })
+}
+
+fn block_count_as_u64<T: Into<u64>>(value: T) -> u64 {
+    value.into()
 }
 
 fn root_mount_source() -> Option<String> {

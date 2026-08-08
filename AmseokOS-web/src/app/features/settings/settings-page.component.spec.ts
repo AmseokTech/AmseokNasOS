@@ -106,7 +106,7 @@ describe('SettingsPageComponent', () => {
     http.verify();
   });
 
-  it('shows physical disks and RAID arrays while keeping write actions disabled', () => {
+  it('shows physical disks and opens the guarded RAID management workflow', () => {
     const fixture = TestBed.createComponent(SettingsPageComponent);
     const http = TestBed.inject(HttpTestingController);
 
@@ -178,8 +178,13 @@ describe('SettingsPageComponent', () => {
       .find((button) => button.textContent?.includes('创建阵列'));
     const modifyButton = [...compiled.querySelectorAll('button')]
       .find((button) => button.textContent?.includes('修改阵列'));
-    expect(createButton?.disabled).toBe(true);
-    expect(modifyButton?.disabled).toBe(true);
+    expect(createButton?.disabled).toBe(false);
+    expect(modifyButton?.disabled).toBe(false);
+    modifyButton?.click();
+    fixture.detectChanges();
+    expect(compiled.textContent).toContain('高风险操作');
+    expect(compiled.textContent).toContain('扩容阵列');
+    expect(compiled.textContent).toContain('再次核对稳定磁盘身份');
     http.verify();
   });
 });
