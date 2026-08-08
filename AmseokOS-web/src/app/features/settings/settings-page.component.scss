@@ -87,6 +87,21 @@
   background: linear-gradient(145deg, #5ca7ff, #176ccc);
 }
 
+.settings-sidebar__icon--storage {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 5px;
+  background: linear-gradient(145deg, #79899b, #384757);
+}
+
+.settings-sidebar__icon--storage i {
+  height: 4px;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 1px;
+  background: rgb(255 255 255 / 16%);
+}
+
 .settings-sidebar__icon--network i {
   width: 3px;
   border-radius: 3px;
