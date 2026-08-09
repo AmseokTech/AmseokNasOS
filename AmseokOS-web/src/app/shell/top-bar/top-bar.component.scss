@@ -85,12 +85,6 @@
   fill: currentColor;
 }
 
-time {
-  min-width: 126px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 .user-avatar {
   display: grid;
   width: 24px;
@@ -287,10 +281,6 @@ time {
 }
 
 @media (max-width: 420px) {
-  time {
-    min-width: auto;
-  }
-
   .product-name {
     max-width: 88px;
     overflow: hidden;
