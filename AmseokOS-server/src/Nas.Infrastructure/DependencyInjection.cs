@@ -15,6 +15,7 @@ using Nas.Application.NetworkConfiguration;
 using Nas.Application.RaidManagement;
 using Nas.Application.Privileged;
 using Nas.Application.Storage;
+using Nas.Application.StorageManagement;
 using Nas.Application.Terminal;
 using Nas.Infrastructure.Authentication;
 using Nas.Infrastructure.ClusterServices;
@@ -137,6 +138,10 @@ public static class DependencyInjection
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<IRaidCommandExecutor>(provider =>
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        services.AddSingleton<IStorageManagementClient>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        services.AddSingleton<IStorageCommandExecutor>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
         // Keep the HTTP command surface fail-closed until the Rust executor owns
         // atomic apply, confirmation deadlines, and rollback recovery.
         services.AddSingleton<INetworkConfigurationExecutor,
@@ -147,6 +152,9 @@ public static class DependencyInjection
         services.AddSingleton<IRaidPreviewStore, InMemoryRaidPreviewStore>();
         services.AddScoped<IRaidOperationStore, SqliteRaidOperationStore>();
         services.AddScoped<IRaidManagementService, RaidManagementService>();
+        services.AddSingleton<IStoragePreviewStore, InMemoryStoragePreviewStore>();
+        services.AddScoped<IStorageOperationStore, SqliteStorageOperationStore>();
+        services.AddScoped<IStorageManagementService, StorageManagementService>();
 
         services.AddHttpClient("cluster-health", client =>
         {

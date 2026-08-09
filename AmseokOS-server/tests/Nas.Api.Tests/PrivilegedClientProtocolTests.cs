@@ -10,6 +10,7 @@ using Nas.Application.NetworkConfiguration;
 using Nas.Application.Privileged;
 using Nas.Application.RaidManagement;
 using Nas.Application.Storage;
+using Nas.Application.StorageManagement;
 using Nas.Application.SystemSettings;
 using Nas.Infrastructure.Privileged;
 
@@ -207,6 +208,55 @@ public sealed class PrivilegedClientProtocolTests
         var array = Assert.Single(arrays);
         Assert.Equal("raid1", array.Level);
         Assert.Equal("sda1", Assert.Single(array.Members).Name);
+    }
+
+    [Fact]
+    public async Task ManagedVolumeQueryUsesTheRegisteredVersionedAction()
+    {
+        var volumes = await QueryFakeDaemonAsync(
+            "storage.inspectManagedVolumes",
+            new[]
+            {
+                new
+                {
+                    id = "volume:data",
+                    name = "data",
+                    arrayId = "md:test",
+                    arrayPath = "/dev/md0",
+                    fileSystemUuid = "filesystem-uuid",
+                    fileSystemType = "ext4",
+                    mountPath = "/srv/amseoknas/volumes/data",
+                    mounted = true,
+                    persistentMountEnabled = true,
+                    ownerName = "root",
+                    groupName = "amseoknas-data",
+                    directoryMode = "0770",
+                    readWriteVerified = true,
+                    smb = new
+                    {
+                        enabled = true,
+                        shareName = "data",
+                        readOnly = false,
+                        guestAccess = false,
+                        allowedNetwork = "192.168.188.0/24"
+                    },
+                    nfs = new
+                    {
+                        enabled = true,
+                        clientNetwork = "192.168.188.0/24",
+                        readOnly = false
+                    }
+                }
+            },
+            (client, token) => ((IStorageManagementClient)client).GetManagedVolumesAsync(token));
+
+        var volume = Assert.Single(volumes);
+        Assert.Equal("ext4", volume.FileSystemType);
+        Assert.Equal("filesystem-uuid", volume.FileSystemUuid);
+        Assert.True(volume.Mounted);
+        Assert.True(volume.PersistentMountEnabled);
+        Assert.Equal("data", volume.Smb.ShareName);
+        Assert.Equal("192.168.188.0/24", volume.Nfs.ClientNetwork);
     }
 
     [Fact]

@@ -14,6 +14,7 @@ public static class AuthenticationDefaults
     public const string NetworkReadPolicy = "NetworkRead";
     public const string NetworkManagePolicy = "NetworkManage";
     public const string StorageReadPolicy = "StorageRead";
+    public const string StorageManagePolicy = "StorageManage";
     public const string RaidManagePolicy = "RaidManage";
     public const string MustChangePasswordClaim = "amseoknas:must_change_password";
     public const string PermissionClaim = "amseoknas:permission";
