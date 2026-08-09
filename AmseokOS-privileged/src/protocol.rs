@@ -17,6 +17,9 @@ use crate::pending_changes::{
     SharedPendingChangeRegistry,
 };
 use crate::raid_write::{RaidAction, RaidExecutionParameters, RaidWriteContext, RaidWriteError};
+use crate::storage_write::{
+    self, StorageAction, StorageExecutionParameters, StorageWriteContext, StorageWriteError,
+};
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const MAXIMUM_FRAME_BYTES: usize = 1024 * 1024;
@@ -96,6 +99,7 @@ pub fn handle_connection(
     registry: &SharedPendingChangeRegistry,
     environment: &NetworkWriteEnvironment,
     raid_context: Option<&RaidWriteContext>,
+    storage_context: Option<&StorageWriteContext>,
 ) -> io::Result<()> {
     let started = Instant::now();
     let request_payload = read_frame(stream)?;
@@ -115,7 +119,14 @@ pub fn handle_connection(
         }
     };
 
-    let response = process_request(request, registry, environment, raid_context, started);
+    let response = process_request(
+        request,
+        registry,
+        environment,
+        raid_context,
+        storage_context,
+        started,
+    );
     write_response(stream, response)
 }
 
@@ -124,6 +135,7 @@ fn process_request(
     registry: &SharedPendingChangeRegistry,
     environment: &NetworkWriteEnvironment,
     raid_context: Option<&RaidWriteContext>,
+    storage_context: Option<&StorageWriteContext>,
     started: Instant,
 ) -> ResponseEnvelope {
     if request.protocol_version != PROTOCOL_VERSION {
@@ -181,6 +193,12 @@ fn process_request(
             match require_empty_parameters(&parameters, &request_id, started) {
                 Err(failure) => return *failure,
                 Ok(()) => inventory::storage::inspect_block_devices().and_then(to_json_value),
+            }
+        }
+        "storage.inspectManagedVolumes" => {
+            match require_empty_parameters(&parameters, &request_id, started) {
+                Err(failure) => return *failure,
+                Ok(()) => storage_write::inspect_managed_volumes().and_then(to_json_value),
             }
         }
         "raid.inspectArrays" => match require_empty_parameters(&parameters, &request_id, started) {
@@ -273,6 +291,42 @@ fn process_request(
                 started,
             );
         }
+        "storage.provisionVolume" => {
+            return storage_action(
+                &parameters,
+                request_id,
+                storage_context,
+                StorageAction::ProvisionVolume,
+                started,
+            );
+        }
+        "storage.updatePermissions" => {
+            return storage_action(
+                &parameters,
+                request_id,
+                storage_context,
+                StorageAction::UpdatePermissions,
+                started,
+            );
+        }
+        "storage.configureShares" => {
+            return storage_action(
+                &parameters,
+                request_id,
+                storage_context,
+                StorageAction::ConfigureShares,
+                started,
+            );
+        }
+        "storage.verifyReadWrite" => {
+            return storage_action(
+                &parameters,
+                request_id,
+                storage_context,
+                StorageAction::VerifyReadWrite,
+                started,
+            );
+        }
         _ => {
             return ResponseEnvelope::failure(
                 request_id,
@@ -337,6 +391,60 @@ fn raid_action(
         },
         Err(error) => raid_failure(request_id, error, started),
     }
+}
+
+fn storage_action(
+    parameters: &Value,
+    request_id: String,
+    context: Option<&StorageWriteContext>,
+    action: StorageAction,
+    started: Instant,
+) -> ResponseEnvelope {
+    let parameters = match serde_json::from_value::<StorageExecutionParameters>(parameters.clone())
+    {
+        Ok(parameters) => parameters,
+        Err(error) => {
+            return storage_failure(
+                request_id,
+                StorageWriteError::new("request.invalid", error.to_string(), false),
+                started,
+            );
+        }
+    };
+    let Some(context) = context else {
+        return storage_failure(
+            request_id,
+            StorageWriteError::unavailable("数据卷与共享写入服务未就绪"),
+            started,
+        );
+    };
+    match context.execute(action, parameters) {
+        Ok(result) => match to_json_value(result) {
+            Ok(value) => ResponseEnvelope::success(request_id, value, started),
+            Err(error) => ResponseEnvelope::failure(
+                request_id,
+                "storage.write_unavailable",
+                error.to_string(),
+                true,
+                started,
+            ),
+        },
+        Err(error) => storage_failure(request_id, error, started),
+    }
+}
+
+fn storage_failure(
+    request_id: String,
+    error: StorageWriteError,
+    started: Instant,
+) -> ResponseEnvelope {
+    ResponseEnvelope::failure(
+        request_id,
+        error.code,
+        error.message,
+        error.retryable,
+        started,
+    )
 }
 
 fn raid_failure(request_id: String, error: RaidWriteError, started: Instant) -> ResponseEnvelope {
@@ -698,7 +806,7 @@ mod tests {
         input.extend_from_slice(&payload);
         let mut stream = Cursor::new(input);
 
-        handle_connection(&mut stream, registry, environment, None).unwrap();
+        handle_connection(&mut stream, registry, environment, None, None).unwrap();
 
         decode_response(stream.into_inner(), payload.len())
     }
@@ -775,7 +883,8 @@ mod tests {
         let (registry, environment) = read_only_context("protocol-oversized");
         let mut stream = Cursor::new(((MAXIMUM_FRAME_BYTES + 1) as u32).to_be_bytes());
 
-        let error = handle_connection(&mut stream, &registry, &environment, None).unwrap_err();
+        let error =
+            handle_connection(&mut stream, &registry, &environment, None, None).unwrap_err();
 
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     }
@@ -960,6 +1069,38 @@ mod tests {
                     "expectedMemberDeviceIds": [],
                     "snapshotFingerprint": "a".repeat(64),
                     "shellCommand": "mdadm --create"
+                }),
+            ),
+            &registry,
+            &environment,
+        );
+
+        assert_eq!(response["success"], false);
+        assert_eq!(response["error"]["code"], "request.invalid");
+    }
+
+    #[test]
+    fn rejects_a_storage_request_with_an_unknown_field_before_write_context_lookup() {
+        let (registry, environment) = read_only_context("protocol-storage-unknown-field");
+
+        let response = round_trip(
+            envelope(
+                "request-storage-unknown-field",
+                "storage.verifyReadWrite",
+                json!({
+                    "operationId": "00000000-0000-0000-0000-000000000001",
+                    "idempotencyKey": "verify-data-1",
+                    "fencingToken": 1,
+                    "arrayId": null,
+                    "volumeId": "volume:data",
+                    "volumeName": null,
+                    "ownerName": null,
+                    "groupName": null,
+                    "directoryMode": null,
+                    "smb": null,
+                    "nfs": null,
+                    "snapshotFingerprint": "a".repeat(64),
+                    "shellCommand": "touch /srv/amseoknas/volumes/data/test"
                 }),
             ),
             &registry,

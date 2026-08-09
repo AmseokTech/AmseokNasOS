@@ -906,7 +906,7 @@ fn validate_device_count(level: &str, count: usize) -> Result<(), RaidWriteError
         "raid6" | "raid10" => 4,
         _ => return Err(invalid_request()),
     };
-    if count < minimum || level == "raid10" && !count.is_multiple_of(2) || count > 64 {
+    if count < minimum || level == "raid10" && count & 1 != 0 || count > 64 {
         return Err(invalid_request());
     }
     Ok(())
