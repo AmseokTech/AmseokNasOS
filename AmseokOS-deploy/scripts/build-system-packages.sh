@@ -93,17 +93,13 @@ install -m 0755 \
 install -m 0644 "$deploy_root/systemd/amseoknas-privileged.service" \
     "$privileged_package/usr/lib/systemd/system/amseoknas-privileged.service"
 write_control "$privileged_package" amseokos-privileged "$architecture" \
-    "adduser, systemd" \
-    "AmseokNAS constrained read-only system inventory daemon"
+    "adduser, mdadm, systemd, util-linux" \
+    "AmseokNAS constrained inventory, network, and RAID daemon"
 cat >"$privileged_package/DEBIAN/postinst" <<'EOF'
 #!/bin/sh
 set -e
 if ! getent group amseoknas >/dev/null; then
     addgroup --system amseoknas
-fi
-if ! getent passwd amseoknas-privileged >/dev/null; then
-    adduser --system --ingroup amseoknas --home /nonexistent \
-        --no-create-home --shell /usr/sbin/nologin amseoknas-privileged
 fi
 if getent passwd amseoknas-api >/dev/null; then
     usermod -aG amseoknas amseoknas-api

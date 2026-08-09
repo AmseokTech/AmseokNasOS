@@ -21,12 +21,26 @@
       </span>
       网络
     </button>
+    <button
+      type="button"
+      [class.settings-sidebar__item--active]="activeSection() === 'storage'"
+      [attr.aria-current]="activeSection() === 'storage' ? 'page' : null"
+      (click)="selectSection('storage')"
+    >
+      <span class="settings-sidebar__icon settings-sidebar__icon--storage" aria-hidden="true">
+        <i></i><i></i><i></i>
+      </span>
+      磁盘管理
+    </button>
   </nav>
 
   <main class="settings-content">
     @switch (activeSection()) {
       @case ('network') {
         <app-network-settings />
+      }
+      @case ('storage') {
+        <app-disk-management />
       }
       @default {
         <app-about-settings />

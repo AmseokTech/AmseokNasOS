@@ -6,6 +6,8 @@ mod inventory;
 mod network_write;
 mod pending_changes;
 mod protocol;
+mod raid_registry;
+mod raid_write;
 
 use std::env;
 use std::fs;
@@ -16,12 +18,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+#[cfg(target_os = "linux")]
 use nix::sys::socket::{getsockopt, sockopt::PeerCredentials};
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 use network_write::NetworkWriteEnvironment;
 use pending_changes::{PendingChangeRegistry, SharedPendingChangeRegistry};
+use raid_write::RaidWriteContext;
 
 const DEFAULT_SOCKET_PATH: &str = "/run/amseoknas/privileged.sock";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(5);
@@ -44,6 +48,13 @@ fn main() -> io::Result<()> {
     // 登记表必须只有一份：分散成多份会让看守线程看不到部分待确认改动
     let registry = PendingChangeRegistry::new_shared();
     let mut environment = NetworkWriteEnvironment::from_environment();
+    let raid_context = match RaidWriteContext::from_environment() {
+        Ok(context) => Some(context),
+        Err(error) => {
+            warn!(code = error.code, message = %error.message, "RAID writes are unavailable; read-only queries keep serving");
+            None
+        }
+    };
 
     // 看守线程起不来时只降级、不退出：
     // 只读查询本身仍然可用，直接中止会让整机连状态都查不到
@@ -69,8 +80,13 @@ fn main() -> io::Result<()> {
     for connection in listener.incoming() {
         match connection {
             Ok(mut stream) => {
-                if let Err(error) = handle_client(&mut stream, allowed_uid, &registry, &environment)
-                {
+                if let Err(error) = handle_client(
+                    &mut stream,
+                    allowed_uid,
+                    &registry,
+                    &environment,
+                    raid_context.as_ref(),
+                ) {
                     warn!(%error, "privileged query request failed");
                 }
             }
@@ -85,18 +101,33 @@ fn handle_client(
     allowed_uid: u32,
     registry: &SharedPendingChangeRegistry,
     environment: &NetworkWriteEnvironment,
+    raid_context: Option<&RaidWriteContext>,
 ) -> io::Result<()> {
     stream.set_read_timeout(Some(CONNECTION_TIMEOUT))?;
     stream.set_write_timeout(Some(CONNECTION_TIMEOUT))?;
-    let credentials = getsockopt(&*stream, PeerCredentials).map_err(io::Error::other)?;
+    let peer_uid = peer_uid(stream)?;
     // 身份校验不通过必须在触及协议层之前返回，写入动作同样受这道闸门保护
-    if credentials.uid() != allowed_uid {
+    if peer_uid != allowed_uid {
         return Err(io::Error::new(
             io::ErrorKind::PermissionDenied,
             "unix peer uid is not allowed",
         ));
     }
-    protocol::handle_connection(stream, registry, environment)
+    protocol::handle_connection(stream, registry, environment, raid_context)
+}
+
+#[cfg(target_os = "linux")]
+fn peer_uid(stream: &UnixStream) -> io::Result<u32> {
+    let credentials = getsockopt(stream, PeerCredentials).map_err(io::Error::other)?;
+    Ok(credentials.uid())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn peer_uid(_stream: &UnixStream) -> io::Result<u32> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "peer credentials are supported only by the Linux daemon target",
+    ))
 }
 
 fn bind_listener(socket_path: &Path) -> io::Result<UnixListener> {

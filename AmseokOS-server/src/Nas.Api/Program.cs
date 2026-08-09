@@ -67,6 +67,12 @@ builder.Services.AddAuthorization(options =>
             .RequireAuthenticatedUser()
             .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.StorageRead)
             .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
+    options.AddPolicy(
+        AuthenticationDefaults.RaidManagePolicy,
+        policy => policy
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.RaidManage)
+            .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
 });
 builder.Services.AddAntiforgery(options =>
 {
@@ -123,6 +129,30 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("raid-preview", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("raid-change", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
                 QueueLimit = 0,
                 Window = TimeSpan.FromMinutes(1),
                 AutoReplenishment = true

@@ -4,14 +4,15 @@
 //-------------------------//
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
+import { DiskManagementComponent } from '../storage';
 import { AboutSettingsComponent } from './about/about-settings.component';
 import { NetworkSettingsComponent } from './network/network-settings.component';
 
-type SettingsSection = 'about' | 'network';
+type SettingsSection = 'about' | 'network' | 'storage';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [AboutSettingsComponent, NetworkSettingsComponent],
+  imports: [AboutSettingsComponent, DiskManagementComponent, NetworkSettingsComponent],
   templateUrl: './settings-page.component.html',
   styleUrl: './settings-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

@@ -13,29 +13,29 @@ const SYS_CLASS_BLOCK: &str = "/sys/class/block";
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RaidArrayInformation {
-    id: String,
-    name: String,
-    path: String,
-    uuid: Option<String>,
-    level: String,
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) path: String,
+    pub(crate) uuid: Option<String>,
+    pub(crate) level: String,
     state: String,
     metadata_version: Option<String>,
     size_bytes: u64,
-    configured_device_count: u64,
-    degraded_device_count: u64,
-    sync_action: String,
+    pub(crate) configured_device_count: u64,
+    pub(crate) degraded_device_count: u64,
+    pub(crate) sync_action: String,
     sync_completed_sectors: Option<u64>,
     sync_total_sectors: Option<u64>,
-    members: Vec<RaidMemberInformation>,
+    pub(crate) members: Vec<RaidMemberInformation>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct RaidMemberInformation {
-    name: String,
-    path: String,
-    state: String,
-    slot: Option<i32>,
+pub(crate) struct RaidMemberInformation {
+    pub(crate) name: String,
+    pub(crate) path: String,
+    pub(crate) state: String,
+    pub(crate) slot: Option<i32>,
 }
 
 pub fn inspect_arrays() -> io::Result<Vec<RaidArrayInformation>> {

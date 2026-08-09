@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Nas.Infrastructure.Persistence.Node;
 
@@ -10,9 +11,11 @@ using Nas.Infrastructure.Persistence.Node;
 namespace Nas.Infrastructure.Persistence.Node.Migrations
 {
     [DbContext(typeof(NodeDbContext))]
-    partial class NodeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808173720_AllowMultipleResourceLocksPerOperation")]
+    partial class AllowMultipleResourceLocksPerOperation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -46,7 +49,7 @@ namespace Nas.Infrastructure.Persistence.Node.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Checkpoint")
-                        .HasMaxLength(32768)
+                        .HasMaxLength(4096)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CreatedAt")

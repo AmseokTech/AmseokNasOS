@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Nas.Application.NetworkConfiguration;
 using Nas.Application.Privileged;
+using Nas.Application.RaidManagement;
 using Nas.Application.Storage;
 using Nas.Application.SystemSettings;
 using Nas.Infrastructure.Privileged;
@@ -209,6 +210,58 @@ public sealed class PrivilegedClientProtocolTests
     }
 
     [Fact]
+    public async Task RaidCreateUsesTheTypedWhitelistedActionAndLongWriteDeadline()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var socketPath = Path.Combine("/tmp", $"anp-{Guid.NewGuid():N}.sock");
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        try
+        {
+            var server = RunRaidFakeDaemonAsync(listener, timeout.Token);
+            var client = new UnixSocketPrivilegedClient(
+                Options.Create(new PrivilegedOptions
+                {
+                    Enabled = true,
+                    SocketPath = socketPath,
+                    TimeoutSeconds = 5,
+                    RaidTimeoutSeconds = 60
+                }),
+                TimeProvider.System);
+            var operationId = Guid.NewGuid();
+
+            var outcome = await ((IRaidCommandExecutor)client).ExecuteAsync(
+                new RaidExecutionCommand(
+                    operationId,
+                    "create-data-1",
+                    7,
+                    new RequestedRaidOperation(
+                        RaidOperationKind.Create,
+                        null,
+                        "data",
+                        "raid1",
+                        ["wwn:a", "wwn:b"],
+                        null,
+                        null),
+                    [],
+                    new string('a', 64)),
+                timeout.Token);
+
+            var accepted = Assert.IsType<RaidExecutionAccepted>(outcome);
+            Assert.Equal("md:created", accepted.ArrayId);
+            await server;
+        }
+        finally
+        {
+            if (File.Exists(socketPath))
+            {
+                File.Delete(socketPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task DisabledClientFailsClosedBeforeConnecting()
     {
         var client = new UnixSocketPrivilegedClient(
@@ -225,6 +278,41 @@ public sealed class PrivilegedClientProtocolTests
 
         Assert.Equal("privileged.disabled", exception.Code);
         Assert.False(exception.Retryable);
+    }
+
+    [Fact]
+    public async Task RaidConnectFailureIsClassifiedAsNotDispatched()
+    {
+        var client = new UnixSocketPrivilegedClient(
+            Options.Create(new PrivilegedOptions
+            {
+                Enabled = true,
+                SocketPath = $"/tmp/missing-{Guid.NewGuid():N}.sock",
+                TimeoutSeconds = 5,
+                RaidTimeoutSeconds = 60
+            }),
+            TimeProvider.System);
+
+        var outcome = await ((IRaidCommandExecutor)client).ExecuteAsync(
+            new RaidExecutionCommand(
+                Guid.NewGuid(),
+                "not-dispatched",
+                1,
+                new RequestedRaidOperation(
+                    RaidOperationKind.Create,
+                    null,
+                    "data",
+                    "raid1",
+                    ["wwn:a", "wwn:b"],
+                    null,
+                    null),
+                [],
+                new string('a', 64)),
+            CancellationToken.None);
+
+        var rejected = Assert.IsType<RaidExecutionRejected>(outcome);
+        Assert.Equal("privileged.unavailable_before_dispatch", rejected.Code);
+        Assert.False(rejected.OutcomeUncertain);
     }
 
     private static async Task<T> QueryFakeDaemonAsync<T>(
@@ -294,6 +382,42 @@ public sealed class PrivilegedClientProtocolTests
             requestId = root.GetProperty("requestId").GetString(),
             success = true,
             result,
+            error = (object?)null,
+            diagnostics = new { durationMs = 1, truncated = false }
+        });
+        await WriteFrameAsync(stream, response, cancellationToken);
+    }
+
+    private static async Task RunRaidFakeDaemonAsync(
+        Socket listener,
+        CancellationToken cancellationToken)
+    {
+        using var socket = await listener.AcceptAsync(cancellationToken);
+        await using var stream = new NetworkStream(socket, ownsSocket: false);
+        var requestPayload = await ReadFrameAsync(stream, cancellationToken);
+        using var request = JsonDocument.Parse(requestPayload);
+        var root = request.RootElement;
+        Assert.Equal("raid.createArray", root.GetProperty("action").GetString());
+        Assert.True(
+            root.GetProperty("deadlineUnixMilliseconds").GetInt64()
+                > DateTimeOffset.UtcNow.AddSeconds(45).ToUnixTimeMilliseconds());
+        var parameters = root.GetProperty("parameters");
+        Assert.Equal("data", parameters.GetProperty("arrayName").GetString());
+        Assert.Equal("raid1", parameters.GetProperty("level").GetString());
+        Assert.Equal(7, parameters.GetProperty("fencingToken").GetInt64());
+        Assert.Equal(2, parameters.GetProperty("deviceIds").GetArrayLength());
+
+        var response = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            protocolVersion = 1,
+            requestId = root.GetProperty("requestId").GetString(),
+            success = true,
+            result = new
+            {
+                arrayId = "md:created",
+                inProgress = false,
+                progressPercentage = 100
+            },
             error = (object?)null,
             diagnostics = new { durationMs = 1, truncated = false }
         });

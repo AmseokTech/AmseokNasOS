@@ -105,4 +105,86 @@ describe('SettingsPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('nas-test');
     http.verify();
   });
+
+  it('shows physical disks and opens the guarded RAID management workflow', () => {
+    const fixture = TestBed.createComponent(SettingsPageComponent);
+    const http = TestBed.inject(HttpTestingController);
+
+    fixture.detectChanges();
+    http.expectOne('/api/system/about').flush(about);
+    fixture.detectChanges();
+
+    const storageButton = [...fixture.nativeElement.querySelectorAll('nav button')]
+      .find((button: HTMLButtonElement) => button.textContent?.includes('磁盘管理'));
+    storageButton?.click();
+    fixture.detectChanges();
+
+    http.expectOne('/api/storage/disks').flush([
+      {
+        id: 'wwn:test-system-disk',
+        stable: true,
+        identityConflict: false,
+        topologyComplete: true,
+        name: 'sda',
+        path: '/dev/sda',
+        model: 'System SSD',
+        serialNumber: 'TEST-SERIAL',
+        wwn: 'test-system-disk',
+        sizeBytes: 1024 ** 4,
+        logicalSectorBytes: 512,
+        physicalSectorBytes: 4096,
+        rotational: false,
+        removable: false,
+        readOnly: false,
+        partitions: [],
+        mountPoints: ['/'],
+        systemDevice: true,
+        swap: false,
+        raidMember: false,
+        inUse: true,
+        dependentDevices: []
+      }
+    ]);
+    http.expectOne('/api/raid/arrays').flush([
+      {
+        id: 'md-uuid:test-array',
+        name: 'md0',
+        path: '/dev/md0',
+        uuid: 'test-array',
+        level: 'raid1',
+        state: 'clean',
+        metadataVersion: '1.2',
+        sizeBytes: 512 * 1024 ** 3,
+        configuredDeviceCount: 2,
+        degradedDeviceCount: 0,
+        syncAction: 'idle',
+        syncCompletedSectors: null,
+        syncTotalSectors: null,
+        members: [
+          { name: 'sdb1', path: '/dev/sdb1', state: 'in_sync', slot: 0 },
+          { name: 'sdc1', path: '/dev/sdc1', state: 'in_sync', slot: 1 }
+        ]
+      }
+    ]);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('md0');
+    expect(compiled.textContent).toContain('RAID1');
+    expect(compiled.textContent).toContain('System SSD');
+    expect(compiled.textContent).toContain('系统盘');
+
+    const createButton = [...compiled.querySelectorAll('button')]
+      .find((button) => button.textContent?.includes('创建阵列'));
+    const modifyButton = [...compiled.querySelectorAll('button')]
+      .find((button) => button.textContent?.includes('修改阵列'));
+    expect(createButton?.disabled).toBe(false);
+    expect(modifyButton?.disabled).toBe(false);
+    modifyButton?.click();
+    fixture.detectChanges();
+    expect(compiled.textContent).toContain('高风险操作');
+    expect(compiled.textContent).toContain('扩容阵列');
+    expect(compiled.textContent).toContain('再次核对稳定磁盘身份');
+    http.verify();
+  });
 });
