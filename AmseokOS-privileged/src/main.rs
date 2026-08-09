@@ -8,6 +8,8 @@ mod pending_changes;
 mod protocol;
 mod raid_registry;
 mod raid_write;
+mod storage_registry;
+mod storage_write;
 
 use std::env;
 use std::fs;
@@ -26,6 +28,7 @@ use tracing_subscriber::EnvFilter;
 use network_write::NetworkWriteEnvironment;
 use pending_changes::{PendingChangeRegistry, SharedPendingChangeRegistry};
 use raid_write::RaidWriteContext;
+use storage_write::StorageWriteContext;
 
 const DEFAULT_SOCKET_PATH: &str = "/run/amseoknas/privileged.sock";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(5);
@@ -52,6 +55,13 @@ fn main() -> io::Result<()> {
         Ok(context) => Some(context),
         Err(error) => {
             warn!(code = error.code, message = %error.message, "RAID writes are unavailable; read-only queries keep serving");
+            None
+        }
+    };
+    let storage_context = match StorageWriteContext::from_environment() {
+        Ok(context) => Some(context),
+        Err(error) => {
+            warn!(code = error.code, message = %error.message, "storage writes are unavailable; inventory remains available");
             None
         }
     };
@@ -86,6 +96,7 @@ fn main() -> io::Result<()> {
                     &registry,
                     &environment,
                     raid_context.as_ref(),
+                    storage_context.as_ref(),
                 ) {
                     warn!(%error, "privileged query request failed");
                 }
@@ -102,6 +113,7 @@ fn handle_client(
     registry: &SharedPendingChangeRegistry,
     environment: &NetworkWriteEnvironment,
     raid_context: Option<&RaidWriteContext>,
+    storage_context: Option<&StorageWriteContext>,
 ) -> io::Result<()> {
     stream.set_read_timeout(Some(CONNECTION_TIMEOUT))?;
     stream.set_write_timeout(Some(CONNECTION_TIMEOUT))?;
@@ -113,7 +125,7 @@ fn handle_client(
             "unix peer uid is not allowed",
         ));
     }
-    protocol::handle_connection(stream, registry, environment, raid_context)
+    protocol::handle_connection(stream, registry, environment, raid_context, storage_context)
 }
 
 #[cfg(target_os = "linux")]
