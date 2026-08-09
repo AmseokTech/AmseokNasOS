@@ -61,7 +61,7 @@ trap 'rm -rf -- "$work_directory"' EXIT
 
 (
     cd "$server_root"
-    dotnet test --configuration Release
+    dotnet test tests/Nas.Api.Tests/Nas.Api.Tests.csproj --configuration Release
     dotnet publish src/Nas.Api/Nas.Api.csproj \
         --configuration Release \
         --runtime linux-x64 \

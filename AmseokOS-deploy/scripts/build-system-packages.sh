@@ -12,7 +12,7 @@ script_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 source_root=${3:-$(realpath "$script_directory/../..")}
 deploy_root=$(realpath "$script_directory/..")
 architecture=$(dpkg --print-architecture)
-rust_target=x86_64-unknown-linux-musl
+rust_target=${AMSEOKNAS_RUST_TARGET:-x86_64-unknown-linux-musl}
 
 if ! dpkg --validate-version "$version"; then
     echo "Invalid Debian version: $version" >&2
@@ -93,17 +93,22 @@ install -m 0755 \
 install -m 0644 "$deploy_root/systemd/amseoknas-privileged.service" \
     "$privileged_package/usr/lib/systemd/system/amseoknas-privileged.service"
 write_control "$privileged_package" amseokos-privileged "$architecture" \
-    "adduser, mdadm, systemd, util-linux" \
-    "AmseokNAS constrained inventory, network, and RAID daemon"
+    "adduser, e2fsprogs, mdadm, nfs-kernel-server, samba, systemd, util-linux" \
+    "AmseokNAS constrained inventory, RAID, data-volume, and share daemon"
 cat >"$privileged_package/DEBIAN/postinst" <<'EOF'
 #!/bin/sh
 set -e
 if ! getent group amseoknas >/dev/null; then
     addgroup --system amseoknas
 fi
+if ! getent group amseoknas-data >/dev/null; then
+    addgroup --system amseoknas-data
+fi
 if getent passwd amseoknas-api >/dev/null; then
     usermod -aG amseoknas amseoknas-api
 fi
+install -d -o root -g amseoknas-data -m 0750 /srv/amseoknas/volumes
+install -d -o root -g root -m 0755 /etc/samba/smb.conf.d /etc/exports.d
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload
     systemctl enable amseoknas-privileged.service >/dev/null 2>&1 || true
