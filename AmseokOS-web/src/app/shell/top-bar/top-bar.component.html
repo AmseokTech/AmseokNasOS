@@ -45,6 +45,8 @@
     <aside
       id="desktop-notification-center"
       class="notification-center"
+      animate.enter="notification-center--enter"
+      animate.leave="notification-center--leave"
       aria-label="通知中心"
       aria-live="polite"
     >
@@ -63,6 +65,8 @@
         @for (notification of notifications(); track notification.id) {
           <article
             class="notification-item"
+            animate.enter="notification-item--enter"
+            [style.--notification-delay]="55 + $index * 38 + 'ms'"
             [class.notification-item--read]="notification.read"
           >
             <span class="notification-indicator" aria-hidden="true"></span>
@@ -87,7 +91,7 @@
             </div>
           </article>
         } @empty {
-          <div class="notification-empty">
+          <div class="notification-empty" animate.enter="notification-empty--enter">
             <strong>暂时没有通知</strong>
             <span>新的系统消息会显示在这里。</span>
           </div>
