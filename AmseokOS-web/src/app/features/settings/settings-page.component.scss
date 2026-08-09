@@ -78,6 +78,10 @@
   background: linear-gradient(145deg, #8e9aab, #414c5a);
 }
 
+.settings-sidebar__icon--language {
+  background: linear-gradient(145deg, #51a5f5, #1769c2);
+}
+
 .settings-sidebar__icon--network {
   display: flex;
   align-items: end;
@@ -121,6 +125,8 @@
 }
 
 .settings-content {
+  container-name: settings-content;
+  container-type: inline-size;
   min-width: 0;
   min-height: 0;
   overflow: auto;

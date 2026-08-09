@@ -5,6 +5,11 @@ import {
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
+import {
+  LANGUAGE_SELECTION_STORAGE_KEY,
+  LANGUAGE_STORAGE_KEY,
+  LanguageService
+} from '../../core/i18n';
 import { SettingsPageComponent } from './settings-page.component';
 import type {
   NetworkInterfaceInformation,
@@ -52,6 +57,8 @@ const network: NetworkInterfaceInformation = {
 
 describe('SettingsPageComponent', () => {
   beforeEach(async () => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
     await TestBed.configureTestingModule({
       imports: [SettingsPageComponent],
       providers: [
@@ -59,6 +66,44 @@ describe('SettingsPageComponent', () => {
         provideHttpClientTesting()
       ]
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
+  });
+
+  it('switches the settings interface to English immediately and persists the choice', () => {
+    const fixture = TestBed.createComponent(SettingsPageComponent);
+    const http = TestBed.inject(HttpTestingController);
+
+    fixture.detectChanges();
+    http.expectOne('/api/system/about').flush(about);
+    fixture.detectChanges();
+
+    const languageButton = [...fixture.nativeElement.querySelectorAll('nav button')]
+      .find((button: HTMLButtonElement) => button.textContent?.includes('语言与地区'));
+    languageButton?.click();
+    fixture.detectChanges();
+
+    const englishOption = fixture.nativeElement.querySelector(
+      'input[name="interface-language"][value="en-US"]'
+    ) as HTMLInputElement;
+    englishOption.click();
+    TestBed.flushEffects();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('nav h1')?.textContent).toContain('System Settings');
+    expect(compiled.textContent).toContain('Changes apply to this browser immediately.');
+    expect(compiled.textContent).toContain('Interface Preview');
+    expect(compiled.querySelector('.language-option--selected')?.textContent).toContain('English');
+    expect(compiled.querySelector('.language-option--selected .language-option__check')).not.toBeNull();
+    expect(TestBed.inject(LanguageService).language()).toBe('en-US');
+    expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('en-US');
+    expect(window.localStorage.getItem(LANGUAGE_SELECTION_STORAGE_KEY)).toBe('true');
+    expect(document.documentElement.lang).toBe('en-US');
+    http.verify();
   });
 
   it('loads About first and switches to the read-only Network view', () => {

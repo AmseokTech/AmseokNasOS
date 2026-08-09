@@ -4,12 +4,14 @@
 //-------------------------//
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
+import { TranslatePipe } from '../../core/i18n';
 import { DesktopApp } from '../desktop/desktop-app.model';
 import { WindowManagerService } from '../window-manager/window-manager.service';
 import type { AppWindowState } from '../window-manager/window-state.model';
 
 @Component({
   selector: 'app-dock',
+  imports: [TranslatePipe],
   templateUrl: './dock.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './dock.component.scss'

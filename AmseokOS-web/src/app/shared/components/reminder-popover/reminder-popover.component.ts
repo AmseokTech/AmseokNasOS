@@ -4,10 +4,13 @@
 //-------------------------//
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
+import { TranslatePipe } from '../../../core/i18n';
+
 export type ReminderTone = 'info' | 'warning';
 
 @Component({
   selector: 'app-reminder-popover',
+  imports: [TranslatePipe],
   templateUrl: './reminder-popover.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './reminder-popover.component.scss'

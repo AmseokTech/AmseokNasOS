@@ -8,13 +8,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
+import { TranslatePipe } from '../../i18n';
 import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
 import { UserAvatarComponent } from '../../../shared/components/user-avatar/user-avatar.component';
 import { AuthenticationService } from '../authentication.service';
 
 @Component({
   selector: 'app-change-password-page',
-  imports: [MatButtonModule, PasswordFieldComponent, ReactiveFormsModule, UserAvatarComponent],
+  imports: [
+    MatButtonModule,
+    PasswordFieldComponent,
+    ReactiveFormsModule,
+    TranslatePipe,
+    UserAvatarComponent
+  ],
   templateUrl: './change-password-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './change-password-page.component.scss'

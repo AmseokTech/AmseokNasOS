@@ -1,6 +1,6 @@
 <div class="settings-layout">
-  <nav class="settings-sidebar" aria-label="系统设置分类">
-    <h1>系统设置</h1>
+  <nav class="settings-sidebar" [attr.aria-label]="'settings.categories' | translate">
+    <h1>{{ 'settings.title' | translate }}</h1>
     <button
       type="button"
       [class.settings-sidebar__item--active]="activeSection() === 'about'"
@@ -8,7 +8,7 @@
       (click)="selectSection('about')"
     >
       <span class="settings-sidebar__icon settings-sidebar__icon--about" aria-hidden="true">A</span>
-      关于本机
+      {{ 'settings.about' | translate }}
     </button>
     <button
       type="button"
@@ -19,7 +19,7 @@
       <span class="settings-sidebar__icon settings-sidebar__icon--network" aria-hidden="true">
         <i></i><i></i><i></i>
       </span>
-      网络
+      {{ 'settings.network' | translate }}
     </button>
     <button
       type="button"
@@ -30,7 +30,16 @@
       <span class="settings-sidebar__icon settings-sidebar__icon--storage" aria-hidden="true">
         <i></i><i></i><i></i>
       </span>
-      磁盘管理
+      {{ 'settings.storage' | translate }}
+    </button>
+    <button
+      type="button"
+      [class.settings-sidebar__item--active]="activeSection() === 'language'"
+      [attr.aria-current]="activeSection() === 'language' ? 'page' : null"
+      (click)="selectSection('language')"
+    >
+      <span class="settings-sidebar__icon settings-sidebar__icon--language" aria-hidden="true">文</span>
+      {{ 'settings.language' | translate }}
     </button>
   </nav>
 
@@ -41,6 +50,9 @@
       }
       @case ('storage') {
         <app-disk-management />
+      }
+      @case ('language') {
+        <app-language-settings />
       }
       @default {
         <app-about-settings />

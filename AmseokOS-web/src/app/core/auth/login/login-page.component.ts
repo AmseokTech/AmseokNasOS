@@ -8,13 +8,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
+import { TranslatePipe } from '../../i18n';
 import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
 import { UserAvatarComponent } from '../../../shared/components/user-avatar/user-avatar.component';
 import { AuthenticationService } from '../authentication.service';
 
 @Component({
   selector: 'app-login-page',
-  imports: [MatButtonModule, PasswordFieldComponent, ReactiveFormsModule, UserAvatarComponent],
+  imports: [
+    MatButtonModule,
+    PasswordFieldComponent,
+    ReactiveFormsModule,
+    TranslatePipe,
+    UserAvatarComponent
+  ],
   templateUrl: './login-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './login-page.component.scss'

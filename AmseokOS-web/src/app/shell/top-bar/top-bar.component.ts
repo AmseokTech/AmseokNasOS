@@ -10,6 +10,7 @@ import {
   HostListener,
   OnDestroy,
   computed,
+  effect,
   inject,
   input,
   signal,
@@ -23,6 +24,8 @@ import {
   provideNativeDateAdapter
 } from '@angular/material/core';
 import { MatCalendar } from '@angular/material/datepicker';
+
+import { LanguageService, TranslatePipe } from '../../core/i18n';
 
 class NumericDateAdapter extends NativeDateAdapter {
   override getDateNames(): string[] {
@@ -64,7 +67,7 @@ const INITIAL_NOTIFICATIONS: readonly DesktopNotification[] = [
 
 @Component({
   selector: 'app-top-bar',
-  imports: [DatePipe, MatButtonModule, MatCalendar],
+  imports: [DatePipe, MatButtonModule, MatCalendar, TranslatePipe],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'zh-CN' },
     provideNativeDateAdapter(),
@@ -77,12 +80,24 @@ const INITIAL_NOTIFICATIONS: readonly DesktopNotification[] = [
 export class TopBarComponent implements OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly calendar = viewChild(MatCalendar<Date>);
+  private readonly dateAdapter = inject(DateAdapter<Date>);
 
   readonly activeApp = input.required<string>();
   readonly currentTime = signal(new Date());
+  readonly languageService = inject(LanguageService);
   readonly selectedDate = signal(new Date());
+  readonly currentDateTimeLabel = computed(() => {
+    const language = this.languageService.language();
+    return new Intl.DateTimeFormat(language, {
+      month: language === 'zh-CN' ? 'numeric' : 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(this.currentTime());
+  });
   readonly selectedDateLabel = computed(() =>
-    new Intl.DateTimeFormat('zh-CN', {
+    new Intl.DateTimeFormat(this.languageService.language(), {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -97,6 +112,13 @@ export class TopBarComponent implements OnDestroy {
   );
 
   private readonly clockInterval = window.setInterval(() => this.currentTime.set(new Date()), 30_000);
+
+  constructor() {
+    effect(() => {
+      this.dateAdapter.setLocale(this.languageService.language());
+      this.calendar()?.updateTodaysDate();
+    });
+  }
 
   ngOnDestroy(): void {
     window.clearInterval(this.clockInterval);

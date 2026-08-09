@@ -1,0 +1,60 @@
+<section class="language-panel" aria-labelledby="language-title">
+  <header class="language-panel__header">
+    <div class="language-panel__heading">
+      <span class="language-panel__eyebrow">{{ 'language.settingsEyebrow' | translate }}</span>
+      <h1 id="language-title">{{ 'language.title' | translate }}</h1>
+      <p>{{ 'language.description' | translate }}</p>
+    </div>
+    <span class="language-panel__current" aria-live="polite">{{ selectedLanguageLabel() }}</span>
+  </header>
+
+  <fieldset class="language-setting">
+    <legend>{{ 'language.systemLanguage' | translate }}</legend>
+    <div class="language-options" role="radiogroup">
+      @for (option of languageService.options; track option.code) {
+        <label
+          class="language-option"
+          [class.language-option--selected]="languageService.language() === option.code"
+        >
+          <input
+            type="radio"
+            name="interface-language"
+            [value]="option.code"
+            [checked]="languageService.language() === option.code"
+            (change)="selectLanguage(option.code)"
+          />
+          <span class="language-option__copy">
+            <strong>{{ option.nativeLabel }}</strong>
+            <span>{{ option.secondaryLabel }}</span>
+          </span>
+          @if (languageService.language() === option.code) {
+            <span class="language-option__check" aria-hidden="true">✓</span>
+          }
+        </label>
+      }
+    </div>
+  </fieldset>
+
+  <section class="interface-preview" aria-labelledby="interface-preview-title">
+    <header>
+      <h2 id="interface-preview-title">{{ 'language.previewTitle' | translate }}</h2>
+      <span>{{ 'language.previewImmediate' | translate }}</span>
+    </header>
+    <div class="interface-preview__grid">
+      <article>
+        <strong>{{ 'language.preview.notificationCenter' | translate }}</strong>
+        <span>{{ 'language.preview.noNotifications' | translate }}</span>
+      </article>
+      <article>
+        <strong>{{ 'language.preview.systemSettings' | translate }}</strong>
+        <span>{{ 'language.preview.appearance' | translate }}</span>
+      </article>
+      <article>
+        <strong>{{ 'language.preview.fileManager' | translate }}</strong>
+        <span>{{ 'language.preview.recentFiles' | translate }}</span>
+      </article>
+    </div>
+  </section>
+
+  <p class="language-note">{{ 'language.frontendOnly' | translate }}</p>
+</section>

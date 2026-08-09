@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthenticationService } from '../../core/auth/authentication.service';
+import { TranslatePipe } from '../../core/i18n';
 import { TerminalLauncherService } from '../../features/terminal/terminal-launcher.service';
 import { ReminderPopoverComponent } from '../../shared/components/reminder-popover/reminder-popover.component';
 import { DockComponent } from '../dock/dock.component';
@@ -23,6 +24,7 @@ import { DESKTOP_APPS, DesktopApp } from './desktop-app.model';
     ReminderPopoverComponent,
     RouterLink,
     TopBarComponent,
+    TranslatePipe,
     WindowHostComponent
   ],
   templateUrl: './desktop.component.html',

@@ -16,7 +16,7 @@
           ></span>
         }
         <div>
-          <strong>{{ title() }}</strong>
+          <strong>{{ title() | translate }}</strong>
           @if (subtitle()) {
             <small aria-live="polite">{{ subtitle() }}</small>
           }
@@ -24,12 +24,12 @@
       </div>
     </div>
 
-    <div class="window-frame__controls" role="group" aria-label="窗口控制">
+    <div class="window-frame__controls" role="group" [attr.aria-label]="'window.controls' | translate">
       <button
         class="window-frame__control window-frame__control--minimize"
         type="button"
-        title="最小化"
-        aria-label="最小化窗口"
+        [title]="'window.minimize' | translate"
+        [attr.aria-label]="'window.minimizeWindow' | translate"
         (click)="minimized.emit()"
       >
         <span aria-hidden="true"></span>
@@ -37,8 +37,8 @@
       <button
         class="window-frame__control window-frame__control--maximize"
         type="button"
-        [title]="maximized() ? '还原' : '最大化'"
-        [attr.aria-label]="maximized() ? '还原窗口' : '最大化窗口'"
+        [title]="maximized() ? ('window.restore' | translate) : ('window.maximize' | translate)"
+        [attr.aria-label]="maximized() ? ('window.restoreWindow' | translate) : ('window.maximizeWindow' | translate)"
         (click)="maximizeToggled.emit()"
       >
         <span [class.window-frame__restore-icon]="maximized()" aria-hidden="true"></span>
@@ -46,8 +46,8 @@
       <button
         class="window-frame__control window-frame__control--close"
         type="button"
-        title="关闭"
-        aria-label="关闭窗口"
+        [title]="'window.close' | translate"
+        [attr.aria-label]="'window.closeWindow' | translate"
         (click)="closed.emit()"
       >
         <span aria-hidden="true"></span>

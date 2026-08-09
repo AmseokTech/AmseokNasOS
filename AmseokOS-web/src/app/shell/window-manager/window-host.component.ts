@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 
+import { TranslatePipe } from '../../core/i18n';
 import { WindowFrameComponent } from '../../shared/components/window-frame/window-frame.component';
 import {
   AppWindowState,
@@ -37,7 +38,7 @@ interface ActiveResize {
 
 @Component({
   selector: 'app-window-host',
-  imports: [CdkDrag, NgComponentOutlet, WindowFrameComponent],
+  imports: [CdkDrag, NgComponentOutlet, TranslatePipe, WindowFrameComponent],
   templateUrl: './window-host.component.html',
   styleUrl: './window-host.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

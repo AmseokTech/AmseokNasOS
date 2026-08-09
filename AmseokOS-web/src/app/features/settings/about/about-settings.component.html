@@ -2,18 +2,18 @@
   <header class="settings-panel__header">
     <span class="settings-panel__icon" aria-hidden="true">A</span>
     <div>
-      <h1 id="about-title">关于本机</h1>
-      <p>查看当前设备的系统、处理器、内存和系统盘信息。</p>
+      <h1 id="about-title">{{ 'settings.about' | translate }}</h1>
+      <p>{{ 'about.description' | translate }}</p>
     </div>
   </header>
 
   @if (loading()) {
-    <div class="settings-state" role="status">正在读取本机信息…</div>
+    <div class="settings-state" role="status">{{ 'about.loading' | translate }}</div>
   } @else if (error()) {
     <div class="settings-state settings-state--error" role="alert">
-      <strong>无法读取本机信息</strong>
-      <span>{{ error() }}</span>
-      <button type="button" (click)="load()">重新加载</button>
+      <strong>{{ 'about.loadFailed' | translate }}</strong>
+      <span>{{ error() | translate }}</span>
+      <button type="button" (click)="load()">{{ 'common.reload' | translate }}</button>
     </div>
   } @else if (about(); as information) {
     <div class="settings-card settings-card--identity">
@@ -28,66 +28,80 @@
 
     <dl class="settings-card information-list">
       <div>
-        <dt>系统版本</dt>
+        <dt>{{ 'about.systemVersion' | translate }}</dt>
         <dd>{{ information.operatingSystem }}</dd>
       </div>
       <div>
-        <dt>内核版本</dt>
+        <dt>{{ 'about.kernelVersion' | translate }}</dt>
         <dd>{{ information.kernelVersion }}</dd>
       </div>
       <div>
-        <dt>运行时间</dt>
-        <dd>{{ formatUptime(information.uptimeSeconds) }}</dd>
+        <dt>{{ 'about.uptime' | translate }}</dt>
+        <dd>{{ information.uptimeSeconds | localizedUptime }}</dd>
       </div>
     </dl>
 
     <div class="settings-card settings-card--section">
-      <h2>处理器与内存</h2>
+      <h2>{{ 'about.processorAndMemory' | translate }}</h2>
       <dl class="information-list">
         <div>
-          <dt>处理器</dt>
+          <dt>{{ 'about.processor' | translate }}</dt>
           <dd>{{ information.cpu.model }}</dd>
         </div>
         <div>
-          <dt>核心</dt>
+          <dt>{{ 'about.cores' | translate }}</dt>
           <dd>
-            {{ information.cpu.physicalCoreCount }} 个物理核心 ·
-            {{ information.cpu.logicalProcessorCount }} 个逻辑处理器
+            {{
+              'about.coreSummary'
+                | translate: {
+                    physical: information.cpu.physicalCoreCount,
+                    logical: information.cpu.logicalProcessorCount
+                  }
+            }}
           </dd>
         </div>
         <div>
-          <dt>频率</dt>
+          <dt>{{ 'about.frequency' | translate }}</dt>
           <dd>
             @if (information.cpu.currentFrequencyMhz !== null) {
-              当前 {{ information.cpu.currentFrequencyMhz }} MHz
+              {{
+                'about.currentFrequency'
+                  | translate: { frequency: information.cpu.currentFrequencyMhz }
+              }}
             } @else {
-              当前频率未知
+              {{ 'about.unknownFrequency' | translate }}
             }
             @if (information.cpu.maximumFrequencyMhz !== null) {
-              · 最高 {{ information.cpu.maximumFrequencyMhz }} MHz
+              {{
+                'about.maximumFrequency'
+                  | translate: { frequency: information.cpu.maximumFrequencyMhz }
+              }}
             }
           </dd>
         </div>
         <div>
-          <dt>内存</dt>
+          <dt>{{ 'about.memory' | translate }}</dt>
           <dd>{{ formatBytes(information.memory.totalBytes) }}</dd>
         </div>
       </dl>
     </div>
 
     <div class="settings-card settings-card--section">
-      <h2>系统盘</h2>
+      <h2>{{ 'about.systemDisk' | translate }}</h2>
       <div class="storage-summary">
         <strong>{{ information.systemStorage.model || information.systemStorage.source }}</strong>
-        <span>
-          已使用 {{ formatBytes(information.systemStorage.usedBytes) }}，
-          可用 {{ formatBytes(information.systemStorage.availableBytes) }}
-        </span>
+        <span>{{
+          'about.storageSummary'
+            | translate: {
+                used: formatBytes(information.systemStorage.usedBytes),
+                available: formatBytes(information.systemStorage.availableBytes)
+              }
+        }}</span>
       </div>
       <div
         class="storage-meter"
         role="meter"
-        aria-label="系统盘使用率"
+        [attr.aria-label]="'about.storageUsage' | translate"
         aria-valuemin="0"
         aria-valuemax="100"
         [attr.aria-valuenow]="storageUsagePercentage(
@@ -104,16 +118,16 @@
       </div>
       <dl class="information-list">
         <div>
-          <dt>总容量</dt>
+          <dt>{{ 'about.totalCapacity' | translate }}</dt>
           <dd>{{ formatBytes(information.systemStorage.totalBytes) }}</dd>
         </div>
         <div>
-          <dt>设备</dt>
+          <dt>{{ 'about.device' | translate }}</dt>
           <dd>{{ information.systemStorage.source }}</dd>
         </div>
         @if (information.systemStorage.stableId) {
           <div>
-            <dt>稳定标识</dt>
+            <dt>{{ 'about.stableId' | translate }}</dt>
             <dd class="information-list__technical">
               {{ information.systemStorage.stableId }}
             </dd>

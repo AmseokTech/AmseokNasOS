@@ -4,8 +4,11 @@
 //-------------------------//
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
+import { TranslatePipe } from '../../core/i18n';
+
 @Component({
   selector: 'app-app-store-preview-center',
+  imports: [TranslatePipe],
   templateUrl: './app-store-preview-center.component.html',
   styleUrl: './app-store-preview-center.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

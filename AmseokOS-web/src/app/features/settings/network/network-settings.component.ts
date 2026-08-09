@@ -13,6 +13,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 
+import { TranslatePipe } from '../../../core/i18n';
 import {
   NetworkConfigurationMode,
   NetworkInterfaceInformation
@@ -21,6 +22,7 @@ import { SystemSettingsService } from '../system-settings.service';
 
 @Component({
   selector: 'app-network-settings',
+  imports: [TranslatePipe],
   templateUrl: './network-settings.component.html',
   styleUrl: './network-settings.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

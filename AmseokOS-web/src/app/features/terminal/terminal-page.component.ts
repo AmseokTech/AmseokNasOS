@@ -18,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 
+import { LanguageService, TranslatePipe } from '../../core/i18n';
 import {
   WINDOW_DATA,
   WINDOW_DISPLAY_STATE,
@@ -38,7 +39,7 @@ interface TerminalControlMessage {
 
 @Component({
   selector: 'app-terminal-page',
-  imports: [MatButtonModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatProgressSpinnerModule, TranslatePipe],
   templateUrl: './terminal-page.component.html',
   styleUrl: './terminal-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -48,6 +49,7 @@ export class TerminalPageComponent implements AfterViewInit, OnDestroy {
   private terminalHost!: ElementRef<HTMLDivElement>;
 
   private readonly launcher = inject(TerminalLauncherService);
+  private readonly languageService = inject(LanguageService);
   private readonly session = inject(WINDOW_DATA) as TerminalSession;
   private readonly windowDisplayState = inject(WINDOW_DISPLAY_STATE);
   private readonly windowId = inject(WINDOW_ID);
@@ -147,7 +149,7 @@ export class TerminalPageComponent implements AfterViewInit, OnDestroy {
       this.handleControlMessage(event.data);
     });
     socket.addEventListener('error', () => {
-      this.errorMessage.set('终端连接异常，请确认 broker 和 WebSocket 代理配置');
+      this.errorMessage.set('terminal.connectionError');
       this.state.set('error');
     });
     socket.addEventListener('close', (event) => {
@@ -157,7 +159,7 @@ export class TerminalPageComponent implements AfterViewInit, OnDestroy {
       if (this.state() === 'connected' || this.state() === 'connecting') {
         this.state.set(event.code === 1000 ? 'closed' : 'error');
         if (event.code !== 1000) {
-          this.errorMessage.set('终端连接已意外断开');
+          this.errorMessage.set('terminal.disconnected');
         }
       }
     });
@@ -168,21 +170,24 @@ export class TerminalPageComponent implements AfterViewInit, OnDestroy {
     try {
       message = JSON.parse(payload) as TerminalControlMessage;
     } catch {
-      this.errorMessage.set('终端网关返回了无法识别的消息');
+      this.errorMessage.set('terminal.invalidGatewayMessage');
       this.state.set('error');
       this.closeSocket();
       return;
     }
 
     if (message.type === 'exited') {
-      const suffix = message.exitCode == null ? '' : `，退出码 ${message.exitCode}`;
-      this.terminal.writeln(`\r\n\x1b[38;5;214mShell 已退出${suffix}。\x1b[0m`);
+      const suffix = message.exitCode == null
+        ? ''
+        : this.languageService.translate('terminal.exitCode', { code: message.exitCode });
+      const exitMessage = this.languageService.translate('terminal.shellExited', { code: suffix });
+      this.terminal.writeln(`\r\n\x1b[38;5;214m${exitMessage}\x1b[0m`);
       this.state.set('closed');
       this.closeSocket();
       return;
     }
     if (message.type === 'error') {
-      this.errorMessage.set(message.message ?? '终端 broker 拒绝了当前会话');
+      this.errorMessage.set(message.message ?? 'terminal.brokerRejected');
       this.state.set('error');
       this.closeSocket();
     }

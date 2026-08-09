@@ -1,38 +1,40 @@
 <section class="service-center" aria-labelledby="subscription-title">
   <header class="service-center__heading">
-    <p>产品服务</p>
-    <h1 id="subscription-title">产品续费订阅中心</h1>
-    <span>演示订阅</span>
+    <p>{{ 'appStore.services' | translate }}</p>
+    <h1 id="subscription-title">{{ 'appStore.subscription.title' | translate }}</h1>
+    <span>{{ 'appStore.subscription.demo' | translate }}</span>
   </header>
 
-  <section class="service-center__summary" aria-label="当前订阅">
+  <section class="service-center__summary" [attr.aria-label]="'appStore.subscription.current' | translate">
     <div>
-      <p>当前计划</p>
-      <h2>AmseokOS 专业版</h2>
-      <span>包含应用目录、设备支持与产品更新通知。</span>
+      <p>{{ 'appStore.subscription.plan' | translate }}</p>
+      <h2>{{ 'appStore.subscription.pro' | translate }}</h2>
+      <span>{{ 'appStore.subscription.description' | translate }}</span>
     </div>
-    <button type="button" (click)="showRenewalOptions()">查看续费方案</button>
+    <button type="button" (click)="showRenewalOptions()">
+      {{ 'appStore.subscription.renewalOptions' | translate }}
+    </button>
   </section>
 
   @if (renewalNotice()) {
-    <div class="service-center__notice" role="status">{{ renewalNotice() }}</div>
+    <div class="service-center__notice" role="status">{{ renewalNotice() | translate }}</div>
   }
 
-  <section class="service-center__details" aria-label="订阅信息">
+  <section class="service-center__details" [attr.aria-label]="'appStore.subscription.info' | translate">
     <article>
-      <p>订阅状态</p>
-      <strong>试用中</strong>
-      <span>这是前端演示数据</span>
+      <p>{{ 'appStore.subscription.status' | translate }}</p>
+      <strong>{{ 'appStore.subscription.trial' | translate }}</strong>
+      <span>{{ 'appStore.subscription.demoData' | translate }}</span>
     </article>
     <article>
-      <p>续费日期</p>
-      <strong>2026 年 9 月 1 日</strong>
-      <span>到期前将提供提醒</span>
+      <p>{{ 'appStore.subscription.renewalDate' | translate }}</p>
+      <strong>{{ 'appStore.subscription.date' | translate }}</strong>
+      <span>{{ 'appStore.subscription.reminder' | translate }}</span>
     </article>
     <article>
-      <p>服务范围</p>
-      <strong>1 台 NAS</strong>
-      <span>产品服务尚未接入账户系统</span>
+      <p>{{ 'appStore.subscription.scope' | translate }}</p>
+      <strong>{{ 'appStore.subscription.oneNas' | translate }}</strong>
+      <span>{{ 'appStore.subscription.noAccount' | translate }}</span>
     </article>
   </section>
 </section>

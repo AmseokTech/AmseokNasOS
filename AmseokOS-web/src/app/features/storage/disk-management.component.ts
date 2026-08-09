@@ -14,6 +14,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, switchMap, takeWhile, timer } from 'rxjs';
 
+import { LanguageService, TranslatePipe } from '../../core/i18n';
 import { RaidAction, RaidOperation, RaidOperationPreview } from './raid-management.models';
 import { RaidManagementService } from './raid-management.service';
 import { BlockDevice, RaidArray, StorageInventory } from './storage-inventory.models';
@@ -21,6 +22,7 @@ import { StorageInventoryService } from './storage-inventory.service';
 
 @Component({
   selector: 'app-disk-management',
+  imports: [TranslatePipe],
   templateUrl: './disk-management.component.html',
   styleUrl: './disk-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -29,6 +31,7 @@ export class DiskManagementComponent implements OnInit {
   private readonly inventoryService = inject(StorageInventoryService);
   private readonly raidService = inject(RaidManagementService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly languageService = inject(LanguageService);
 
   readonly inventory = signal<StorageInventory | null>(null);
   readonly loading = signal(false);
@@ -83,19 +86,23 @@ export class DiskManagementComponent implements OnInit {
     const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
     const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
     const value = bytes / 1024 ** unitIndex;
-    return `${value.toLocaleString('zh-CN', { maximumFractionDigits: unitIndex === 0 ? 0 : 1 })} ${units[unitIndex]}`;
+    return `${value.toLocaleString(this.languageService.language(), {
+      maximumFractionDigits: unitIndex === 0 ? 0 : 1
+    })} ${units[unitIndex]}`;
   }
 
   arrayStateLabel(array: RaidArray): string {
     if (array.degradedDeviceCount > 0) {
-      return `已降级（缺少 ${array.degradedDeviceCount} 块）`;
+      return this.languageService.translate('storage.arrayDegraded', {
+        count: array.degradedDeviceCount
+      });
     }
 
     const state = array.state.toLowerCase();
     if (state.includes('clean') || state.includes('active')) {
-      return '正常';
+      return this.languageService.translate('storage.arrayHealthy');
     }
-    return array.state || '未知';
+    return array.state || this.languageService.translate('common.unknown');
   }
 
   degradedArrayCount(arrays: readonly RaidArray[]): number {
@@ -174,7 +181,7 @@ export class DiskManagementComponent implements OnInit {
 
   createPreview(): void {
     if (!this.password() || this.actionBusy()) {
-      this.actionError.set('请输入当前管理员密码');
+      this.actionError.set('storage.error.password');
       return;
     }
     const array = this.selectedArray();
@@ -200,7 +207,7 @@ export class DiskManagementComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.password.set('');
-        this.actionError.set(error instanceof Error ? error.message : 'RAID 预检失败');
+        this.actionError.set(error instanceof Error ? error.message : 'storage.error.preview');
       }
     });
   }
@@ -211,7 +218,7 @@ export class DiskManagementComponent implements OnInit {
       return;
     }
     if (!this.confirmationPassword()) {
-      this.actionError.set('请再次输入当前管理员密码');
+      this.actionError.set('storage.error.repeatPassword');
       return;
     }
     this.actionBusy.set(true);
@@ -236,7 +243,7 @@ export class DiskManagementComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.confirmationPassword.set('');
-        this.actionError.set(error instanceof Error ? error.message : 'RAID 操作启动失败');
+        this.actionError.set(error instanceof Error ? error.message : 'storage.error.start');
       }
     });
   }
@@ -254,15 +261,15 @@ export class DiskManagementComponent implements OnInit {
   }
 
   actionLabel(action: RaidAction): string {
-    return {
-      create: '创建阵列',
-      delete: '删除阵列',
-      addDevice: '添加磁盘',
-      removeDevice: '移除成员',
-      replaceDevice: '替换成员',
-      grow: '扩容阵列',
-      shrink: '缩容阵列'
-    }[action];
+    return this.languageService.translate({
+      create: 'storage.action.create',
+      delete: 'storage.action.delete',
+      addDevice: 'storage.action.add',
+      removeDevice: 'storage.action.remove',
+      replaceDevice: 'storage.action.replace',
+      grow: 'storage.action.grow',
+      shrink: 'storage.action.shrink'
+    }[action]);
   }
 
   memberDevices(array: RaidArray | null): readonly { id: string; label: string }[] {
@@ -291,29 +298,34 @@ export class DiskManagementComponent implements OnInit {
   }
 
   warningLabel(code: string): string {
-    return {
-      'raid.selected_disks_will_be_erased': '所选新磁盘上的数据将被永久清除。',
-      'raid.all_array_data_will_be_destroyed': '阵列及其全部数据将被永久删除。',
-      'raid.array_may_become_degraded': '移除活动成员会让阵列进入降级状态。',
-      'raid.reshape_may_take_a_long_time': '重塑可能持续很长时间，期间不要关机或拔盘。',
-      'raid.shrink_requires_raw_unmounted_array': '缩容只允许没有文件系统签名且未挂载的原始阵列。',
-      'raid.reshape_backup_required': 'mdadm 会使用重塑 backup-file；它不是用户数据备份。'
-    }[code] ?? code;
+    const translationKey = {
+      'raid.selected_disks_will_be_erased': 'storage.warning.erase',
+      'raid.all_array_data_will_be_destroyed': 'storage.warning.destroy',
+      'raid.array_may_become_degraded': 'storage.warning.degraded',
+      'raid.reshape_may_take_a_long_time': 'storage.warning.reshape',
+      'raid.shrink_requires_raw_unmounted_array': 'storage.warning.rawOnly',
+      'raid.reshape_backup_required': 'storage.warning.backupFile'
+    }[code];
+    return translationKey ? this.languageService.translate(translationKey) : code;
   }
 
   operationLabel(operation: RaidOperation): string {
     if (operation.status === 'succeeded') {
-      return '操作已完成';
+      return this.languageService.translate('storage.operation.completed');
     }
     if (operation.status === 'running') {
       return operation.progressPercentage === null
-        ? '操作正在后台执行'
-        : `操作正在后台执行（${operation.progressPercentage}%）`;
+        ? this.languageService.translate('storage.operation.running')
+        : this.languageService.translate('storage.operation.progress', {
+            progress: operation.progressPercentage
+          });
     }
     if (operation.status === 'interrupted') {
-      return '连接中断，正在根据真实阵列状态复核结果';
+      return this.languageService.translate('storage.operation.interrupted');
     }
-    return `操作失败${operation.errorCode ? `：${operation.errorCode}` : ''}`;
+    return this.languageService.translate('storage.operation.failed', {
+      code: operation.errorCode ? `: ${operation.errorCode}` : ''
+    });
   }
 
   private pollOperation(operationId: string): void {
@@ -329,7 +341,7 @@ export class DiskManagementComponent implements OnInit {
         }
       },
       error: (error: unknown) => {
-        this.actionError.set(error instanceof Error ? error.message : '无法查询 RAID 操作进度');
+        this.actionError.set(error instanceof Error ? error.message : 'storage.error.poll');
       }
     });
   }

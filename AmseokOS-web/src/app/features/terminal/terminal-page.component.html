@@ -1,16 +1,18 @@
-<div class="terminal-dialog__shell" aria-label="Web Terminal">
+<div class="terminal-dialog__shell" [attr.aria-label]="'terminal.webTerminal' | translate">
   <div #terminalHost class="terminal-dialog__host" tabindex="0"></div>
 
   @if (state() === 'connecting') {
     <div class="terminal-dialog__overlay" role="status">
       <mat-spinner diameter="30" />
-      <span>正在连接 Terminal</span>
+      <span>{{ 'terminal.connecting' | translate }}</span>
     </div>
   } @else if (state() === 'error') {
     <div class="terminal-dialog__overlay terminal-dialog__overlay--error" role="alert">
-      <strong>无法连接终端</strong>
-      <span>{{ errorMessage() }}</span>
-      <button mat-flat-button type="button" (click)="reauthenticate()">重新验证</button>
+      <strong>{{ 'terminal.connectionFailed' | translate }}</strong>
+      <span>{{ errorMessage() ?? '' | translate }}</span>
+      <button mat-flat-button type="button" (click)="reauthenticate()">
+        {{ 'terminal.reauthenticate' | translate }}
+      </button>
     </div>
   }
 </div>

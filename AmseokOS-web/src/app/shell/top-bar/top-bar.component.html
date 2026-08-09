@@ -6,37 +6,37 @@
       <span></span>
     </span>
     <strong class="product-name">AmseokOS</strong>
-    <span class="active-app">{{ activeApp() }}</span>
+    <span class="active-app">{{ activeApp() | translate }}</span>
   </div>
 
-  <div class="top-bar__end" aria-label="系统状态">
-    <span class="status-item" title="网络已连接">
+  <div class="top-bar__end" [attr.aria-label]="'shell.systemStatus' | translate">
+    <span class="status-item" [title]="'shell.networkConnected' | translate">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M2.5 8.6a15 15 0 0 1 19 0l-1.7 1.8a12.5 12.5 0 0 0-15.6 0L2.5 8.6Zm3.4 3.5a10 10 0 0 1 12.2 0l-1.8 1.8a7.4 7.4 0 0 0-8.6 0l-1.8-1.8Zm3.5 3.5a4.7 4.7 0 0 1 5.2 0L12 18.3l-2.6-2.7Z" />
       </svg>
-      <span class="status-text">已连接</span>
+      <span class="status-text">{{ 'shell.connected' | translate }}</span>
     </span>
     <button
       class="date-time-trigger"
       type="button"
-      title="日期与时间"
+      [title]="'shell.dateTime' | translate"
       aria-controls="desktop-date-time-panel"
       [attr.aria-expanded]="dateTimePanelOpen()"
       (click)="toggleDateTimePanel()"
     >
       <time [attr.datetime]="currentTime().toISOString()">
-        {{ currentTime() | date: 'M月d日 HH:mm' }}
+        {{ currentDateTimeLabel() }}
       </time>
     </button>
     <button
       class="notification-trigger"
       type="button"
-      title="通知中心"
+      [title]="'shell.notificationCenter' | translate"
       aria-controls="desktop-notification-center"
       [attr.aria-expanded]="notificationCenterOpen()"
-      [attr.aria-label]="
-        unreadNotificationCount() ? '通知中心，' + unreadNotificationCount() + ' 条未读' : '通知中心'
-      "
+      [attr.aria-label]="unreadNotificationCount()
+        ? ('shell.notificationUnread' | translate: { count: unreadNotificationCount() })
+        : ('shell.notificationCenter' | translate)"
       (click)="toggleNotificationCenter()"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -47,7 +47,10 @@
         <span class="notification-badge" aria-hidden="true">{{ unreadNotificationCount() }}</span>
       }
     </button>
-    <span class="user-avatar" aria-label="当前用户 admin">A</span>
+    <span
+      class="user-avatar"
+      [attr.aria-label]="'shell.currentUser' | translate: { user: 'admin' }"
+    >A</span>
   </div>
 
   @if (dateTimePanelOpen()) {
@@ -57,7 +60,7 @@
       animate.enter="date-time-panel--enter"
       animate.leave="date-time-panel--leave"
       role="dialog"
-      aria-label="日期与时间"
+      [attr.aria-label]="'shell.dateTime' | translate"
     >
       <header
         class="date-time-panel__header date-time-panel__content"
@@ -65,10 +68,12 @@
         style="--date-time-delay: 55ms"
       >
         <div>
-          <span>当前时间</span>
+          <span>{{ 'shell.currentTime' | translate }}</span>
           <strong>{{ currentTime() | date: 'HH:mm' }}</strong>
         </div>
-        <button mat-button type="button" (click)="selectToday()">今天</button>
+        <button mat-button type="button" (click)="selectToday()">
+          {{ 'common.today' | translate }}
+        </button>
       </header>
 
       <mat-calendar
@@ -86,12 +91,12 @@
         style="--date-time-delay: 115ms"
       >
         <div>
-          <span>所选日期</span>
+          <span>{{ 'shell.selectedDate' | translate }}</span>
           <strong>{{ selectedDateLabel() }}</strong>
         </div>
         <span class="date-time-panel__schedule">
           <i aria-hidden="true"></i>
-          暂无日程
+          {{ 'shell.noSchedule' | translate }}
         </span>
       </footer>
     </section>
@@ -103,17 +108,24 @@
       class="notification-center"
       animate.enter="notification-center--enter"
       animate.leave="notification-center--leave"
-      aria-label="通知中心"
+      [attr.aria-label]="'shell.notificationCenter' | translate"
       aria-live="polite"
     >
       <header class="notification-center__header">
         <div>
-          <strong>通知中心</strong>
+          <strong>{{ 'shell.notificationCenter' | translate }}</strong>
           <br />
-          <span>{{ unreadNotificationCount() ? unreadNotificationCount() + ' 条未读' : '全部已读' }} · 本地示例</span>
+          <span>
+            {{ unreadNotificationCount()
+              ? ('shell.unreadCount' | translate: { count: unreadNotificationCount() })
+              : ('shell.allRead' | translate) }}
+            · {{ 'shell.localExample' | translate }}
+          </span>
         </div>
         @if (unreadNotificationCount()) {
-          <button type="button" (click)="markAllNotificationsRead()">全部标为已读</button>
+          <button type="button" (click)="markAllNotificationsRead()">
+            {{ 'shell.markAllRead' | translate }}
+          </button>
         }
       </header>
 
@@ -128,16 +140,16 @@
             <span class="notification-indicator" aria-hidden="true"></span>
             <div class="notification-item__content">
               <div class="notification-item__heading">
-                <strong>{{ notification.title }}</strong>
-                <time>{{ notification.time }}</time>
+                <strong>{{ notification.title | translate }}</strong>
+                <time>{{ notification.time | translate }}</time>
               </div>
-              <p>{{ notification.description }}</p>
+              <p>{{ notification.description | translate }}</p>
             </div>
             <div class="notification-item__actions">
               <button
                 type="button"
-                title="关闭通知"
-                aria-label="关闭通知"
+                [title]="'shell.closeNotification' | translate"
+                [attr.aria-label]="'shell.closeNotification' | translate"
                 (click)="dismissNotification(notification.id)"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -148,8 +160,8 @@
           </article>
         } @empty {
           <div class="notification-empty" animate.enter="notification-empty--enter">
-            <strong>暂时没有通知</strong>
-            <span>新的系统消息会显示在这里。</span>
+            <strong>{{ 'shell.noNotifications' | translate }}</strong>
+            <span>{{ 'shell.notificationsHint' | translate }}</span>
           </div>
         }
       </div>

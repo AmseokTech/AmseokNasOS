@@ -5,10 +5,17 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { routes } from '../../../app.routes';
+import {
+  LANGUAGE_SELECTION_STORAGE_KEY,
+  LANGUAGE_STORAGE_KEY,
+  LanguageService
+} from '../../i18n';
 import { LoginPageComponent } from './login-page.component';
 
 describe('LoginPageComponent', () => {
   beforeEach(async () => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
     await TestBed.configureTestingModule({
       imports: [LoginPageComponent],
       providers: [
@@ -18,6 +25,35 @@ describe('LoginPageComponent', () => {
         provideRouter(routes)
       ]
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
+  });
+
+  it('uses the persisted interface language before authentication', () => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'en-US');
+    window.localStorage.setItem(LANGUAGE_SELECTION_STORAGE_KEY, 'true');
+    const fixture = TestBed.createComponent(LoginPageComponent);
+
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(TestBed.inject(LanguageService).language()).toBe('en-US');
+    expect(compiled.querySelector('button[type="submit"]')?.textContent).toContain('Sign in');
+    expect(compiled.querySelector('mat-label')?.textContent).toContain('Password');
+  });
+
+  it('uses Chinese on first login when no explicit language choice exists', () => {
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'en-US');
+    const fixture = TestBed.createComponent(LoginPageComponent);
+
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(TestBed.inject(LanguageService).language()).toBe('zh-CN');
+    expect(compiled.querySelector('button[type="submit"]')?.textContent).toContain('登录');
   });
 
   it('should show the default administrator and password input', () => {

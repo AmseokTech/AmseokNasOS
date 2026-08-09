@@ -16,7 +16,7 @@ const BUILT_IN_APP_COMPONENTS: ReadonlyMap<string, AppComponentDefinition> = new
     'terminal',
     {
       appId: 'terminal',
-      title: 'terminal',
+      title: '终端',
       singleton: true,
       defaultWidth: 1120,
       defaultHeight: 760,

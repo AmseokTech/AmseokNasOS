@@ -1,9 +1,39 @@
 import { TestBed } from '@angular/core/testing';
 import { DateAdapter } from '@angular/material/core';
 
+import {
+  LANGUAGE_SELECTION_STORAGE_KEY,
+  LANGUAGE_STORAGE_KEY,
+  LanguageService
+} from '../../core/i18n';
 import { TopBarComponent } from './top-bar.component';
 
 describe('TopBarComponent', () => {
+  beforeEach(() => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
+  });
+
+  it('updates global shell copy immediately when the language changes', () => {
+    const fixture = TestBed.createComponent(TopBarComponent);
+    fixture.componentRef.setInput('activeApp', '概览');
+    fixture.detectChanges();
+
+    TestBed.inject(LanguageService).setLanguage('en-US');
+    TestBed.flushEffects();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Overview');
+    expect(compiled.textContent).toContain('Connected');
+    expect(compiled.querySelector('.notification-trigger')?.getAttribute('aria-label'))
+      .toContain('Notification Center');
+  });
   it('opens the local notification center and marks every notification as read', () => {
     const fixture = TestBed.createComponent(TopBarComponent);
     fixture.componentRef.setInput('activeApp', '概览');

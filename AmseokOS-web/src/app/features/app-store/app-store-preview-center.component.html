@@ -1,41 +1,43 @@
 <section class="preview-center" aria-labelledby="preview-title">
   <header class="preview-center__heading">
-    <p>内置应用体验</p>
-    <h1 id="preview-title">应用尝鲜</h1>
-    <span>2 项体验计划</span>
+    <p>{{ 'appStore.preview.builtIn' | translate }}</p>
+    <h1 id="preview-title">{{ 'appStore.preview' | translate }}</h1>
+    <span>{{ 'appStore.preview.count' | translate }}</span>
   </header>
 
-  <section class="preview-center__intro" aria-label="尝鲜说明">
+  <section class="preview-center__intro" [attr.aria-label]="'appStore.preview.instructions' | translate">
     <div>
-      <p>提前体验</p>
-      <h2>探索下一步的工作方式</h2>
-      <span>尝鲜计划仅展示产品原型和交互方向，不会下载、安装或修改 NAS 服务。</span>
+      <p>{{ 'appStore.preview.earlyAccess' | translate }}</p>
+      <h2>{{ 'appStore.preview.heading' | translate }}</h2>
+      <span>{{ 'appStore.preview.description' | translate }}</span>
     </div>
   </section>
 
-  <section class="preview-center__apps" aria-label="尝鲜应用">
+  <section class="preview-center__apps" [attr.aria-label]="'appStore.preview.apps' | translate">
     <article class="preview-center__app">
       <div>
-        <p>协作体验</p>
+        <p>{{ 'appStore.preview.collaboration' | translate }}</p>
         <h2>Studio Sync Preview</h2>
-        <span>提前查看素材同步与项目协作的产品方向。</span>
+        <span>{{ 'appStore.preview.studioDescription' | translate }}</span>
       </div>
       <button type="button" (click)="requestStudioSyncPreview()" [disabled]="studioSyncJoined()">
-        {{ studioSyncJoined() ? '已加入体验' : '立即尝鲜' }}
+        {{ (studioSyncJoined() ? 'appStore.preview.joined' : 'appStore.preview.join') | translate }}
       </button>
     </article>
 
     <article class="preview-center__app">
       <div>
-        <p>媒体体验</p>
+        <p>{{ 'appStore.preview.media' | translate }}</p>
         <h2>Photo Library Labs</h2>
-        <span>相册整理、人物归类和共享流程正在准备中。</span>
+        <span>{{ 'appStore.preview.photoDescription' | translate }}</span>
       </div>
-      <button type="button" disabled>即将开放</button>
+      <button type="button" disabled>{{ 'appStore.preview.comingSoon' | translate }}</button>
     </article>
   </section>
 
   @if (studioSyncJoined()) {
-    <div class="preview-center__notice" role="status" aria-live="polite">已加入 Studio Sync 尝鲜体验。该状态仅保留在当前应用商店窗口，不会安装应用。</div>
+    <div class="preview-center__notice" role="status" aria-live="polite">
+      {{ 'appStore.preview.joinedNotice' | translate }}
+    </div>
   }
 </section>

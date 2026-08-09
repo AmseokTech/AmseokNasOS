@@ -1,7 +1,7 @@
 <main class="login-page">
   <section class="login-panel" aria-labelledby="login-title">
     <p class="product-name">AmseokOS</p>
-    <h1 id="login-title" class="visually-hidden">管理员登录</h1>
+    <h1 id="login-title" class="visually-hidden">{{ 'auth.loginTitle' | translate }}</h1>
 
     <app-user-avatar class="login-avatar" />
 
@@ -11,14 +11,16 @@
       <app-password-field [control]="passwordControl" />
 
       <button class="login-button" mat-flat-button type="submit" [disabled]="submitting()">
-        {{ submitting() ? '正在登录…' : '登录' }}
+        {{ (submitting() ? 'auth.loggingIn' : 'auth.login') | translate }}
       </button>
 
       @if (errorMessage()) {
-        <p class="login-message" role="alert">{{ errorMessage() }}</p>
+        <p class="login-message" role="alert">{{ errorMessage() | translate }}</p>
       }
       @if (successMessage()) {
-        <p class="login-message login-message--success" role="status">{{ successMessage() }}</p>
+        <p class="login-message login-message--success" role="status">
+          {{ successMessage() | translate }}
+        </p>
       }
     </form>
   </section>

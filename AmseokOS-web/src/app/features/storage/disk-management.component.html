@@ -2,38 +2,38 @@
   <header class="storage-panel__header">
     <span class="storage-panel__icon" aria-hidden="true"><i></i><i></i><i></i></span>
     <div>
-      <h1 id="disk-management-title">磁盘管理</h1>
-      <p>查看物理磁盘、分区占用和现有软件 RAID 阵列。</p>
+      <h1 id="disk-management-title">{{ 'settings.storage' | translate }}</h1>
+      <p>{{ 'storage.description' | translate }}</p>
     </div>
     <button type="button" class="refresh-button" [disabled]="loading()" (click)="load()">
-      刷新
+      {{ 'storage.refresh' | translate }}
     </button>
   </header>
 
   <aside class="security-note" id="raid-write-status">
-    RAID 修改采用两阶段预检：每次都需要重新认证、输入确认短语，并由后端加资源锁；特权端执行前还会再次核对稳定磁盘身份和占用状态。
+    {{ 'storage.securityNotice' | translate }}
   </aside>
 
   @if (loading()) {
-    <div class="storage-state" role="status">正在读取磁盘与阵列信息…</div>
+    <div class="storage-state" role="status">{{ 'storage.loading' | translate }}</div>
   } @else if (error()) {
     <div class="storage-state storage-state--error" role="alert">
-      <strong>无法读取磁盘信息</strong>
-      <span>{{ error() }}</span>
-      <button type="button" (click)="load()">重新加载</button>
+      <strong>{{ 'storage.loadFailed' | translate }}</strong>
+      <span>{{ error() | translate }}</span>
+      <button type="button" (click)="load()">{{ 'common.reload' | translate }}</button>
     </div>
   } @else if (inventory(); as currentInventory) {
-    <div class="summary-grid" aria-label="存储概览">
+    <div class="summary-grid" [attr.aria-label]="'storage.overview' | translate">
       <article>
-        <span>物理磁盘</span>
+        <span>{{ 'storage.physicalDisks' | translate }}</span>
         <strong>{{ currentInventory.disks.length }}</strong>
       </article>
       <article>
-        <span>RAID 阵列</span>
+        <span>{{ 'storage.raidArrays' | translate }}</span>
         <strong>{{ currentInventory.arrays.length }}</strong>
       </article>
       <article>
-        <span>异常阵列</span>
+        <span>{{ 'storage.degradedArrays' | translate }}</span>
         <strong>{{ degradedArrayCount(currentInventory.arrays) }}</strong>
       </article>
     </div>
@@ -41,22 +41,22 @@
     <section class="inventory-section" aria-labelledby="raid-arrays-title">
       <div class="section-heading">
         <div>
-          <h2 id="raid-arrays-title">软件 RAID 阵列</h2>
-          <p>由 Debian mdadm 管理的现有阵列。</p>
+          <h2 id="raid-arrays-title">{{ 'storage.softwareArrays' | translate }}</h2>
+          <p>{{ 'storage.softwareArraysDescription' | translate }}</p>
         </div>
         <button
           type="button"
           aria-describedby="raid-write-status"
           (click)="openCreate()"
         >
-          创建阵列
+          {{ 'storage.action.create' | translate }}
         </button>
       </div>
 
       @if (currentInventory.arrays.length === 0) {
         <div class="empty-state">
-          <strong>未发现软件 RAID 阵列</strong>
-          <span>可以继续查看下方磁盘是否符合后续创建条件。</span>
+          <strong>{{ 'storage.noArrays' | translate }}</strong>
+          <span>{{ 'storage.noArraysDescription' | translate }}</span>
         </div>
       } @else {
         <div class="array-list">
@@ -75,9 +75,9 @@
               </header>
 
               <dl class="detail-grid">
-                <div><dt>可用容量</dt><dd>{{ formatBytes(array.sizeBytes) }}</dd></div>
-                <div><dt>成员数量</dt><dd>{{ array.members.length }} / {{ array.configuredDeviceCount }}</dd></div>
-                <div><dt>元数据</dt><dd>{{ array.metadataVersion || '未知' }}</dd></div>
+                <div><dt>{{ 'storage.availableCapacity' | translate }}</dt><dd>{{ formatBytes(array.sizeBytes) }}</dd></div>
+                <div><dt>{{ 'storage.memberCount' | translate }}</dt><dd>{{ array.members.length }} / {{ array.configuredDeviceCount }}</dd></div>
+                <div><dt>{{ 'storage.metadata' | translate }}</dt><dd>{{ array.metadataVersion || ('common.unknown' | translate) }}</dd></div>
                 <div><dt>UUID</dt><dd class="technical-value">{{ array.uuid || '—' }}</dd></div>
               </dl>
 
@@ -88,12 +88,17 @@
                 </div>
               }
 
-              <div class="member-list" aria-label="阵列成员">
+              <div class="member-list" [attr.aria-label]="'storage.members' | translate">
                 @for (member of array.members; track member.path) {
                   <span>
                     <i aria-hidden="true"></i>
                     <b>{{ member.name }}</b>
-                    <small>{{ member.state }}{{ member.slot === null ? '' : ' · 槽位 ' + member.slot }}</small>
+                    <small>
+                      {{ member.state }}
+                      @if (member.slot !== null) {
+                        {{ 'storage.slot' | translate: { slot: member.slot } }}
+                      }
+                    </small>
                   </span>
                 }
               </div>
@@ -104,7 +109,7 @@
                   aria-describedby="raid-write-status"
                   (click)="openModify(array)"
                 >
-                  修改阵列
+                  {{ 'storage.modifyArray' | translate }}
                 </button>
               </footer>
             </article>
@@ -116,13 +121,13 @@
     <section class="inventory-section" aria-labelledby="physical-disks-title">
       <div class="section-heading">
         <div>
-          <h2 id="physical-disks-title">物理磁盘</h2>
-          <p>系统盘和占用中的设备不会进入危险操作流程。</p>
+          <h2 id="physical-disks-title">{{ 'storage.physicalDisks' | translate }}</h2>
+          <p>{{ 'storage.physicalDescription' | translate }}</p>
         </div>
       </div>
 
       @if (currentInventory.disks.length === 0) {
-        <div class="empty-state"><strong>未检测到物理磁盘</strong></div>
+        <div class="empty-state"><strong>{{ 'storage.noPhysicalDisks' | translate }}</strong></div>
       } @else {
         <div class="disk-list">
           @for (disk of currentInventory.disks; track disk.id) {
@@ -131,21 +136,21 @@
                 <h3>{{ disk.model || disk.name }}</h3>
                 <p class="technical-value">{{ disk.path }} · {{ disk.id }}</p>
                 <div class="badges">
-                  @if (disk.systemDevice) { <span class="badge badge--protected">系统盘</span> }
-                  @if (disk.raidMember) { <span class="badge">RAID 成员</span> }
-                  @if (disk.inUse) { <span class="badge">使用中</span> }
-                  @if (disk.readOnly) { <span class="badge">只读</span> }
-                  @if (!disk.topologyComplete) { <span class="badge badge--warning">拓扑不完整</span> }
+                  @if (disk.systemDevice) { <span class="badge badge--protected">{{ 'storage.systemDisk' | translate }}</span> }
+                  @if (disk.raidMember) { <span class="badge">{{ 'storage.raidMember' | translate }}</span> }
+                  @if (disk.inUse) { <span class="badge">{{ 'storage.inUse' | translate }}</span> }
+                  @if (disk.readOnly) { <span class="badge">{{ 'storage.readOnly' | translate }}</span> }
+                  @if (!disk.topologyComplete) { <span class="badge badge--warning">{{ 'storage.incompleteTopology' | translate }}</span> }
                   @if (disk.identityConflict || !disk.stable) {
-                    <span class="badge badge--warning">身份不可靠</span>
+                    <span class="badge badge--warning">{{ 'storage.unreliableIdentity' | translate }}</span>
                   }
                 </div>
               </div>
               <dl>
-                <div><dt>容量</dt><dd>{{ formatBytes(disk.sizeBytes) }}</dd></div>
-                <div><dt>类型</dt><dd>{{ disk.rotational ? '机械硬盘' : '固态硬盘' }}</dd></div>
-                <div><dt>分区</dt><dd>{{ disk.partitions.length }}</dd></div>
-                <div><dt>序列号</dt><dd class="technical-value">{{ disk.serialNumber || '—' }}</dd></div>
+                <div><dt>{{ 'storage.capacity' | translate }}</dt><dd>{{ formatBytes(disk.sizeBytes) }}</dd></div>
+                <div><dt>{{ 'storage.type' | translate }}</dt><dd>{{ (disk.rotational ? 'storage.hdd' : 'storage.ssd') | translate }}</dd></div>
+                <div><dt>{{ 'storage.partitions' | translate }}</dt><dd>{{ disk.partitions.length }}</dd></div>
+                <div><dt>{{ 'storage.serialNumber' | translate }}</dt><dd class="technical-value">{{ disk.serialNumber || '—' }}</dd></div>
               </dl>
             </article>
           }
@@ -165,18 +170,18 @@
   >
     <header>
       <div>
-        <span class="eyebrow">高风险操作</span>
+        <span class="eyebrow">{{ 'storage.highRisk' | translate }}</span>
         <h2 id="raid-operation-title">{{ actionLabel(action()) }}</h2>
         @if (selectedArray(); as array) {
           <p>{{ array.name }} · {{ array.level.toUpperCase() }} · {{ array.id }}</p>
         }
       </div>
-      <button type="button" class="dialog-close" aria-label="关闭" (click)="closeDialog()">×</button>
+      <button type="button" class="dialog-close" [attr.aria-label]="'window.close' | translate" (click)="closeDialog()">×</button>
     </header>
 
     @if (selectedArray(); as array) {
       <label class="form-field">
-        <span>操作</span>
+        <span>{{ 'storage.operation' | translate }}</span>
         <select [value]="action()" [disabled]="actionBusy() || !!operation()"
           (change)="selectAction($any($event.target).value)">
           @for (availableAction of actionsFor(array); track availableAction) {
@@ -187,12 +192,12 @@
     } @else {
       <div class="form-grid">
         <label class="form-field">
-          <span>阵列名称</span>
+          <span>{{ 'storage.arrayName' | translate }}</span>
           <input type="text" maxlength="32" [value]="arrayName()" [disabled]="!!operation()"
             (input)="updateArrayName($any($event.target).value)" />
         </label>
         <label class="form-field">
-          <span>RAID 级别</span>
+          <span>{{ 'storage.raidLevel' | translate }}</span>
           <select [value]="level()" [disabled]="!!operation()" (change)="updateLevel($any($event.target).value)">
             <option value="raid0">RAID0</option>
             <option value="raid1">RAID1</option>
@@ -206,20 +211,20 @@
 
     @if (usesTargetCount()) {
       <label class="form-field">
-        <span>目标成员数量</span>
+        <span>{{ 'storage.targetMemberCount' | translate }}</span>
         <input type="number" min="2" max="64" [value]="targetDeviceCount()" [disabled]="!!operation()"
           (input)="updateTargetDeviceCount($any($event.target).value)" />
         @if (selectedArray(); as array) {
-          <small>当前配置为 {{ array.configuredDeviceCount }} 块</small>
+          <small>{{ 'storage.currentConfiguration' | translate: { count: array.configuredDeviceCount } }}</small>
         }
       </label>
     }
 
     @if (usesSourceDevice()) {
       <label class="form-field">
-        <span>当前成员磁盘</span>
+        <span>{{ 'storage.currentMemberDisk' | translate }}</span>
         <select [value]="sourceDeviceId()" [disabled]="!!operation()" (change)="updateSourceDevice($any($event.target).value)">
-          <option value="">请选择</option>
+          <option value="">{{ 'storage.select' | translate }}</option>
           @for (member of memberDevices(selectedArray()); track member.id) {
             <option [value]="member.id">{{ member.label }}</option>
           }
@@ -229,9 +234,9 @@
 
     @if (usesNewDevices()) {
       <fieldset class="disk-selector">
-        <legend>{{ action() === 'create' ? '阵列磁盘' : '新增磁盘' }}</legend>
+        <legend>{{ (action() === 'create' ? 'storage.arrayDisks' : 'storage.newDisks') | translate }}</legend>
         @if (eligibleDisks().length === 0) {
-          <p>没有符合条件的空闲整盘。系统盘、有分区、已占用或身份不稳定的设备不会显示。</p>
+          <p>{{ 'storage.noEligibleDisks' | translate }}</p>
         } @else {
           @for (disk of eligibleDisks(); track disk.id) {
             <label>
@@ -246,18 +251,18 @@
 
     @if (!preview() && !operation()) {
       <label class="form-field">
-        <span>当前管理员密码</span>
+        <span>{{ 'storage.currentAdminPassword' | translate }}</span>
         <input type="password" autocomplete="current-password" maxlength="256"
           [value]="password()" (input)="password.set($any($event.target).value)" />
       </label>
       <button type="button" class="primary-button" [disabled]="actionBusy()" (click)="createPreview()">
-        {{ actionBusy() ? '正在预检…' : '检查风险与当前状态' }}
+        {{ (actionBusy() ? 'storage.preflighting' : 'storage.preflight') | translate }}
       </button>
     }
 
     @if (preview(); as currentPreview) {
       <section class="preview-result" [class.preview-result--blocked]="!currentPreview.canExecute">
-        <h3>{{ currentPreview.canExecute ? '预检通过' : '当前不能执行' }}</h3>
+        <h3>{{ (currentPreview.canExecute ? 'storage.preflightPassed' : 'storage.cannotExecute') | translate }}</h3>
         @for (issue of currentPreview.blockingIssues; track issue.code + issue.field) {
           <p class="issue-message">{{ issue.message }}</p>
         }
@@ -268,24 +273,24 @@
 
       @if (currentPreview.canExecute) {
         <div class="confirmation-panel">
-          <p>请原样输入确认短语：<strong>{{ currentPreview.confirmationPhrase }}</strong></p>
+          <p>{{ 'storage.confirmationPrompt' | translate }} <strong>{{ currentPreview.confirmationPhrase }}</strong></p>
           <label class="form-field">
-            <span>确认短语</span>
+            <span>{{ 'storage.confirmationPhrase' | translate }}</span>
             <input type="text" maxlength="256" autocomplete="off" [value]="confirmationInput()"
               (input)="confirmationInput.set($any($event.target).value)" />
           </label>
           <label class="form-field">
-            <span>再次输入管理员密码</span>
+            <span>{{ 'storage.repeatAdminPassword' | translate }}</span>
             <input type="password" maxlength="256" autocomplete="current-password"
               [value]="confirmationPassword()"
               (input)="confirmationPassword.set($any($event.target).value)" />
           </label>
           <button type="button" class="danger-button" [disabled]="actionBusy()" (click)="execute()">
-            {{ actionBusy() ? '正在提交…' : '确认并执行' }}
+            {{ (actionBusy() ? 'storage.submitting' : 'storage.confirmAndExecute') | translate }}
           </button>
         </div>
       } @else {
-        <button type="button" (click)="invalidatePreview()">修改后重新预检</button>
+        <button type="button" (click)="invalidatePreview()">{{ 'storage.recheck' | translate }}</button>
       }
     }
 
@@ -300,7 +305,7 @@
     }
 
     @if (actionError()) {
-      <p class="dialog-error" role="alert">{{ actionError() }}</p>
+      <p class="dialog-error" role="alert">{{ actionError() | translate }}</p>
     }
   </section>
 }

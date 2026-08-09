@@ -3,19 +3,21 @@
 
   @if (session()?.mustChangePassword) {
     <div class="desktop-reminders">
-      <app-reminder-popover title="请修改初始密码" tone="warning">
-        <p>当前账户仍在使用初始密码。完成修改前，系统管理功能将保持受限。</p>
-        <a reminder-actions mat-flat-button routerLink="/change-password">立即修改密码</a>
+      <app-reminder-popover [title]="'shell.passwordReminderTitle' | translate" tone="warning">
+        <p>{{ 'shell.passwordReminderBody' | translate }}</p>
+        <a reminder-actions mat-flat-button routerLink="/change-password">
+          {{ 'shell.changePasswordNow' | translate }}
+        </a>
       </app-reminder-popover>
     </div>
   }
 
-  <section class="desktop-workspace" aria-label="AmseokOS 桌面">
+  <section class="desktop-workspace" [attr.aria-label]="'shell.desktop' | translate">
     <app-window-host />
 
     <div class="desktop-identity" aria-hidden="true">
       <p>AmseokOS</p>
-      <small>更便捷地管理你的服务器</small>
+      <small>{{ 'shell.tagline' | translate }}</small>
     </div>
   </section>
 

@@ -8,9 +8,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
+import { TranslatePipe } from '../../../core/i18n';
+
 @Component({
   selector: 'app-password-field',
-  imports: [MatButtonModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule],
+  imports: [MatButtonModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule, TranslatePipe],
   templateUrl: './password-field.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './password-field.component.scss'

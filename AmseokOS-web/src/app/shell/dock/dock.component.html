@@ -1,4 +1,4 @@
-<nav class="dock" aria-label="应用程序 Dock">
+<nav class="dock" [attr.aria-label]="'shell.dock' | translate">
   @for (app of apps(); track app.id) {
     @let appWindow = windowState(app.id);
     @let focused = isFocused(appWindow);
@@ -12,10 +12,10 @@
       [class.dock-item--focused]="focused"
       [attr.aria-current]="!appWindow && selected ? 'page' : null"
       [attr.aria-pressed]="appWindow ? focused : null"
-      [attr.aria-label]="app.label"
+      [attr.aria-label]="app.label | translate"
       (click)="appSelected.emit(app)"
     >
-      <span class="dock-tooltip" aria-hidden="true">{{ app.label }}</span>
+      <span class="dock-tooltip" aria-hidden="true">{{ app.label | translate }}</span>
       <span class="dock-icon" [style.background]="app.iconBackground" aria-hidden="true">
         <svg viewBox="0 0 24 24">
           <path [attr.d]="app.iconPath" />

@@ -5,6 +5,8 @@
 import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnDestroy, inject, signal } from '@angular/core';
 
+import { TranslatePipe } from '../../core/i18n';
+
 type DemoDownloadState = 'idle' | 'downloading' | 'completed' | 'failed';
 
 const DEMO_DOWNLOAD_URL = '/downloads/studio-sync-demo.txt';
@@ -14,6 +16,7 @@ const DEMO_DOWNLOAD_INTERVAL_MS = 100;
 
 @Component({
   selector: 'app-app-store-download-center',
+  imports: [TranslatePipe],
   templateUrl: './app-store-download-center.component.html',
   styleUrl: './app-store-download-center.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -34,7 +37,7 @@ export class AppStoreDownloadCenterComponent implements OnDestroy {
     this.stopDownloadAnimation();
     this.downloadState.set('downloading');
     this.downloadProgress.set(0);
-    this.downloadNotice.set('正在准备 Studio Sync 演示包。');
+    this.downloadNotice.set('appStore.download.preparing');
     this.downloadTimer = window.setInterval(() => this.advanceDemoDownload(), DEMO_DOWNLOAD_INTERVAL_MS);
   }
 
@@ -45,7 +48,7 @@ export class AppStoreDownloadCenterComponent implements OnDestroy {
   private advanceDemoDownload(): void {
     const progress = Math.min(this.downloadProgress() + DEMO_DOWNLOAD_STEP, 100);
     this.downloadProgress.set(progress);
-    this.downloadNotice.set(`正在下载 Studio Sync 演示包：${progress}%。`);
+    this.downloadNotice.set('appStore.download.progress');
 
     if (progress === 100) {
       this.stopDownloadAnimation();
@@ -68,10 +71,10 @@ export class AppStoreDownloadCenterComponent implements OnDestroy {
       }
 
       this.downloadState.set('completed');
-      this.downloadNotice.set('演示包已开始保存到浏览器默认下载目录。');
+      this.downloadNotice.set('appStore.download.completed');
     } catch {
       this.downloadState.set('failed');
-      this.downloadNotice.set('演示包下载失败，请稍后重试。');
+      this.downloadNotice.set('appStore.download.failed');
     }
   }
 

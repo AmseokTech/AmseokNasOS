@@ -1,8 +1,8 @@
 <section class="download-center" aria-labelledby="downloads-title">
   <header class="download-center__heading">
-    <p>产品服务</p>
-    <h1 id="downloads-title">更新与下载中心</h1>
-    <span>1 项可下载演示</span>
+    <p>{{ 'appStore.services' | translate }}</p>
+    <h1 id="downloads-title">{{ 'appStore.download.title' | translate }}</h1>
+    <span>{{ 'appStore.download.available' | translate }}</span>
   </header>
 
   <section class="download-center__feature" aria-labelledby="demo-title">
@@ -10,9 +10,9 @@
       <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6V3Zm8 1.8V8h3.2L14 4.8ZM8 11h9v2H8v-2Zm0 4h9v2H8v-2Z" /></svg>
     </span>
     <div>
-      <p>下载演示</p>
-      <h2 id="demo-title">Studio Sync 演示包</h2>
-      <span>包含产品说明和下载流程示例，约 1 KB，不包含安装程序。</span>
+      <p>{{ 'appStore.download.demo' | translate }}</p>
+      <h2 id="demo-title">{{ 'appStore.download.package' | translate }}</h2>
+      <span>{{ 'appStore.download.description' | translate }}</span>
     </div>
     <button
       type="button"
@@ -24,26 +24,28 @@
     >
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4 3.5 3.5V3ZM5 19h14v2H5v-2Z" /></svg>
       @if (downloadState() === 'downloading') {
-        正在下载 {{ downloadProgress() }}%
+        {{ 'appStore.download.downloading' | translate: { progress: downloadProgress() } }}
       } @else if (downloadState() === 'completed') {
-        再次下载
+        {{ 'appStore.download.again' | translate }}
       } @else if (downloadState() === 'failed') {
-        重新下载
+        {{ 'appStore.download.retry' | translate }}
       } @else {
-        下载演示包
+        {{ 'appStore.download.action' | translate }}
       }
     </button>
   </section>
 
   @if (downloadNotice()) {
-    <div class="download-center__notice" role="status" aria-live="polite">{{ downloadNotice() }}</div>
+    <div class="download-center__notice" role="status" aria-live="polite">
+      {{ downloadNotice() | translate: { progress: downloadProgress() } }}
+    </div>
   }
 
   @if (downloadState() === 'downloading') {
     <div
       class="download-center__progress"
       role="progressbar"
-      aria-label="Studio Sync 演示包下载进度"
+      [attr.aria-label]="'appStore.download.progressLabel' | translate"
       aria-valuemin="0"
       aria-valuemax="100"
       [attr.aria-valuenow]="downloadProgress()"
@@ -54,16 +56,22 @@
 
   <section class="download-center__updates" aria-labelledby="updates-title">
     <div>
-      <p>更新目录</p>
-      <h2 id="updates-title">等待签名校验的更新</h2>
+      <p>{{ 'appStore.download.catalog' | translate }}</p>
+      <h2 id="updates-title">{{ 'appStore.download.pendingTitle' | translate }}</h2>
     </div>
     <article>
-      <div><strong>Photo Library 1.4.0</strong><span>媒体索引优化与共享相册改进</span></div>
-      <button type="button" disabled>等待开放</button>
+      <div>
+        <strong>Photo Library 1.4.0</strong>
+        <span>{{ 'appStore.download.photoUpdate' | translate }}</span>
+      </div>
+      <button type="button" disabled>{{ 'appStore.download.pending' | translate }}</button>
     </article>
     <article>
-      <div><strong>Backup Vault 0.9.0</strong><span>预览版本，仍在兼容性验证中</span></div>
-      <button type="button" disabled>等待开放</button>
+      <div>
+        <strong>Backup Vault 0.9.0</strong>
+        <span>{{ 'appStore.download.backupUpdate' | translate }}</span>
+      </div>
+      <button type="button" disabled>{{ 'appStore.download.pending' | translate }}</button>
     </article>
   </section>
 </section>

@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
+import { TranslatePipe } from '../../core/i18n';
 import { PasswordFieldComponent } from '../../shared/components/password-field/password-field.component';
 import { TerminalSession, TerminalSessionService } from './terminal-session.service';
 
@@ -21,7 +22,8 @@ const INITIAL_ROWS = 30;
     MatDialogModule,
     MatProgressSpinnerModule,
     PasswordFieldComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    TranslatePipe
   ],
   templateUrl: './terminal-authentication-dialog.component.html',
   styleUrl: './terminal-authentication-dialog.component.scss',

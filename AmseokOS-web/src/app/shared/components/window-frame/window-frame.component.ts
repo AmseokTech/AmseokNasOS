@@ -5,11 +5,13 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CdkDragHandle } from '@angular/cdk/drag-drop';
 
+import { TranslatePipe } from '../../../core/i18n';
+
 export type WindowStatusTone = 'neutral' | 'busy' | 'online' | 'error';
 
 @Component({
   selector: 'app-window-frame',
-  imports: [CdkDragHandle],
+  imports: [CdkDragHandle, TranslatePipe],
   templateUrl: './window-frame.component.html',
   styleUrl: './window-frame.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

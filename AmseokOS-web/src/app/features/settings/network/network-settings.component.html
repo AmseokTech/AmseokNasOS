@@ -4,27 +4,27 @@
       <i></i><i></i><i></i>
     </span>
     <div>
-      <h1 id="network-title">网络</h1>
-      <p>查看物理网卡、链路状态和当前地址配置。</p>
+      <h1 id="network-title">{{ 'settings.network' | translate }}</h1>
+      <p>{{ 'network.description' | translate }}</p>
     </div>
   </header>
 
   <aside class="security-note" id="network-write-status">
-    当前版本仅开放查询。IP 配置将在二次认证、连通性确认和自动回滚机制完成后启用。
+    {{ 'network.readOnlyNotice' | translate }}
   </aside>
 
   @if (loading()) {
-    <div class="settings-state" role="status">正在读取网络信息…</div>
+    <div class="settings-state" role="status">{{ 'network.loading' | translate }}</div>
   } @else if (error()) {
     <div class="settings-state settings-state--error" role="alert">
-      <strong>无法读取网络信息</strong>
-      <span>{{ error() }}</span>
-      <button type="button" (click)="load()">重新加载</button>
+      <strong>{{ 'network.loadFailed' | translate }}</strong>
+      <span>{{ error() | translate }}</span>
+      <button type="button" (click)="load()">{{ 'common.reload' | translate }}</button>
     </div>
   } @else if (interfaces().length === 0) {
     <div class="settings-state" role="status">
-      <strong>没有检测到物理网卡</strong>
-      <span>虚拟网卡和回环接口不会显示在这里。</span>
+      <strong>{{ 'network.noInterfaces' | translate }}</strong>
+      <span>{{ 'network.noInterfacesDescription' | translate }}</span>
     </div>
   } @else {
     <div class="network-list">
@@ -38,17 +38,17 @@
             ></span>
             <div>
               <h2>{{ network.name }}</h2>
-              <p>{{ network.model || network.driver || '物理网络接口' }}</p>
+              <p>{{ network.model || network.driver || ('network.physicalInterface' | translate) }}</p>
             </div>
             <div class="network-card__summary">
-              <strong>{{ linkLabel(network.linkState) }}</strong>
-              <span>{{ modeLabel(network.configurationMode) }}</span>
+              <strong>{{ linkLabel(network.linkState) | translate }}</strong>
+              <span>{{ modeLabel(network.configurationMode) | translate }}</span>
             </div>
           </header>
 
           <dl class="information-list">
             <div>
-              <dt>IP 地址</dt>
+              <dt>{{ 'network.ipAddress' | translate }}</dt>
               <dd>
                 @if (network.addresses.length) {
                   @for (address of network.addresses; track address) {
@@ -60,20 +60,20 @@
               </dd>
             </div>
             <div>
-              <dt>链路速率</dt>
+              <dt>{{ 'network.linkSpeed' | translate }}</dt>
               <dd>
-                {{ network.speedMbps === null ? '未知' : network.speedMbps + ' Mbps' }}
+                {{ network.speedMbps === null ? ('common.unknown' | translate) : network.speedMbps + ' Mbps' }}
                 @if (network.duplex) {
-                  · {{ network.duplex === 'full' ? '全双工' : '半双工' }}
+                  · {{ (network.duplex === 'full' ? 'network.fullDuplex' : 'network.halfDuplex') | translate }}
                 }
               </dd>
             </div>
             <div>
-              <dt>MAC 地址</dt>
+              <dt>{{ 'network.macAddress' | translate }}</dt>
               <dd class="technical-value">{{ network.macAddress }}</dd>
             </div>
             <div>
-              <dt>网关</dt>
+              <dt>{{ 'network.gateway' | translate }}</dt>
               <dd class="technical-value">{{ network.gateway || '—' }}</dd>
             </div>
             <div>
@@ -87,8 +87,8 @@
               </dd>
             </div>
             <div>
-              <dt>MTU / 驱动</dt>
-              <dd>{{ network.mtu }} / {{ network.driver || '未知' }}</dd>
+              <dt>{{ 'network.driver' | translate }}</dt>
+              <dd>{{ network.mtu }} / {{ network.driver || ('common.unknown' | translate) }}</dd>
             </div>
           </dl>
 
@@ -97,9 +97,9 @@
               type="button"
               disabled
               aria-describedby="network-write-status"
-              title="安全写入与自动回滚机制完成后开放"
+              [attr.title]="'network.configureIpUnavailable' | translate"
             >
-              设置 IP 地址
+              {{ 'network.configureIp' | translate }}
             </button>
           </footer>
         </article>

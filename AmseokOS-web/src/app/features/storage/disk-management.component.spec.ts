@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
+import { LanguageService } from '../../core/i18n';
 import { DiskManagementComponent } from './disk-management.component';
 import { RaidOperation, RaidOperationPreview } from './raid-management.models';
 import { RaidManagementService } from './raid-management.service';
@@ -161,6 +162,18 @@ describe('DiskManagementComponent', () => {
     expect(component.operationLabel(operation({ status: 'failed', errorCode: 'raid.failed' })))
       .toContain('raid.failed');
     expect(component.operationLabel(operation({ status: 'failed' }))).toBe('操作失败');
+  });
+
+  it('updates storage status and action labels immediately in English', () => {
+    const component = TestBed.createComponent(DiskManagementComponent).componentInstance;
+
+    TestBed.inject(LanguageService).setLanguage('en-US');
+
+    expect(component.arrayStateLabel(array({ degradedDeviceCount: 1 }))).toContain('Degraded');
+    expect(component.arrayStateLabel(array({ state: 'active' }))).toBe('Healthy');
+    expect(component.actionLabel('replaceDevice')).toBe('Replace member');
+    expect(component.operationLabel(operation({ status: 'running', progressPercentage: 42 })))
+      .toContain('42%');
   });
 
   it('maps array members to stable disk identities and resets stale previews when inputs change', () => {

@@ -1,12 +1,41 @@
 import { TestBed } from '@angular/core/testing';
 
+import {
+  LANGUAGE_SELECTION_STORAGE_KEY,
+  LANGUAGE_STORAGE_KEY,
+  LanguageService
+} from '../../core/i18n';
 import { AppStorePageComponent } from './app-store-page.component';
 
 describe('AppStorePageComponent', () => {
   beforeEach(async () => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
     await TestBed.configureTestingModule({
       imports: [AppStorePageComponent]
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY);
+    window.localStorage.removeItem(LANGUAGE_SELECTION_STORAGE_KEY);
+  });
+
+  it('updates catalog copy and search matching immediately in English', () => {
+    const fixture = TestBed.createComponent(AppStorePageComponent);
+    fixture.detectChanges();
+
+    TestBed.inject(LanguageService).setLanguage('en-US');
+    TestBed.flushEffects();
+    fixture.detectChanges();
+    fixture.componentInstance.setSearch('collaboration');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector<HTMLInputElement>('input[type="search"]')?.placeholder)
+      .toBe('Search apps');
+    expect(compiled.textContent).toContain('Team Collaboration');
+    expect(compiled.querySelectorAll('.app-store-card')).toHaveLength(1);
   });
 
   it('filters apps and opens an image-backed application detail view', () => {

@@ -13,9 +13,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 
+import { LocalizedUptimePipe, TranslatePipe } from '../../../core/i18n';
 import {
   formatBytes,
-  formatUptime,
   storageUsagePercentage
 } from '../settings-format';
 import { SystemAbout } from '../system-settings.models';
@@ -23,6 +23,7 @@ import { SystemSettingsService } from '../system-settings.service';
 
 @Component({
   selector: 'app-about-settings',
+  imports: [LocalizedUptimePipe, TranslatePipe],
   templateUrl: './about-settings.component.html',
   styleUrl: './about-settings.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -35,7 +36,6 @@ export class AboutSettingsComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly formatBytes = formatBytes;
-  readonly formatUptime = formatUptime;
   readonly storageUsagePercentage = storageUsagePercentage;
 
   ngOnInit(): void {
