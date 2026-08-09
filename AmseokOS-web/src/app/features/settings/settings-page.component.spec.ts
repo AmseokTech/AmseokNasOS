@@ -167,6 +167,8 @@ describe('SettingsPageComponent', () => {
       }
     ]);
     fixture.detectChanges();
+    http.expectOne('/api/storage-management/volumes').flush([]);
+    fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('md0');

@@ -14,6 +14,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, switchMap, takeWhile, timer } from 'rxjs';
 
+import { DataVolumeManagementComponent } from './data-volume-management.component';
 import { RaidAction, RaidOperation, RaidOperationPreview } from './raid-management.models';
 import { RaidManagementService } from './raid-management.service';
 import { BlockDevice, RaidArray, StorageInventory } from './storage-inventory.models';
@@ -21,6 +22,7 @@ import { StorageInventoryService } from './storage-inventory.service';
 
 @Component({
   selector: 'app-disk-management',
+  imports: [DataVolumeManagementComponent],
   templateUrl: './disk-management.component.html',
   styleUrl: './disk-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
