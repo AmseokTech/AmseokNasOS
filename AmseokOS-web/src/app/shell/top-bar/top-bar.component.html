@@ -16,9 +16,18 @@
       </svg>
       <span class="status-text">已连接</span>
     </span>
-    <time [attr.datetime]="currentTime().toISOString()">
-      {{ currentTime() | date: 'M月d日 HH:mm' }}
-    </time>
+    <button
+      class="date-time-trigger"
+      type="button"
+      title="日期与时间"
+      aria-controls="desktop-date-time-panel"
+      [attr.aria-expanded]="dateTimePanelOpen()"
+      (click)="toggleDateTimePanel()"
+    >
+      <time [attr.datetime]="currentTime().toISOString()">
+        {{ currentTime() | date: 'M月d日 HH:mm' }}
+      </time>
+    </button>
     <button
       class="notification-trigger"
       type="button"
@@ -40,6 +49,53 @@
     </button>
     <span class="user-avatar" aria-label="当前用户 admin">A</span>
   </div>
+
+  @if (dateTimePanelOpen()) {
+    <section
+      id="desktop-date-time-panel"
+      class="date-time-panel"
+      animate.enter="date-time-panel--enter"
+      animate.leave="date-time-panel--leave"
+      role="dialog"
+      aria-label="日期与时间"
+    >
+      <header
+        class="date-time-panel__header date-time-panel__content"
+        animate.enter="date-time-panel__content--enter"
+        style="--date-time-delay: 55ms"
+      >
+        <div>
+          <span>当前时间</span>
+          <strong>{{ currentTime() | date: 'HH:mm' }}</strong>
+        </div>
+        <button mat-button type="button" (click)="selectToday()">今天</button>
+      </header>
+
+      <mat-calendar
+        class="date-time-calendar date-time-panel__content"
+        animate.enter="date-time-panel__content--enter"
+        style="--date-time-delay: 85ms"
+        [selected]="selectedDate()"
+        [startAt]="selectedDate()"
+        (selectedChange)="selectDate($event)"
+      />
+
+      <footer
+        class="date-time-panel__footer date-time-panel__content"
+        animate.enter="date-time-panel__content--enter"
+        style="--date-time-delay: 115ms"
+      >
+        <div>
+          <span>所选日期</span>
+          <strong>{{ selectedDateLabel() }}</strong>
+        </div>
+        <span class="date-time-panel__schedule">
+          <i aria-hidden="true"></i>
+          暂无日程
+        </span>
+      </footer>
+    </section>
+  }
 
   @if (notificationCenterOpen()) {
     <aside

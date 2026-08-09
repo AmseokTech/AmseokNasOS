@@ -12,8 +12,23 @@ import {
   computed,
   inject,
   input,
-  signal
+  signal,
+  viewChild
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import {
+  DateAdapter,
+  MAT_DATE_LOCALE,
+  NativeDateAdapter,
+  provideNativeDateAdapter
+} from '@angular/material/core';
+import { MatCalendar } from '@angular/material/datepicker';
+
+class NumericDateAdapter extends NativeDateAdapter {
+  override getDateNames(): string[] {
+    return Array.from({ length: 31 }, (_, index) => String(index + 1));
+  }
+}
 
 interface DesktopNotification {
   readonly id: string;
@@ -49,17 +64,33 @@ const INITIAL_NOTIFICATIONS: readonly DesktopNotification[] = [
 
 @Component({
   selector: 'app-top-bar',
-  imports: [DatePipe],
+  imports: [DatePipe, MatButtonModule, MatCalendar],
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'zh-CN' },
+    provideNativeDateAdapter(),
+    { provide: DateAdapter, useClass: NumericDateAdapter }
+  ],
   templateUrl: './top-bar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './top-bar.component.scss'
 })
 export class TopBarComponent implements OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly calendar = viewChild(MatCalendar<Date>);
 
   readonly activeApp = input.required<string>();
   readonly currentTime = signal(new Date());
+  readonly selectedDate = signal(new Date());
+  readonly selectedDateLabel = computed(() =>
+    new Intl.DateTimeFormat('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    }).format(this.selectedDate())
+  );
   readonly notifications = signal<readonly DesktopNotification[]>(INITIAL_NOTIFICATIONS);
+  readonly dateTimePanelOpen = signal(false);
   readonly notificationCenterOpen = signal(false);
   readonly unreadNotificationCount = computed(
     () => this.notifications().filter((notification) => !notification.read).length
@@ -72,7 +103,29 @@ export class TopBarComponent implements OnDestroy {
   }
 
   toggleNotificationCenter(): void {
+    this.dateTimePanelOpen.set(false);
     this.notificationCenterOpen.update((isOpen) => !isOpen);
+  }
+
+  toggleDateTimePanel(): void {
+    this.notificationCenterOpen.set(false);
+    this.dateTimePanelOpen.update((isOpen) => !isOpen);
+  }
+
+  selectDate(date: Date | null): void {
+    if (date) {
+      this.selectedDate.set(date);
+    }
+  }
+
+  selectToday(): void {
+    const today = new Date();
+    this.selectedDate.set(today);
+
+    const calendar = this.calendar();
+    if (calendar) {
+      calendar.activeDate = today;
+    }
   }
 
   markAllNotificationsRead(): void {
@@ -88,20 +141,22 @@ export class TopBarComponent implements OnDestroy {
   }
 
   @HostListener('document:click', ['$event'])
-  closeNotificationCenterOnOutsideClick(event: MouseEvent): void {
+  closeOpenPanelsOnOutsideClick(event: MouseEvent): void {
     const target = event.target;
     if (
-      !this.notificationCenterOpen() ||
+      (!this.notificationCenterOpen() && !this.dateTimePanelOpen()) ||
       (target instanceof Node && this.host.nativeElement.contains(target))
     ) {
       return;
     }
 
     this.notificationCenterOpen.set(false);
+    this.dateTimePanelOpen.set(false);
   }
 
   @HostListener('document:keydown.escape')
-  closeNotificationCenterOnEscape(): void {
+  closeOpenPanelsOnEscape(): void {
     this.notificationCenterOpen.set(false);
+    this.dateTimePanelOpen.set(false);
   }
 }
