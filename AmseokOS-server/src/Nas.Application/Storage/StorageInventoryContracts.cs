@@ -69,6 +69,22 @@ public sealed record RaidMemberInformation(
     string State,
     int? Slot);
 
+public sealed record DiskSmartInformation(
+    string DeviceId,
+    bool Supported,
+    bool Enabled,
+    string Status,
+    bool? Passed,
+    long? TemperatureCelsius,
+    ulong? PowerOnHours,
+    ulong? PowerCycleCount,
+    ulong? ReallocatedSectorCount,
+    ulong? PendingSectorCount,
+    ulong? OfflineUncorrectableSectorCount,
+    ulong? MediaErrorCount,
+    ulong? PercentageUsed,
+    ulong? CriticalWarning);
+
 public interface IStorageInventoryService
 {
     Task<IReadOnlyList<BlockDeviceInformation>> GetBlockDevicesAsync(
@@ -76,6 +92,7 @@ public interface IStorageInventoryService
 
     Task<IReadOnlyList<RaidArrayInformation>> GetRaidArraysAsync(
         CancellationToken cancellationToken);
+
 }
 
 public interface IStorageInventoryClient
@@ -84,5 +101,20 @@ public interface IStorageInventoryClient
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<RaidArrayInformation>> GetRaidArraysAsync(
+        CancellationToken cancellationToken);
+
+}
+
+public interface IDiskSmartService
+{
+    Task<DiskSmartInformation> GetDiskSmartAsync(
+        string deviceId,
+        CancellationToken cancellationToken);
+}
+
+public interface IDiskSmartClient
+{
+    Task<DiskSmartInformation> GetDiskSmartAsync(
+        string deviceId,
         CancellationToken cancellationToken);
 }

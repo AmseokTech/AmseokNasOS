@@ -54,6 +54,25 @@ export interface BlockDependency {
   readonly swap: boolean;
 }
 
+export type DiskSmartStatus = 'healthy' | 'warning' | 'failing' | 'unsupported' | 'unknown';
+
+export interface DiskSmartInformation {
+  readonly deviceId: string;
+  readonly supported: boolean;
+  readonly enabled: boolean;
+  readonly status: DiskSmartStatus;
+  readonly passed: boolean | null;
+  readonly temperatureCelsius: number | null;
+  readonly powerOnHours: number | null;
+  readonly powerCycleCount: number | null;
+  readonly reallocatedSectorCount: number | null;
+  readonly pendingSectorCount: number | null;
+  readonly offlineUncorrectableSectorCount: number | null;
+  readonly mediaErrorCount: number | null;
+  readonly percentageUsed: number | null;
+  readonly criticalWarning: number | null;
+}
+
 export interface RaidArray {
   readonly id: string;
   readonly name: string;

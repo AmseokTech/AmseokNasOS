@@ -18,7 +18,8 @@ export const DESKTOP_APPS: readonly DesktopApp[] = [
     id: 'dashboard',
     label: '概览',
     iconPath: 'M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z',
-    iconBackground: 'linear-gradient(145deg, #59b7ff, #176ee8)'
+    iconBackground: 'linear-gradient(145deg, #59b7ff, #176ee8)',
+    windowAppId: 'dashboard'
   },
   {
     id: 'storage',

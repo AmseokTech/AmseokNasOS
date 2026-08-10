@@ -4,8 +4,10 @@
 //-------------------------//
 namespace Nas.Application.Storage;
 
-public sealed class StorageInventoryService(IStorageInventoryClient inventoryClient)
-    : IStorageInventoryService
+public sealed class StorageInventoryService(
+    IStorageInventoryClient inventoryClient,
+    IDiskSmartClient diskSmartClient)
+    : IStorageInventoryService, IDiskSmartService
 {
     public Task<IReadOnlyList<BlockDeviceInformation>> GetBlockDevicesAsync(
         CancellationToken cancellationToken)
@@ -17,5 +19,12 @@ public sealed class StorageInventoryService(IStorageInventoryClient inventoryCli
         CancellationToken cancellationToken)
     {
         return inventoryClient.GetRaidArraysAsync(cancellationToken);
+    }
+
+    public Task<DiskSmartInformation> GetDiskSmartAsync(
+        string deviceId,
+        CancellationToken cancellationToken)
+    {
+        return diskSmartClient.GetDiskSmartAsync(deviceId, cancellationToken);
     }
 }

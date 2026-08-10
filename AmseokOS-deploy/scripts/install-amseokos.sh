@@ -195,6 +195,33 @@ ensure_tls_certificate() {
     fi
 }
 
+ensure_data_protection_certificate() {
+    local directory=/etc/amseoknas/data-protection
+    local certificate="$directory/certificate.pem"
+    local private_key="$directory/private-key.pem"
+
+    install -d -o root -g amseoknas-api -m 0750 "$directory"
+    if [[ -e $certificate || -e $private_key ]]; then
+        [[ -s $certificate && -s $private_key ]] \
+            || die "Data Protection certificate material is incomplete"
+    else
+        log "Generating the external Data Protection key-encryption certificate"
+        openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 3650 \
+            -subj "/CN=AmseokOS Data Protection" \
+            -keyout "$private_key" \
+            -out "$certificate"
+    fi
+    chown root:root "$certificate"
+    chmod 0644 "$certificate"
+    chown root:amseoknas-api "$private_key"
+    chmod 0640 "$private_key"
+    openssl x509 -in "$certificate" -noout -checkend 86400 >/dev/null \
+        || die "Data Protection certificate is expired or expires within 24 hours"
+    [[ $(openssl x509 -in "$certificate" -pubkey -noout | openssl sha256) == \
+       $(openssl pkey -in "$private_key" -pubout | openssl sha256) ]] \
+        || die "Data Protection certificate and private key do not match"
+}
+
 existing_database_password() {
     [[ -r /etc/amseoknas/api.env ]] || return 0
     sed -n 's/^ConnectionStrings__ClusterDatabase=".*;Password=\([^";]*\)"$/\1/p' \
@@ -230,6 +257,9 @@ write_runtime_configuration() {
             "$database_password"
         printf 'ConnectionStrings__NodeDatabase="Data Source=/var/lib/amseoknas/amseoknas-node.db;Foreign Keys=True"\n'
         printf 'Persistence__ApplyMigrationsOnStartup=true\n'
+        printf 'DataProtection__ApplicationName=AmseokOS.ControlPlane\n'
+        printf 'DataProtection__CertificatePath=/etc/amseoknas/data-protection/certificate.pem\n'
+        printf 'DataProtection__PrivateKeyPath=/etc/amseoknas/data-protection/private-key.pem\n'
         printf 'Terminal__Enabled=true\n'
         printf 'Terminal__SocketPath=/run/amseoknas-terminal/terminal.sock\n'
         printf 'Terminal__AllowedOrigins__0=https://%s:6521\n' "$node_ip"
@@ -495,6 +525,7 @@ main() {
     validate_ipv4 "$node_ip" || die "Invalid management IPv4 address: $node_ip"
 
     ensure_tls_certificate
+    ensure_data_protection_certificate
     database_password=$(existing_database_password)
     if [[ -z $database_password ]]; then
         database_password=$(openssl rand -hex 24)

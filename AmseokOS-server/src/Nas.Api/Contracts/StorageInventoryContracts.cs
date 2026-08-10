@@ -108,6 +108,42 @@ public sealed record BlockDependencyResponse(
     }
 }
 
+public sealed record DiskSmartResponse(
+    string DeviceId,
+    bool Supported,
+    bool Enabled,
+    string Status,
+    bool? Passed,
+    long? TemperatureCelsius,
+    ulong? PowerOnHours,
+    ulong? PowerCycleCount,
+    ulong? ReallocatedSectorCount,
+    ulong? PendingSectorCount,
+    ulong? OfflineUncorrectableSectorCount,
+    ulong? MediaErrorCount,
+    ulong? PercentageUsed,
+    ulong? CriticalWarning)
+{
+    public static DiskSmartResponse From(DiskSmartInformation information)
+    {
+        return new(
+            information.DeviceId,
+            information.Supported,
+            information.Enabled,
+            information.Status,
+            information.Passed,
+            information.TemperatureCelsius,
+            information.PowerOnHours,
+            information.PowerCycleCount,
+            information.ReallocatedSectorCount,
+            information.PendingSectorCount,
+            information.OfflineUncorrectableSectorCount,
+            information.MediaErrorCount,
+            information.PercentageUsed,
+            information.CriticalWarning);
+    }
+}
+
 public sealed record RaidArrayResponse(
     string Id,
     string Name,

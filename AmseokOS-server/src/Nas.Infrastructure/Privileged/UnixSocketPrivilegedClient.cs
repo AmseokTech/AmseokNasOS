@@ -10,6 +10,7 @@ using Nas.Application.NetworkConfiguration;
 using Nas.Application.Privileged;
 using Nas.Application.RaidManagement;
 using Nas.Application.Storage;
+using Nas.Application.StorageManagement;
 using Nas.Application.SystemSettings;
 
 namespace Nas.Infrastructure.Privileged;
@@ -19,8 +20,11 @@ public sealed class UnixSocketPrivilegedClient(
     TimeProvider timeProvider) :
     ISystemSettingsClient,
     IStorageInventoryClient,
+    IDiskSmartClient,
     INetworkConfigurationInventory,
-    IRaidCommandExecutor
+    IRaidCommandExecutor,
+    IStorageManagementClient,
+    IStorageCommandExecutor
 {
     private const ushort ProtocolVersion = 1;
     private const int MaximumFrameBytes = 1024 * 1024;
@@ -62,6 +66,71 @@ public sealed class UnixSocketPrivilegedClient(
         return await SendAsync<RaidArrayInformation[]>(
             "raid.inspectArrays",
             cancellationToken);
+    }
+
+    public Task<DiskSmartInformation> GetDiskSmartAsync(
+        string deviceId,
+        CancellationToken cancellationToken)
+    {
+        return SendAsync<DiskSmartInformation>(
+            "storage.inspectSmart",
+            new SmartReadParameters(deviceId),
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ManagedVolumeInformation>> GetManagedVolumesAsync(
+        CancellationToken cancellationToken)
+    {
+        return await SendAsync<ManagedVolumeInformation[]>(
+            "storage.inspectManagedVolumes",
+            cancellationToken);
+    }
+
+    async Task<StorageExecutionOutcome> IStorageCommandExecutor.ExecuteAsync(
+        StorageExecutionCommand command,
+        CancellationToken cancellationToken)
+    {
+        var action = command.Requested.Kind switch
+        {
+            StorageOperationKind.ProvisionVolume => "storage.provisionVolume",
+            StorageOperationKind.UpdatePermissions => "storage.updatePermissions",
+            StorageOperationKind.ConfigureShares => "storage.configureShares",
+            StorageOperationKind.VerifyReadWrite => "storage.verifyReadWrite",
+            _ => throw new InvalidOperationException("Unsupported storage operation kind")
+        };
+        var parameters = new StorageExecutionParameters(
+            command.OperationId.ToString("D"),
+            command.IdempotencyKey,
+            command.FencingToken,
+            command.Requested.ArrayId,
+            command.Requested.VolumeId,
+            command.Requested.VolumeName,
+            command.Requested.OwnerName,
+            command.Requested.GroupName,
+            command.Requested.DirectoryMode,
+            command.Requested.Smb,
+            command.Requested.Nfs,
+            command.SnapshotFingerprint);
+        try
+        {
+            var volume = await SendAsync<ManagedVolumeInformation>(
+                action,
+                parameters,
+                options.Value.RaidTimeoutSeconds,
+                cancellationToken);
+            return new StorageExecutionAccepted(volume);
+        }
+        catch (PrivilegedClientException exception)
+        {
+            var uncertain = exception.Code is "privileged.unavailable"
+                or "request.deadline_exceeded"
+                or "tool.timeout"
+                or "operation.duplicate_requires_reconciliation";
+            return new StorageExecutionRejected(
+                exception.Code,
+                exception.Retryable,
+                uncertain);
+        }
     }
 
     public async Task<RaidExecutionOutcome> ExecuteAsync(
@@ -239,6 +308,11 @@ public sealed class UnixSocketPrivilegedClient(
             "request.invalid" => "底层系统查询请求无效",
             "request.deadline_exceeded" => "底层系统查询已超时",
             "inventory.read_failed" => "底层系统信息读取失败",
+            "resource.identity_unstable" => "磁盘身份不稳定，无法安全读取 SMART",
+            "smart.tool_not_available" => "SMART 查询工具尚未安装",
+            "smart.tool_timeout" => "SMART 查询超时",
+            "smart.query_failed" => "SMART 信息读取失败",
+            "smart.invalid_output" => "SMART 查询返回了无效数据",
             "resource.not_found" => "RAID 目标资源不存在",
             "resource.identity_changed" => "RAID 目标身份已经变化",
             "resource.system_disk" => "系统盘禁止用于 RAID 写操作",
@@ -247,6 +321,12 @@ public sealed class UnixSocketPrivilegedClient(
             "tool.timeout" => "mdadm 操作超时",
             "tool.failed" => "mdadm 操作失败",
             "result.verification_failed" => "RAID 操作结果复核失败",
+            "storage.write_unavailable" => "数据卷与共享写入服务不可用",
+            "storage.filesystem_exists" => "目标阵列已存在文件系统或数据签名",
+            "storage.mount_failed" => "数据卷挂载失败",
+            "storage.permission_failed" => "数据目录权限设置失败",
+            "storage.verification_failed" => "数据卷写入读取校验失败",
+            "storage.share_validation_failed" => "SMB 或 NFS 配置校验失败",
             _ => "底层系统查询被拒绝"
         };
     }
@@ -328,8 +408,24 @@ public sealed class UnixSocketPrivilegedClient(
         IReadOnlyList<string> ExpectedMemberDeviceIds,
         string SnapshotFingerprint);
 
+    private sealed record SmartReadParameters(string DeviceId);
+
     private sealed record RaidExecutionResult(
         string? ArrayId,
         bool InProgress,
         int? ProgressPercentage);
+
+    private sealed record StorageExecutionParameters(
+        string OperationId,
+        string IdempotencyKey,
+        long FencingToken,
+        string? ArrayId,
+        string? VolumeId,
+        string? VolumeName,
+        string? OwnerName,
+        string? GroupName,
+        string? DirectoryMode,
+        SmbShareSettings? Smb,
+        NfsShareSettings? Nfs,
+        string SnapshotFingerprint);
 }

@@ -18,9 +18,16 @@ EnvironmentFile=/etc/amseoknas/privileged.env
 Environment=AMSEOKNAS_PRIVILEGED_NETWORK_CONFIG_DIRECTORY=/etc/systemd/network
 Environment=AMSEOKNAS_RAID_OPERATION_REGISTRY_PATH=/var/lib/amseoknas/raid/operations.json
 Environment=AMSEOKNAS_RAID_BACKUP_DIRECTORY=/var/lib/amseoknas/raid/reshape
+Environment=AMSEOKNAS_STORAGE_OPERATION_REGISTRY_PATH=/var/lib/amseoknas/storage/operations.json
+Environment=AMSEOKNAS_STORAGE_DESCRIPTOR_DIRECTORY=/var/lib/amseoknas/storage/volumes
+Environment=AMSEOKNAS_VOLUME_ROOT=/srv/amseoknas/volumes
+Environment=AMSEOKNAS_MOUNT_UNIT_DIRECTORY=/etc/systemd/system
+Environment=AMSEOKNAS_SAMBA_CONFIG=/etc/samba/smb.conf
+Environment=AMSEOKNAS_SAMBA_INCLUDE_DIRECTORY=/etc/samba/smb.conf.d
+Environment=AMSEOKNAS_NFS_EXPORT_DIRECTORY=/etc/exports.d
 RuntimeDirectory=amseoknas
 RuntimeDirectoryMode=0750
-StateDirectory=amseoknas/raid
+StateDirectory=amseoknas/raid amseoknas/storage
 StateDirectoryMode=0700
 ExecStart=/usr/libexec/amseoknas/amseoknas-privileged
 Restart=on-failure
@@ -38,8 +45,8 @@ ProtectKernelLogs=yes
 ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectSystem=strict
-# 严格系统保护保持开启，只额外放行 Socket、网络配置与 RAID 私有状态目录
-ReadWritePaths=/run/amseoknas /etc/systemd/network /var/lib/amseoknas/raid
+# 严格系统保护保持开启，只放行受管网络、RAID、数据卷、mount unit 与共享配置目录
+ReadWritePaths=/run/amseoknas /etc/systemd/network /var/lib/amseoknas/raid /var/lib/amseoknas/storage /var/lib/nfs /srv/amseoknas/volumes /etc/systemd/system /etc/samba /etc/exports.d
 RestrictAddressFamilies=AF_UNIX AF_NETLINK
 RestrictNamespaces=yes
 RestrictRealtime=yes
@@ -48,8 +55,8 @@ LockPersonality=yes
 MemoryDenyWriteExecute=yes
 # CAP_SYS_ADMIN/CAP_SYS_RAWIO 仅供固定 mdadm 动作和块设备复核；CAP_MKNOD 供 md 设备节点建立
 # 写入目标仍受协议白名单、稳定身份复核、DevicePolicy 与 ReadWritePaths 共同限制
-CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_NET_ADMIN CAP_SYS_ADMIN CAP_SYS_RAWIO CAP_MKNOD
-AmbientCapabilities=CAP_DAC_OVERRIDE CAP_NET_ADMIN CAP_SYS_ADMIN CAP_SYS_RAWIO CAP_MKNOD
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_NET_ADMIN CAP_SYS_ADMIN CAP_SYS_RAWIO CAP_MKNOD
+AmbientCapabilities=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_NET_ADMIN CAP_SYS_ADMIN CAP_SYS_RAWIO CAP_MKNOD
 SystemCallArchitectures=native
 
 [Install]

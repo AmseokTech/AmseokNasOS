@@ -2,11 +2,16 @@
 //--------封装磁盘与 RAID 只读清单查询---------//
 //--------Encapsulates read-only disk and RAID inventory queries--------//
 //-------------------------//
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, forkJoin, Observable, throwError } from 'rxjs';
 
-import { BlockDevice, RaidArray, StorageInventory } from './storage-inventory.models';
+import {
+  BlockDevice,
+  DiskSmartInformation,
+  RaidArray,
+  StorageInventory
+} from './storage-inventory.models';
 
 interface ProblemDetails {
   readonly detail?: string;
@@ -21,6 +26,13 @@ export class StorageInventoryService {
       disks: this.http.get<readonly BlockDevice[]>('/api/storage/disks'),
       arrays: this.http.get<readonly RaidArray[]>('/api/raid/arrays')
     }).pipe(
+      catchError((error: unknown) => throwError(() => this.normalizeError(error)))
+    );
+  }
+
+  getSmart(deviceId: string): Observable<DiskSmartInformation> {
+    const params = new HttpParams().set('deviceId', deviceId);
+    return this.http.get<DiskSmartInformation>('/api/storage/disks/smart', { params }).pipe(
       catchError((error: unknown) => throwError(() => this.normalizeError(error)))
     );
   }

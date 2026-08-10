@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from '../../app.routes';
 import { TerminalLauncherService } from '../../features/terminal/terminal-launcher.service';
+import { WindowManagerService } from '../window-manager/window-manager.service';
 import { DesktopComponent } from './desktop.component';
 
 class TerminalLauncherStub {
@@ -98,6 +99,26 @@ describe('DesktopComponent', () => {
     terminalButton?.click();
 
     expect(launcher.openCalls).toBe(0);
+    http.verify();
+  });
+
+  it('opens the Dashboard as a singleton managed window', () => {
+    const fixture = TestBed.createComponent(DesktopComponent);
+    const http = TestBed.inject(HttpTestingController);
+    const manager = TestBed.inject(WindowManagerService);
+
+    fixture.detectChanges();
+    http.expectOne('/api/auth/session').flush({ userName: 'admin', mustChangePassword: false });
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector<HTMLButtonElement>(
+      'button[aria-label="概览"]'
+    )?.click();
+
+    expect(manager.windows()).toHaveLength(1);
+    expect(manager.windows()[0].appId).toBe('dashboard');
+    manager.open('dashboard');
+    expect(manager.windows()).toHaveLength(1);
     http.verify();
   });
 });

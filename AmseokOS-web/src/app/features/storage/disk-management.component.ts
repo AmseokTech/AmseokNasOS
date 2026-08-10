@@ -14,13 +14,27 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, switchMap, takeWhile, timer } from 'rxjs';
 
+import { DataVolumeManagementComponent } from './data-volume-management.component';
 import { RaidAction, RaidOperation, RaidOperationPreview } from './raid-management.models';
 import { RaidManagementService } from './raid-management.service';
-import { BlockDevice, RaidArray, StorageInventory } from './storage-inventory.models';
+import {
+  BlockDevice,
+  DiskSmartInformation,
+  DiskSmartStatus,
+  RaidArray,
+  StorageInventory
+} from './storage-inventory.models';
 import { StorageInventoryService } from './storage-inventory.service';
+
+interface DiskSmartState {
+  readonly loading: boolean;
+  readonly information: DiskSmartInformation | null;
+  readonly error: string;
+}
 
 @Component({
   selector: 'app-disk-management',
+  imports: [DataVolumeManagementComponent],
   templateUrl: './disk-management.component.html',
   styleUrl: './disk-management.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -33,6 +47,7 @@ export class DiskManagementComponent implements OnInit {
   readonly inventory = signal<StorageInventory | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
+  readonly smartStates = signal<Readonly<Record<string, DiskSmartState>>>({});
   readonly dialogOpen = signal(false);
   readonly selectedArray = signal<RaidArray | null>(null);
   readonly action = signal<RaidAction>('create');
@@ -67,10 +82,62 @@ export class DiskManagementComponent implements OnInit {
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.loading.set(false))
     ).subscribe({
-      next: (inventory) => this.inventory.set(inventory),
+      next: (inventory) => {
+        this.inventory.set(inventory);
+        this.smartStates.set({});
+        inventory.disks
+          .filter((disk) => disk.stable && !disk.identityConflict)
+          .forEach((disk) => this.loadSmart(disk.id));
+      },
       error: (error: unknown) => {
         this.inventory.set(null);
         this.error.set(error instanceof Error ? error.message : '磁盘信息加载失败');
+      }
+    });
+  }
+
+  smartState(deviceId: string): DiskSmartState | null {
+    return this.smartStates()[deviceId] ?? null;
+  }
+
+  smartStatusLabel(status: DiskSmartStatus): string {
+    return {
+      healthy: '健康',
+      warning: '需要关注',
+      failing: '故障风险',
+      unsupported: '不支持 SMART',
+      unknown: '状态未知'
+    }[status];
+  }
+
+  smartCounter(value: number | null): string {
+    return value === null ? '—' : value.toLocaleString('zh-CN');
+  }
+
+  loadSmart(deviceId: string): void {
+    const current = this.smartStates()[deviceId];
+    if (current?.loading) {
+      return;
+    }
+    this.setSmartState(deviceId, { loading: true, information: null, error: '' });
+    this.inventoryService.getSmart(deviceId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        const state = this.smartStates()[deviceId];
+        if (state?.loading) {
+          this.setSmartState(deviceId, { ...state, loading: false });
+        }
+      })
+    ).subscribe({
+      next: (information) => {
+        this.setSmartState(deviceId, { loading: false, information, error: '' });
+      },
+      error: (error: unknown) => {
+        this.setSmartState(deviceId, {
+          loading: false,
+          information: null,
+          error: error instanceof Error ? error.message : 'SMART 信息加载失败'
+        });
       }
     });
   }
@@ -371,6 +438,10 @@ export class DiskManagementComponent implements OnInit {
       && disk.partitions.length === 0
       && disk.mountPoints.length === 0
       && disk.dependentDevices.length === 0;
+  }
+
+  private setSmartState(deviceId: string, state: DiskSmartState): void {
+    this.smartStates.update((states) => ({ ...states, [deviceId]: state }));
   }
 
   private needsPolling(operation: RaidOperation): boolean {

@@ -4,5 +4,6 @@
 //-------------------------//
 pub mod network;
 pub mod raid;
+pub mod smart;
 pub mod storage;
 pub mod system;

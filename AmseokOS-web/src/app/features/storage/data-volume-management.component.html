@@ -1,0 +1,224 @@
+<section class="volume-section" aria-labelledby="data-volumes-title">
+  <div class="section-heading">
+    <div>
+      <h2 id="data-volumes-title">数据卷与局域网共享</h2>
+      <p>固定使用 ext4，按文件系统 UUID 持久挂载，并管理目录权限、读写校验、SMB 与 NFS。</p>
+    </div>
+    <div class="heading-actions">
+      <button type="button" [disabled]="loading()" (click)="load()">刷新数据卷</button>
+      <button type="button" class="primary-button" [disabled]="availableArrays().length === 0" (click)="openProvision()">
+        初始化数据卷
+      </button>
+    </div>
+  </div>
+
+  <aside class="volume-note">
+    初始化会清除目标阵列全部数据；格式化、挂载、权限和共享变更都需要两次管理员密码与一次性确认短语。
+  </aside>
+
+  @if (loading()) {
+    <div class="volume-state" role="status">正在读取数据卷与共享状态…</div>
+  } @else if (loadError()) {
+    <div class="volume-state volume-state--error" role="alert">
+      <strong>无法读取数据卷状态</strong>
+      <span>{{ loadError() }}</span>
+    </div>
+  } @else if (volumes().length === 0) {
+    <div class="volume-state">
+      <strong>尚未初始化数据卷</strong>
+      <span>健康且同步空闲的 RAID 阵列可格式化为 ext4 并按 UUID 挂载。</span>
+    </div>
+  } @else {
+    <div class="volume-list">
+      @for (volume of volumes(); track volume.id) {
+        <article class="volume-card" [class.volume-card--warning]="!volume.mounted || !volume.persistentMountEnabled">
+          <header>
+            <div>
+              <span class="eyebrow">{{ volume.fileSystemType.toUpperCase() }} DATA VOLUME</span>
+              <h3>{{ volume.name }}</h3>
+              <p class="technical-value">{{ volume.mountPath }}</p>
+            </div>
+            <span class="health" [class.health--warning]="!volume.mounted || !volume.persistentMountEnabled">
+              {{ volume.mounted && volume.persistentMountEnabled ? '已挂载 · 开机自启' : '挂载异常' }}
+            </span>
+          </header>
+          <dl>
+            <div><dt>文件系统 UUID</dt><dd class="technical-value">{{ volume.fileSystemUuid }}</dd></div>
+            <div><dt>底层阵列</dt><dd class="technical-value">{{ volume.arrayPath }}</dd></div>
+            <div><dt>目录权限</dt><dd>{{ volume.ownerName }}:{{ volume.groupName }} · {{ volume.directoryMode }}</dd></div>
+            <div><dt>读写校验</dt><dd>{{ volume.readWriteVerified ? '通过' : '未通过' }}</dd></div>
+            <div class="share-detail"><dt>局域网共享</dt><dd>{{ shareSummary(volume) }}</dd></div>
+          </dl>
+          <footer>
+            <button type="button" (click)="openAction('updatePermissions', volume)">目录权限</button>
+            <button type="button" (click)="openAction('configureShares', volume)">SMB/NFS</button>
+            <button type="button" (click)="openAction('verifyReadWrite', volume)">读写校验</button>
+          </footer>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (dialogOpen()) {
+  <div class="volume-backdrop" (click)="closeDialog()" aria-hidden="true"></div>
+  <section class="volume-dialog" role="dialog" aria-modal="true" aria-labelledby="volume-operation-title">
+    <header>
+      <div>
+        <span class="eyebrow">存储管理操作</span>
+        <h2 id="volume-operation-title">{{ actionLabel(action()) }}</h2>
+        @if (selectedVolume(); as volume) {
+          <p>{{ volume.name }} · {{ volume.mountPath }}</p>
+        }
+      </div>
+      <button type="button" class="dialog-close" aria-label="关闭" (click)="closeDialog()">×</button>
+    </header>
+
+    @if (action() === 'provisionVolume') {
+      <label class="form-field">
+        <span>目标 RAID 阵列</span>
+        <select [value]="selectedArray()?.id ?? ''" [disabled]="!!operation()" (change)="updateArray($any($event.target).value)">
+          @for (array of availableArrays(); track array.id) {
+            <option [value]="array.id">{{ array.name }} · {{ array.path }} · {{ array.level.toUpperCase() }}</option>
+          }
+        </select>
+      </label>
+      <label class="form-field">
+        <span>数据卷名称</span>
+        <input type="text" maxlength="32" [value]="volumeName()" [disabled]="!!operation()"
+          (input)="setText('volumeName', $any($event.target).value)" />
+        <small>挂载目录固定为 /srv/amseoknas/volumes/&lt;名称&gt;</small>
+      </label>
+    }
+
+    @if (action() === 'provisionVolume' || action() === 'updatePermissions') {
+      <fieldset>
+        <legend>数据目录权限</legend>
+        <div class="form-grid">
+          <label class="form-field">
+            <span>所有者</span>
+            <input type="text" maxlength="32" [value]="ownerName()" [disabled]="!!operation()"
+              (input)="setText('ownerName', $any($event.target).value)" />
+          </label>
+          <label class="form-field">
+            <span>用户组</span>
+            <input type="text" maxlength="32" [value]="groupName()" [disabled]="!!operation()"
+              (input)="setText('groupName', $any($event.target).value)" />
+          </label>
+          <label class="form-field">
+            <span>目录模式</span>
+            <select [value]="directoryMode()" [disabled]="!!operation()"
+              (change)="setText('directoryMode', $any($event.target).value)">
+              <option value="0750">0750</option>
+              <option value="0770">0770</option>
+              <option value="0775">0775</option>
+              <option value="0777">0777</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+    }
+
+    @if (action() === 'provisionVolume' || action() === 'configureShares') {
+      <fieldset>
+        <legend>SMB 共享</legend>
+        <label class="toggle-field">
+          <input type="checkbox" [checked]="smbEnabled()" [disabled]="!!operation()"
+            (change)="setToggle('smbEnabled', $any($event.target).checked)" />
+          <span>启用 SMB</span>
+        </label>
+        @if (smbEnabled()) {
+          <div class="form-grid">
+            <label class="form-field">
+              <span>共享名</span>
+              <input type="text" maxlength="32" [value]="smbShareName()" [disabled]="!!operation()"
+                (input)="setText('smbShareName', $any($event.target).value)" />
+            </label>
+            <label class="form-field">
+              <span>允许网段（CIDR）</span>
+              <input type="text" maxlength="43" [value]="smbAllowedNetwork()" [disabled]="!!operation()"
+                (input)="setText('smbAllowedNetwork', $any($event.target).value)" />
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-field"><input type="checkbox" [checked]="smbReadOnly()" [disabled]="!!operation()"
+              (change)="setToggle('smbReadOnly', $any($event.target).checked)" /><span>只读</span></label>
+            <label class="toggle-field"><input type="checkbox" [checked]="smbGuestAccess()" [disabled]="!!operation()"
+              (change)="setToggle('smbGuestAccess', $any($event.target).checked)" /><span>允许来宾</span></label>
+          </div>
+          @if (smbGuestAccess() && !smbReadOnly() && directoryMode() !== '0777') {
+            <p class="inline-warning">来宾写入要求目录模式为 0777；更安全的默认值是关闭来宾写入。</p>
+          }
+        }
+      </fieldset>
+
+      <fieldset>
+        <legend>NFS 共享</legend>
+        <label class="toggle-field">
+          <input type="checkbox" [checked]="nfsEnabled()" [disabled]="!!operation()"
+            (change)="setToggle('nfsEnabled', $any($event.target).checked)" />
+          <span>启用 NFS</span>
+        </label>
+        @if (nfsEnabled()) {
+          <label class="form-field">
+            <span>允许客户端网段（CIDR）</span>
+            <input type="text" maxlength="43" [value]="nfsClientNetwork()" [disabled]="!!operation()"
+              (input)="setText('nfsClientNetwork', $any($event.target).value)" />
+          </label>
+          <label class="toggle-field"><input type="checkbox" [checked]="nfsReadOnly()" [disabled]="!!operation()"
+            (change)="setToggle('nfsReadOnly', $any($event.target).checked)" /><span>只读</span></label>
+        }
+      </fieldset>
+    }
+
+    @if (action() === 'verifyReadWrite') {
+      <aside class="verification-note">服务会创建唯一临时文件、同步落盘、完整读回比对并删除；不会覆盖现有数据。</aside>
+    }
+
+    @if (!preview() && !operation()) {
+      <label class="form-field">
+        <span>当前管理员密码</span>
+        <input type="password" autocomplete="current-password" maxlength="256" [value]="password()"
+          (input)="password.set($any($event.target).value)" />
+      </label>
+      <button type="button" class="primary-button submit-button" [disabled]="actionBusy()" (click)="createPreview()">
+        {{ actionBusy() ? '正在预检…' : '检查风险与当前状态' }}
+      </button>
+    }
+
+    @if (preview(); as currentPreview) {
+      <section class="preview-result" [class.preview-result--blocked]="!currentPreview.canExecute">
+        <h3>{{ currentPreview.canExecute ? '预检通过' : '当前不能执行' }}</h3>
+        @for (issue of currentPreview.blockingIssues; track issue.code + issue.field) {
+          <p class="issue-message">{{ issue.message }}</p>
+        }
+        @for (warning of currentPreview.warnings; track warning) {
+          <p class="warning-message">{{ warningLabel(warning) }}</p>
+        }
+      </section>
+      @if (currentPreview.canExecute) {
+        <div class="confirmation-panel">
+          <p>请原样输入确认短语：<strong>{{ currentPreview.confirmationPhrase }}</strong></p>
+          <label class="form-field"><span>确认短语</span><input type="text" maxlength="256" autocomplete="off"
+            [value]="confirmationInput()" (input)="confirmationInput.set($any($event.target).value)" /></label>
+          <label class="form-field"><span>再次输入管理员密码</span><input type="password" maxlength="256"
+            autocomplete="current-password" [value]="confirmationPassword()"
+            (input)="confirmationPassword.set($any($event.target).value)" /></label>
+          <button type="button" class="danger-button submit-button" [disabled]="actionBusy()" (click)="execute()">
+            {{ actionBusy() ? '正在提交…' : '确认并执行' }}
+          </button>
+        </div>
+      } @else {
+        <button type="button" (click)="invalidatePreview()">修改后重新预检</button>
+      }
+    }
+
+    @if (operation(); as currentOperation) {
+      <section class="operation-status" [class.operation-status--error]="currentOperation.status !== 'running' && currentOperation.status !== 'succeeded'">
+        <h3>{{ operationLabel(currentOperation) }}</h3>
+        <p class="technical-value">Operation {{ currentOperation.operationId }}</p>
+      </section>
+    }
+    @if (actionError()) { <p class="dialog-error" role="alert">{{ actionError() }}</p> }
+  </section>
+}

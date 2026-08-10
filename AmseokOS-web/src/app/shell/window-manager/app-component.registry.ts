@@ -13,6 +13,22 @@ export interface AppComponentDefinition {
 
 const BUILT_IN_APP_COMPONENTS: ReadonlyMap<string, AppComponentDefinition> = new Map([
   [
+    'dashboard',
+    {
+      appId: 'dashboard',
+      title: '系统概览',
+      singleton: true,
+      defaultWidth: 1080,
+      defaultHeight: 720,
+      minWidth: 680,
+      minHeight: 480,
+      loadComponent: () =>
+        import('../../features/dashboard').then(
+          ({ DashboardPageComponent }) => DashboardPageComponent
+        )
+    }
+  ],
+  [
     'terminal',
     {
       appId: 'terminal',

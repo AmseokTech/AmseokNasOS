@@ -68,6 +68,14 @@ builder.Services.AddAuthorization(options =>
             .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.StorageRead)
             .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
     options.AddPolicy(
+        AuthenticationDefaults.StorageManagePolicy,
+        policy => policy
+            .RequireAuthenticatedUser()
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.StorageWrite)
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.StorageFormat)
+            .RequireClaim(AuthenticationDefaults.PermissionClaim, SystemPermissions.ShareManage)
+            .RequireClaim(AuthenticationDefaults.MustChangePasswordClaim, "false"));
+    options.AddPolicy(
         AuthenticationDefaults.RaidManagePolicy,
         policy => policy
             .RequireAuthenticatedUser()
@@ -146,6 +154,30 @@ builder.Services.AddRateLimiter(options =>
                 AutoReplenishment = true
             }));
     options.AddPolicy("raid-change", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("storage-preview", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("storage-change", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.User.Identity?.Name
                 ?? context.Connection.RemoteIpAddress?.ToString()
