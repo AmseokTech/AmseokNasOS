@@ -16,9 +16,143 @@
       </svg>
       <span class="status-text">已连接</span>
     </span>
-    <time [attr.datetime]="currentTime().toISOString()">
-      {{ currentTime() | date: 'M月d日 HH:mm' }}
-    </time>
+    <button
+      class="date-time-trigger"
+      type="button"
+      title="日期与时间"
+      aria-controls="desktop-date-time-panel"
+      [attr.aria-expanded]="dateTimePanelOpen()"
+      (click)="toggleDateTimePanel()"
+    >
+      <time [attr.datetime]="currentTime().toISOString()">
+        {{ currentTime() | date: 'M月d日 HH:mm' }}
+      </time>
+    </button>
+    <button
+      class="notification-trigger"
+      type="button"
+      title="通知中心"
+      aria-controls="desktop-notification-center"
+      [attr.aria-expanded]="notificationCenterOpen()"
+      [attr.aria-label]="
+        unreadNotificationCount() ? '通知中心，' + unreadNotificationCount() + ' 条未读' : '通知中心'
+      "
+      (click)="toggleNotificationCenter()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+        <path d="M10 21h4" />
+      </svg>
+      @if (unreadNotificationCount()) {
+        <span class="notification-badge" aria-hidden="true">{{ unreadNotificationCount() }}</span>
+      }
+    </button>
     <span class="user-avatar" aria-label="当前用户 admin">A</span>
   </div>
+
+  @if (dateTimePanelOpen()) {
+    <section
+      id="desktop-date-time-panel"
+      class="date-time-panel"
+      animate.enter="date-time-panel--enter"
+      animate.leave="date-time-panel--leave"
+      role="dialog"
+      aria-label="日期与时间"
+    >
+      <header
+        class="date-time-panel__header date-time-panel__content"
+        animate.enter="date-time-panel__content--enter"
+        style="--date-time-delay: 55ms"
+      >
+        <div>
+          <span>当前时间</span>
+          <strong>{{ currentTime() | date: 'HH:mm' }}</strong>
+        </div>
+        <button mat-button type="button" (click)="selectToday()">今天</button>
+      </header>
+
+      <mat-calendar
+        class="date-time-calendar date-time-panel__content"
+        animate.enter="date-time-panel__content--enter"
+        style="--date-time-delay: 85ms"
+        [selected]="selectedDate()"
+        [startAt]="selectedDate()"
+        (selectedChange)="selectDate($event)"
+      />
+
+      <footer
+        class="date-time-panel__footer date-time-panel__content"
+        animate.enter="date-time-panel__content--enter"
+        style="--date-time-delay: 115ms"
+      >
+        <div>
+          <span>所选日期</span>
+          <strong>{{ selectedDateLabel() }}</strong>
+        </div>
+        <span class="date-time-panel__schedule">
+          <i aria-hidden="true"></i>
+          暂无日程
+        </span>
+      </footer>
+    </section>
+  }
+
+  @if (notificationCenterOpen()) {
+    <aside
+      id="desktop-notification-center"
+      class="notification-center"
+      animate.enter="notification-center--enter"
+      animate.leave="notification-center--leave"
+      aria-label="通知中心"
+      aria-live="polite"
+    >
+      <header class="notification-center__header">
+        <div>
+          <strong>通知中心</strong>
+          <br />
+          <span>{{ unreadNotificationCount() ? unreadNotificationCount() + ' 条未读' : '全部已读' }} · 本地示例</span>
+        </div>
+        @if (unreadNotificationCount()) {
+          <button type="button" (click)="markAllNotificationsRead()">全部标为已读</button>
+        }
+      </header>
+
+      <div class="notification-list">
+        @for (notification of notifications(); track notification.id) {
+          <article
+            class="notification-item"
+            animate.enter="notification-item--enter"
+            [style.--notification-delay]="55 + $index * 38 + 'ms'"
+            [class.notification-item--read]="notification.read"
+          >
+            <span class="notification-indicator" aria-hidden="true"></span>
+            <div class="notification-item__content">
+              <div class="notification-item__heading">
+                <strong>{{ notification.title }}</strong>
+                <time>{{ notification.time }}</time>
+              </div>
+              <p>{{ notification.description }}</p>
+            </div>
+            <div class="notification-item__actions">
+              <button
+                type="button"
+                title="关闭通知"
+                aria-label="关闭通知"
+                (click)="dismissNotification(notification.id)"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 6 12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="notification-empty" animate.enter="notification-empty--enter">
+            <strong>暂时没有通知</strong>
+            <span>新的系统消息会显示在这里。</span>
+          </div>
+        }
+      </div>
+    </aside>
+  }
 </header>
