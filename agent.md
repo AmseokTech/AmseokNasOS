@@ -50,7 +50,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
 - 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
 - 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；所有成功登录统一进入懒加载的 `/desktop` 路由，强制改密会话在桌面右上角显示可复用内容投影提醒，刷新桌面后通过会话接口恢复提醒；Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
-- 已将桌面手绘渐变背景替换为用户提供的 16:9 山景壁纸，使用 `cover` 保持宽高比并保留深蓝色加载兜底；Angular 25 项测试与生产构建通过，构建产物包含与源文件一致的壁纸资源
+- 已将桌面壁纸更新为用户提供的蓝白粉 16:9 油画纹理图片，转换为 3840×2160 高质量 JPEG 后沿用原有 `cover` 和深蓝色加载兜底；Angular ESLint、桌面 5 项测试与生产构建通过，构建产物中的壁纸 SHA-256 与源资源一致
 - 已将前端用户可见的旧产品名统一为 `AmseokOS`，移除桌面品牌区的 CSS 手绘 Logo，将“更便捷地管理你的服务器”与产品名移至桌面右下角，并在窄屏避让底部 Dock；Angular 26 项测试与生产构建通过
 - 已将系统设置注册为桌面窗口管理器中的单例应用，Dock 可打开、聚焦、最小化和恢复窗口；设置页面采用左侧“关于本机/网络”导航，关于本机展示操作系统、内核、运行时间、CPU 型号/核心/频率、内存和系统盘容量，网络页展示物理网卡型号、驱动、链路、速率、地址、网关和 DNS；当前仅在检测到 systemd DHCP 租约时标记 DHCP，其他已配置来源显示未知，避免把 NetworkManager、ifupdown 或 SLAAC 地址误报为固定地址；尚未具备安全回滚能力的 IP 写入按钮保持禁用
 - 已新增独立 C# `NetworkConfiguration` Application 模块和 `POST /api/network/configuration-previews` 安全预览接口，使用 `network.manage` 独立授权策略、CSRF、按用户限速和管理员密码重新认证；DHCP 模式拒绝静态字段，固定 IPv4 模式严格校验四段十进制地址、连续且 `/1` 至 `/30` 的子网掩码、主机地址、网关同子网及重复/缺失网卡身份，返回规范化地址、掩码、前缀、当前配置、警告与结构化错误。C# 已增加 `POST /api/network/configuration-operations`、`POST /api/network/configuration-operations/{operationId}/confirm` 和 `POST /api/network/configuration-operations/{operationId}/rollback` 三个受保护接口，将参数复核、两分钟确认期限、调用身份和执行结果映射集中在 Application，并通过独立 `INetworkConfigurationExecutor` 隔离 Rust 写入边界；生产环境暂时注册拒绝型适配器，因此 Rust 原子写入、连通性确认和自动回滚尚未实现时，三个接口统一以 `503 network.write_unavailable` 关闭且不会假报成功，预览仍返回 `CanApply=false`，前端按钮也保持禁用。网络配置相关 32 项 xUnit 与 Release 构建 0 警告/0 错误通过；Operation 持久化、资源锁和审计仍未接入此流程
