@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::inventory;
+use crate::inventory::smart::{self, SmartReadError};
 use crate::network_write::{
     self, NetworkWriteEnvironment, NetworkWriteError, NormalizedNetworkConfiguration,
 };
@@ -63,6 +64,12 @@ struct Diagnostics {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EmptyParameters {}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SmartReadParameters {
+    device_id: String,
+}
 
 /// 应用网络配置的入参，字段与第一章契约一一对应；
 /// 拒绝未知字段，避免调用方多写字段却以为已被采纳
@@ -194,6 +201,9 @@ fn process_request(
                 Err(failure) => return *failure,
                 Ok(()) => inventory::storage::inspect_block_devices().and_then(to_json_value),
             }
+        }
+        "storage.inspectSmart" => {
+            return smart_action(&parameters, request_id, started);
         }
         "storage.inspectManagedVolumes" => {
             match require_empty_parameters(&parameters, &request_id, started) {
@@ -348,6 +358,46 @@ fn process_request(
             started,
         ),
     }
+}
+
+fn smart_action(parameters: &Value, request_id: String, started: Instant) -> ResponseEnvelope {
+    let parameters = match serde_json::from_value::<SmartReadParameters>(parameters.clone()) {
+        Ok(parameters) => parameters,
+        Err(error) => {
+            return smart_failure(
+                request_id,
+                SmartReadError {
+                    code: smart::CODE_INVALID_DEVICE_ID,
+                    message: error.to_string(),
+                    retryable: false,
+                },
+                started,
+            );
+        }
+    };
+    match smart::inspect_device(&parameters.device_id) {
+        Ok(result) => match to_json_value(result) {
+            Ok(value) => ResponseEnvelope::success(request_id, value, started),
+            Err(error) => ResponseEnvelope::failure(
+                request_id,
+                smart::CODE_INVALID_OUTPUT,
+                error.to_string(),
+                false,
+                started,
+            ),
+        },
+        Err(error) => smart_failure(request_id, error, started),
+    }
+}
+
+fn smart_failure(request_id: String, error: SmartReadError, started: Instant) -> ResponseEnvelope {
+    ResponseEnvelope::failure(
+        request_id,
+        error.code,
+        error.message,
+        error.retryable,
+        started,
+    )
 }
 
 fn raid_action(
@@ -869,6 +919,24 @@ mod tests {
                 "test-read-parameters",
                 "system.getAbout",
                 json!({"unexpected": 1}),
+            ),
+            &registry,
+            &environment,
+        );
+
+        assert_eq!(response["success"], false);
+        assert_eq!(response["error"]["code"], "request.invalid");
+    }
+
+    #[test]
+    fn rejects_a_smart_query_with_an_unknown_parameter_before_running_smartctl() {
+        let (registry, environment) = read_only_context("protocol-smart-parameters");
+
+        let response = round_trip(
+            envelope(
+                "test-smart-parameters",
+                "storage.inspectSmart",
+                json!({"deviceId": "wwn:test", "devicePath": "/dev/sda"}),
             ),
             &registry,
             &environment,

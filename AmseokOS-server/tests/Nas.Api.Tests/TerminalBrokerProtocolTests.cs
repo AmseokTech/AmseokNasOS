@@ -19,9 +19,8 @@ public sealed class TerminalBrokerProtocolTests
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var cancellationToken = timeout.Token;
-        var socketPath = Path.Combine(
-            Path.GetTempPath(),
-            $"amseoknas-terminal-{Guid.NewGuid():N}.sock");
+        // Darwin 的 Unix socket 路径上限只有 104 字节，系统临时目录本身可能很长。
+        var socketPath = Path.Combine("/tmp", $"atb-{Guid.NewGuid():N}.sock");
         using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
         listener.Bind(new UnixDomainSocketEndPoint(socketPath));
         listener.Listen(1);

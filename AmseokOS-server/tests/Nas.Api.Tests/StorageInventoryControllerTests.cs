@@ -21,6 +21,7 @@ public sealed class StorageInventoryControllerTests
         var service = new StorageInventoryServiceStub();
         var controller = new StorageInventoryController(
             service,
+            service,
             NullLogger<StorageInventoryController>.Instance);
 
         var result = await controller.GetBlockDevices(CancellationToken.None);
@@ -43,6 +44,7 @@ public sealed class StorageInventoryControllerTests
         var service = new StorageInventoryServiceStub();
         var controller = new StorageInventoryController(
             service,
+            service,
             NullLogger<StorageInventoryController>.Instance);
 
         var result = await controller.GetRaidArrays(CancellationToken.None);
@@ -56,6 +58,25 @@ public sealed class StorageInventoryControllerTests
     }
 
     [Fact]
+    public async Task SmartHealthIsMappedWithoutExposingToolOutput()
+    {
+        var service = new StorageInventoryServiceStub();
+        var controller = new StorageInventoryController(
+            service,
+            service,
+            NullLogger<StorageInventoryController>.Instance);
+
+        var result = await controller.GetDiskSmart("wwn:test", CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var information = Assert.IsType<DiskSmartResponse>(ok.Value);
+        Assert.Equal("wwn:test", information.DeviceId);
+        Assert.Equal("healthy", information.Status);
+        Assert.Equal(34, information.TemperatureCelsius);
+        Assert.Equal((ulong)1200, information.PowerOnHours);
+    }
+
+    [Fact]
     public void BothEndpointsRequireStorageReadPolicy()
     {
         Assert.Equal(
@@ -64,6 +85,9 @@ public sealed class StorageInventoryControllerTests
         Assert.Equal(
             AuthenticationDefaults.StorageReadPolicy,
             PolicyFor(nameof(StorageInventoryController.GetRaidArrays)));
+        Assert.Equal(
+            AuthenticationDefaults.StorageReadPolicy,
+            PolicyFor(nameof(StorageInventoryController.GetDiskSmart)));
     }
 
     private static string? PolicyFor(string methodName)
@@ -74,7 +98,7 @@ public sealed class StorageInventoryControllerTests
             .Policy;
     }
 
-    private sealed class StorageInventoryServiceStub : IStorageInventoryService
+    private sealed class StorageInventoryServiceStub : IStorageInventoryService, IDiskSmartService
     {
         public Task<IReadOnlyList<BlockDeviceInformation>> GetBlockDevicesAsync(
             CancellationToken cancellationToken)
@@ -135,6 +159,27 @@ public sealed class StorageInventoryControllerTests
                     [new RaidMemberInformation("sda1", "/dev/sda1", "in_sync", 0)])
             ];
             return Task.FromResult(arrays);
+        }
+
+        public Task<DiskSmartInformation> GetDiskSmartAsync(
+            string deviceId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new DiskSmartInformation(
+                deviceId,
+                true,
+                true,
+                "healthy",
+                true,
+                34,
+                1200,
+                42,
+                0,
+                0,
+                0,
+                null,
+                null,
+                null));
         }
     }
 }

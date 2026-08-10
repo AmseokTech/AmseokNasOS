@@ -168,6 +168,25 @@ describe('SettingsPageComponent', () => {
     ]);
     fixture.detectChanges();
     http.expectOne('/api/storage-management/volumes').flush([]);
+    http.expectOne((request) =>
+      request.url === '/api/storage/disks/smart'
+      && request.params.get('deviceId') === 'wwn:test-system-disk'
+    ).flush({
+      deviceId: 'wwn:test-system-disk',
+      supported: true,
+      enabled: true,
+      status: 'healthy',
+      passed: true,
+      temperatureCelsius: 32,
+      powerOnHours: 2400,
+      powerCycleCount: 50,
+      reallocatedSectorCount: 0,
+      pendingSectorCount: 0,
+      offlineUncorrectableSectorCount: 0,
+      mediaErrorCount: null,
+      percentageUsed: null,
+      criticalWarning: null
+    });
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -175,6 +194,8 @@ describe('SettingsPageComponent', () => {
     expect(compiled.textContent).toContain('RAID1');
     expect(compiled.textContent).toContain('System SSD');
     expect(compiled.textContent).toContain('系统盘');
+    expect(compiled.textContent).toContain('健康');
+    expect(compiled.textContent).toContain('32 °C');
 
     const createButton = [...compiled.querySelectorAll('button')]
       .find((button) => button.textContent?.includes('创建阵列'));

@@ -211,6 +211,40 @@ public sealed class PrivilegedClientProtocolTests
     }
 
     [Fact]
+    public async Task SmartQueryUsesOnlyTheStableDeviceIdentity()
+    {
+        var information = await QueryFakeDaemonAsync(
+            "storage.inspectSmart",
+            new
+            {
+                deviceId = "wwn:test",
+                supported = true,
+                enabled = true,
+                status = "healthy",
+                passed = true,
+                temperatureCelsius = 34L,
+                powerOnHours = 1200UL,
+                powerCycleCount = 42UL,
+                reallocatedSectorCount = 0UL,
+                pendingSectorCount = 0UL,
+                offlineUncorrectableSectorCount = 0UL,
+                mediaErrorCount = (ulong?)null,
+                percentageUsed = (ulong?)null,
+                criticalWarning = (ulong?)null
+            },
+            (client, token) => client.GetDiskSmartAsync("wwn:test", token),
+            parameters =>
+            {
+                Assert.Equal("wwn:test", parameters.GetProperty("deviceId").GetString());
+                Assert.Single(parameters.EnumerateObject());
+            });
+
+        Assert.Equal("healthy", information.Status);
+        Assert.Equal(34, information.TemperatureCelsius);
+        Assert.Equal((ulong)1200, information.PowerOnHours);
+    }
+
+    [Fact]
     public async Task ManagedVolumeQueryUsesTheRegisteredVersionedAction()
     {
         var volumes = await QueryFakeDaemonAsync(
@@ -368,7 +402,8 @@ public sealed class PrivilegedClientProtocolTests
     private static async Task<T> QueryFakeDaemonAsync<T>(
         string expectedAction,
         object result,
-        Func<UnixSocketPrivilegedClient, CancellationToken, Task<T>> query)
+        Func<UnixSocketPrivilegedClient, CancellationToken, Task<T>> query,
+        Action<JsonElement>? assertParameters = null)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var cancellationToken = timeout.Token;
@@ -385,6 +420,7 @@ public sealed class PrivilegedClientProtocolTests
                 listener,
                 expectedAction,
                 result,
+                assertParameters,
                 cancellationToken);
             var client = new UnixSocketPrivilegedClient(
                 Options.Create(new PrivilegedOptions
@@ -412,6 +448,7 @@ public sealed class PrivilegedClientProtocolTests
         Socket listener,
         string expectedAction,
         object result,
+        Action<JsonElement>? assertParameters,
         CancellationToken cancellationToken)
     {
         using var socket = await listener.AcceptAsync(cancellationToken);
@@ -421,7 +458,15 @@ public sealed class PrivilegedClientProtocolTests
         var root = request.RootElement;
         Assert.Equal(1, root.GetProperty("protocolVersion").GetInt32());
         Assert.Equal(expectedAction, root.GetProperty("action").GetString());
-        Assert.Empty(root.GetProperty("parameters").EnumerateObject());
+        var parameters = root.GetProperty("parameters");
+        if (assertParameters is null)
+        {
+            Assert.Empty(parameters.EnumerateObject());
+        }
+        else
+        {
+            assertParameters(parameters);
+        }
         Assert.True(
             root.GetProperty("deadlineUnixMilliseconds").GetInt64()
                 > DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());

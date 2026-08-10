@@ -126,6 +126,10 @@ describe('DiskManagementComponent', () => {
     expect(component.formatBytes(Number.NaN)).toBe('0 B');
     expect(component.formatBytes(0)).toBe('0 B');
     expect(component.formatBytes(1024)).toContain('KB');
+    expect(component.smartStatusLabel('healthy')).toBe('健康');
+    expect(component.smartStatusLabel('failing')).toBe('故障风险');
+    expect(component.smartCounter(null)).toBe('—');
+    expect(component.smartCounter(1200)).toContain('1');
     expect(component.arrayStateLabel(array({ degradedDeviceCount: 1 }))).toContain('已降级');
     expect(component.arrayStateLabel(array({ state: 'active' }))).toBe('正常');
     expect(component.arrayStateLabel(array({ state: '' }))).toBe('未知');

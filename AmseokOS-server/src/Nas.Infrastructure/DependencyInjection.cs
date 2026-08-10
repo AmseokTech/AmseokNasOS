@@ -4,6 +4,7 @@
 //-------------------------//
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,7 @@ using Nas.Infrastructure.Persistence.Node;
 using Nas.Infrastructure.Terminal;
 using Nas.Application.SystemSettings;
 using Nas.Infrastructure.Privileged;
+using Nas.Infrastructure.Security;
 
 namespace Nas.Infrastructure;
 
@@ -75,6 +77,15 @@ public static class DependencyInjection
 
         services.AddDbContext<ClusterDbContext>(options => options.UseNpgsql(clusterConnection));
         services.AddDbContext<NodeDbContext>(options => options.UseSqlite(nodeConnection));
+
+        var dataProtection = ControlPlaneDataProtectionCertificate.Load(
+            configuration,
+            TimeProvider.System);
+        services.AddSingleton(dataProtection.Certificate);
+        services.AddDataProtection()
+            .SetApplicationName(dataProtection.Options.ApplicationName)
+            .PersistKeysToDbContext<ClusterDbContext>()
+            .ProtectKeysWithCertificate(dataProtection.Certificate);
 
         services.AddIdentityCore<NasUser>()
             .AddSignInManager()
@@ -134,6 +145,8 @@ public static class DependencyInjection
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<IStorageInventoryClient>(provider =>
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
+        services.AddSingleton<IDiskSmartClient>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<INetworkConfigurationInventory>(provider =>
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<IRaidCommandExecutor>(provider =>
@@ -148,6 +161,7 @@ public static class DependencyInjection
             UnavailableNetworkConfigurationExecutor>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IStorageInventoryService, StorageInventoryService>();
+        services.AddScoped<IDiskSmartService, StorageInventoryService>();
         services.AddScoped<INetworkConfigurationService, NetworkConfigurationService>();
         services.AddSingleton<IRaidPreviewStore, InMemoryRaidPreviewStore>();
         services.AddScoped<IRaidOperationStore, SqliteRaidOperationStore>();

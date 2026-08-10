@@ -93,7 +93,7 @@ install -m 0755 \
 install -m 0644 "$deploy_root/systemd/amseoknas-privileged.service" \
     "$privileged_package/usr/lib/systemd/system/amseoknas-privileged.service"
 write_control "$privileged_package" amseokos-privileged "$architecture" \
-    "adduser, e2fsprogs, mdadm, nfs-kernel-server, samba, systemd, util-linux" \
+    "adduser, e2fsprogs, mdadm, nfs-kernel-server, samba, smartmontools, systemd, util-linux" \
     "AmseokNAS constrained inventory, RAID, data-volume, and share daemon"
 cat >"$privileged_package/DEBIAN/postinst" <<'EOF'
 #!/bin/sh

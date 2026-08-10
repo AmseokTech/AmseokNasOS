@@ -149,6 +149,43 @@
                 <div><dt>分区</dt><dd>{{ disk.partitions.length }}</dd></div>
                 <div><dt>序列号</dt><dd class="technical-value">{{ disk.serialNumber || '—' }}</dd></div>
               </dl>
+              <section class="smart-summary" aria-label="SMART 健康信息">
+                @if (!disk.stable || disk.identityConflict) {
+                  <p>磁盘身份不稳定，已跳过 SMART 查询。</p>
+                } @else if (smartState(disk.id); as smart) {
+                  @if (smart.loading) {
+                    <p>正在读取 SMART 健康信息…</p>
+                  } @else if (smart.information; as information) {
+                    <header>
+                      <strong [class]="'smart-status smart-status--' + information.status">
+                        {{ smartStatusLabel(information.status) }}
+                      </strong>
+                      @if (information.supported && !information.enabled) {
+                        <span>SMART 未启用</span>
+                      }
+                    </header>
+                    @if (information.supported) {
+                      <dl>
+                        <div><dt>温度</dt><dd>{{ information.temperatureCelsius === null ? '—' : information.temperatureCelsius + ' °C' }}</dd></div>
+                        <div><dt>通电时长</dt><dd>{{ smartCounter(information.powerOnHours) }} 小时</dd></div>
+                        <div><dt>重映射扇区</dt><dd>{{ smartCounter(information.reallocatedSectorCount) }}</dd></div>
+                        <div><dt>待处理扇区</dt><dd>{{ smartCounter(information.pendingSectorCount) }}</dd></div>
+                        @if (information.percentageUsed !== null) {
+                          <div><dt>NVMe 已用寿命</dt><dd>{{ information.percentageUsed }}%</dd></div>
+                        }
+                        @if (information.mediaErrorCount !== null) {
+                          <div><dt>介质错误</dt><dd>{{ smartCounter(information.mediaErrorCount) }}</dd></div>
+                        }
+                      </dl>
+                    }
+                  } @else {
+                    <div class="smart-error">
+                      <span>{{ smart.error }}</span>
+                      <button type="button" (click)="loadSmart(disk.id)">重试 SMART</button>
+                    </div>
+                  }
+                }
+              </section>
             </article>
           }
         </div>
