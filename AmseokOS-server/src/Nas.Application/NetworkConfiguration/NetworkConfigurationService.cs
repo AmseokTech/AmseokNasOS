@@ -14,11 +14,10 @@ public sealed class NetworkConfigurationService(
     IAuthenticationService authentication,
     INetworkConfigurationInventory inventory,
     INetworkConfigurationExecutor executor,
+    INetworkConfigurationOperationStore operations,
     TimeProvider timeProvider) : INetworkConfigurationService
 {
     private static readonly TimeSpan ConfirmationWindow = TimeSpan.FromMinutes(2);
-    private static readonly IReadOnlyList<string> WriteUnavailable =
-        ["network.write_unavailable"];
 
     private static readonly IReadOnlyList<string> PreviewWarnings =
     [
@@ -74,8 +73,8 @@ public sealed class NetworkConfigurationService(
                 target.Addresses,
                 target.Gateway,
                 normalized.Configuration!,
-                CanApply: false,
-                WriteUnavailable,
+                CanApply: true,
+                [],
                 PreviewWarnings));
     }
 
@@ -96,8 +95,22 @@ public sealed class NetworkConfigurationService(
         }
 
         var preview = ((NetworkConfigurationPreviewCreated)previewOutcome).Preview;
-        var operationId = Guid.NewGuid();
         var confirmationDeadline = timeProvider.GetUtcNow().Add(ConfirmationWindow);
+        var start = await operations.StartAsync(
+            userId,
+            preview.InterfaceId,
+            preview.Requested,
+            confirmationDeadline,
+            cancellationToken);
+        if (start is NetworkConfigurationOperationStartRejected startRejected)
+        {
+            return new NetworkConfigurationCommandRejected(
+                NetworkConfigurationCommandFailure.Conflict,
+                startRejected.Code,
+                Retryable: true,
+                []);
+        }
+        var operationId = ((NetworkConfigurationOperationStarted)start).Operation.Id;
         var execution = await executor.ApplyAsync(
             operationId,
             userId,
@@ -105,11 +118,34 @@ public sealed class NetworkConfigurationService(
             preview.Requested,
             confirmationDeadline,
             cancellationToken);
-
-        return FromExecution(
+        var outcome = FromExecution(
             execution,
             operationId,
             NetworkConfigurationOperationState.AwaitingConfirmation);
+
+        if (outcome is NetworkConfigurationCommandSucceeded)
+        {
+            await operations.RecordAsync(
+                operationId,
+                StoredNetworkConfigurationOperationState.AwaitingConfirmation,
+                null,
+                releaseLock: false,
+                cancellationToken);
+        }
+        else
+        {
+            var failure = execution as NetworkConfigurationExecutionRejected;
+            await operations.RecordAsync(
+                operationId,
+                failure is null || failure.ResultUncertain
+                    ? StoredNetworkConfigurationOperationState.Interrupted
+                    : StoredNetworkConfigurationOperationState.Failed,
+                failure?.Code ?? "network.operation_result_mismatch",
+                releaseLock: failure is not null && !failure.ResultUncertain,
+                cancellationToken);
+        }
+
+        return outcome;
     }
 
     public async Task<NetworkConfigurationCommandOutcome> ConfirmAsync(
@@ -122,14 +158,30 @@ public sealed class NetworkConfigurationService(
             return OperationNotFound();
         }
 
+        var stored = await FindOwnedAwaitingOperationAsync(
+            userId,
+            operationId,
+            cancellationToken);
+        if (stored is null)
+        {
+            return OperationNotFound();
+        }
+
         var execution = await executor.ConfirmAsync(
             operationId,
             userId,
             cancellationToken);
-        return FromExecution(
+        var outcome = FromExecution(
             execution,
             operationId,
             NetworkConfigurationOperationState.Confirmed);
+        await RecordCompletionAsync(
+            stored,
+            execution,
+            outcome,
+            StoredNetworkConfigurationOperationState.Confirmed,
+            cancellationToken);
+        return outcome;
     }
 
     public async Task<NetworkConfigurationCommandOutcome> RollbackAsync(
@@ -142,14 +194,74 @@ public sealed class NetworkConfigurationService(
             return OperationNotFound();
         }
 
+        var stored = await FindOwnedAwaitingOperationAsync(
+            userId,
+            operationId,
+            cancellationToken);
+        if (stored is null)
+        {
+            return OperationNotFound();
+        }
+
         var execution = await executor.RollbackAsync(
             operationId,
             userId,
             cancellationToken);
-        return FromExecution(
+        var outcome = FromExecution(
             execution,
             operationId,
             NetworkConfigurationOperationState.RolledBack);
+        await RecordCompletionAsync(
+            stored,
+            execution,
+            outcome,
+            StoredNetworkConfigurationOperationState.RolledBack,
+            cancellationToken);
+        return outcome;
+    }
+
+    private async Task<StoredNetworkConfigurationOperation?> FindOwnedAwaitingOperationAsync(
+        Guid userId,
+        Guid operationId,
+        CancellationToken cancellationToken)
+    {
+        var stored = await operations.GetAsync(operationId, cancellationToken);
+        return stored is not null
+            && stored.UserId == userId
+            && stored.State == StoredNetworkConfigurationOperationState.AwaitingConfirmation
+                ? stored
+                : null;
+    }
+
+    private async Task RecordCompletionAsync(
+        StoredNetworkConfigurationOperation stored,
+        NetworkConfigurationExecutionOutcome execution,
+        NetworkConfigurationCommandOutcome commandOutcome,
+        StoredNetworkConfigurationOperationState succeededState,
+        CancellationToken cancellationToken)
+    {
+        if (commandOutcome is NetworkConfigurationCommandSucceeded)
+        {
+            await operations.RecordAsync(
+                stored.Id,
+                succeededState,
+                null,
+                releaseLock: true,
+                cancellationToken);
+            return;
+        }
+
+        var failure = execution as NetworkConfigurationExecutionRejected;
+        var expired = failure?.Failure == NetworkConfigurationExecutionFailure.OperationNotFound
+            && timeProvider.GetUtcNow() >= stored.ConfirmationDeadline;
+        await operations.RecordAsync(
+            stored.Id,
+            expired
+                ? StoredNetworkConfigurationOperationState.RolledBack
+                : StoredNetworkConfigurationOperationState.Interrupted,
+            failure?.Code ?? "network.operation_result_mismatch",
+            releaseLock: expired,
+            cancellationToken);
     }
 
     private static NetworkConfigurationCommandOutcome FromPreviewRejection(

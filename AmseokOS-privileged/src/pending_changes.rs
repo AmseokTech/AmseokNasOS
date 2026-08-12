@@ -13,15 +13,16 @@
 // 若把回滚寄托在"调用方会再来一次请求"上，失联场景下就永远回不去
 // 因此到期回滚由本进程内的后台线程按固定节拍自行触发，不依赖任何外部连接
 //
-// 已知限制（本期不处理，明确记录以免误以为已覆盖）：
-// 待确认状态只保存在进程内存中，特权守护进程一旦重启，内存中的待确认记录即丢失
-// 此时已写入的配置会失去看守，不会被自动回滚，需要人工确认或人工回滚
-// 落盘持久化待确认状态属于下一期工作，不在本次改动范围内
 use std::collections::{HashMap, HashSet};
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
+use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use serde::{Deserialize, Serialize};
 use tracing::{error, info, warn};
 
 use crate::network_write::{
@@ -39,13 +40,16 @@ pub const STATUS_ROLLED_BACK: &str = "rolledBack";
 
 /// 单条待确认改动：接口标识与备份合起来才够回滚，
 /// 缺任何一个都无法把机器恢复到改动前状态
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PendingChange {
     pub operation_id: String,
     pub interface_id: String,
     pub backup: ManagedFileBackup,
+    #[serde(default)]
+    pub retained_addresses: Vec<String>,
     pub confirmation_deadline_unix_milliseconds: i64,
-    pub status: &'static str,
+    pub status: String,
 }
 
 /// 登记表内部状态把记录与“正在回滚”占用放在同一把锁下，
@@ -57,17 +61,56 @@ struct PendingChangeRegistryState {
 }
 
 /// 以操作标识为索引的待确认登记表，跨连接线程与看守线程共享
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PendingChangeRegistry {
     state: Mutex<PendingChangeRegistryState>,
+    persistence_path: Option<PathBuf>,
 }
 
 /// 共享句柄类型：连接线程与看守线程持有同一份登记表
 pub type SharedPendingChangeRegistry = Arc<PendingChangeRegistry>;
 
 impl PendingChangeRegistry {
+    #[cfg(test)]
     pub fn new_shared() -> SharedPendingChangeRegistry {
         Arc::new(Self::default())
+    }
+
+    pub fn load_shared(path: PathBuf) -> io::Result<SharedPendingChangeRegistry> {
+        let entries = match fs::read(&path) {
+            Ok(content) => {
+                serde_json::from_slice::<Vec<PendingChange>>(&content).map_err(io::Error::other)?
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),
+            Err(error) => return Err(error),
+        };
+        let mut indexed = HashMap::new();
+        for change in entries {
+            if indexed
+                .insert(change.operation_id.clone(), change)
+                .is_some()
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "pending network registry contains duplicate operation identifiers",
+                ));
+            }
+        }
+        Ok(Arc::new(Self {
+            state: Mutex::new(PendingChangeRegistryState {
+                entries: indexed,
+                rollback_claims: HashSet::new(),
+            }),
+            persistence_path: Some(path),
+        }))
+    }
+
+    fn persist(&self, state: &PendingChangeRegistryState) -> Result<(), NetworkWriteError> {
+        let Some(path) = self.persistence_path.as_deref() else {
+            return Ok(());
+        };
+        persist_entries(path, state.entries.values())
+            .map_err(|error| NetworkWriteError::apply_failed(error.to_string()))
     }
 
     /// 锁中毒不能让服务直接崩掉：登记表本身只是普通数据，
@@ -95,7 +138,12 @@ impl PendingChangeRegistry {
                 "该操作标识已存在待确认记录",
             ));
         }
-        state.entries.insert(change.operation_id.clone(), change);
+        let operation_id = change.operation_id.clone();
+        state.entries.insert(operation_id.clone(), change);
+        if let Err(error) = self.persist(&state) {
+            state.entries.remove(&operation_id);
+            return Err(error);
+        }
         Ok(())
     }
 
@@ -105,17 +153,24 @@ impl PendingChangeRegistry {
 
     /// 确认并移除：确认成功后这条改动就不再需要看守，
     /// 移除即等于停掉它的超时自动回滚
-    pub fn confirm_and_remove(&self, operation_id: &str) -> Option<PendingChange> {
+    pub fn confirm_and_remove(
+        &self,
+        operation_id: &str,
+    ) -> Result<Option<PendingChange>, NetworkWriteError> {
         let mut state = self.locked();
         if state.rollback_claims.contains(operation_id) {
-            return None;
+            return Ok(None);
         }
         match state.entries.remove(operation_id) {
             Some(mut change) => {
-                change.status = STATUS_CONFIRMED;
-                Some(change)
+                if let Err(error) = self.persist(&state) {
+                    state.entries.insert(operation_id.to_owned(), change);
+                    return Err(error);
+                }
+                change.status = STATUS_CONFIRMED.to_owned();
+                Ok(Some(change))
             }
-            None => None,
+            None => Ok(None),
         }
     }
 
@@ -169,18 +224,64 @@ impl PendingChangeRegistry {
         Some(change)
     }
 
-    pub fn finish_rollback(&self, operation_id: &str, succeeded: bool) {
+    pub fn finish_rollback(
+        &self,
+        operation_id: &str,
+        succeeded: bool,
+    ) -> Result<(), NetworkWriteError> {
         let mut state = self.locked();
         state.rollback_claims.remove(operation_id);
         if succeeded {
-            state.entries.remove(operation_id);
+            let removed = state.entries.remove(operation_id);
+            if let Err(error) = self.persist(&state) {
+                if let Some(change) = removed {
+                    state.entries.insert(operation_id.to_owned(), change);
+                }
+                return Err(error);
+            }
         }
+        Ok(())
     }
 
     #[cfg(test)]
     fn length(&self) -> usize {
         self.locked().entries.len()
     }
+}
+
+impl Default for PendingChangeRegistry {
+    fn default() -> Self {
+        Self {
+            state: Mutex::new(PendingChangeRegistryState::default()),
+            persistence_path: None,
+        }
+    }
+}
+
+fn persist_entries<'a>(
+    path: &Path,
+    entries: impl Iterator<Item = &'a PendingChange>,
+) -> io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut values = entries.cloned().collect::<Vec<_>>();
+    values.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
+    let content = serde_json::to_vec(&values).map_err(io::Error::other)?;
+    let temporary = path.with_extension("json.tmp");
+    let mut file = OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(&temporary)?;
+    file.set_permissions(fs::Permissions::from_mode(0o600))?;
+    file.write_all(&content)?;
+    file.sync_all()?;
+    fs::rename(&temporary, path)?;
+    if let Some(parent) = path.parent() {
+        fs::File::open(parent)?.sync_all()?;
+    }
+    Ok(())
 }
 
 /// 扫描一轮到期记录并回滚，返回本轮实际回滚成功的条数
@@ -202,8 +303,14 @@ pub fn sweep_expired_changes(
         // 占用已写入登记表且锁已释放，这里的回滚不会与确认或另一条回滚并发
         match rollback_configuration(environment, &change.interface_id, &change.backup) {
             Ok(()) => {
-                registry.finish_rollback(&change.operation_id, true);
-                rolled_back += 1;
+                match registry.finish_rollback(&change.operation_id, true) {
+                    Ok(()) => rolled_back += 1,
+                    Err(failure) => error!(
+                        operation = %change.operation_id,
+                        code = failure.code,
+                        "network rollback succeeded but pending registry persistence failed"
+                    ),
+                }
                 warn!(
                     operation = %change.operation_id,
                     interface = %change.interface_id,
@@ -213,7 +320,7 @@ pub fn sweep_expired_changes(
             Err(failure) => {
                 // 回滚失败是最严重情形：机器可能带着未确认的配置失联，
                 // 记录必须保留并以最高级别日志暴露，等待人工介入
-                registry.finish_rollback(&change.operation_id, false);
+                let _ = registry.finish_rollback(&change.operation_id, false);
                 error!(
                     operation = %change.operation_id,
                     interface = %change.interface_id,
@@ -236,12 +343,9 @@ pub fn spawn_watcher(
         .name("amseoknas-network-watch".to_owned())
         .spawn(move || {
             info!("pending network change watcher started");
-            warn!(
-                "pending network changes are stored in memory only and are lost after a daemon restart"
-            );
             loop {
-                thread::sleep(WATCH_INTERVAL);
                 sweep_expired_changes(&registry, &environment, current_unix_milliseconds());
+                thread::sleep(WATCH_INTERVAL);
             }
         })
 }
@@ -295,7 +399,8 @@ mod tests {
         test_support::fake_interface(&sysfs_directory, "enp1s0", MAC);
         let environment = test_support::environment(&configuration_directory, &sysfs_directory);
         let backup = apply_configuration(&environment, INTERFACE_ID, &static_configuration())
-            .expect("应用应当成功");
+            .expect("应用应当成功")
+            .backup;
         assert!(managed_path(&configuration_directory).exists());
 
         let registry = PendingChangeRegistry::default();
@@ -304,8 +409,9 @@ mod tests {
                 operation_id: "operation-expired".to_owned(),
                 interface_id: INTERFACE_ID.to_owned(),
                 backup,
+                retained_addresses: Vec::new(),
                 confirmation_deadline_unix_milliseconds: 1,
-                status: STATUS_AWAITING_CONFIRMATION,
+                status: STATUS_AWAITING_CONFIRMATION.to_owned(),
             })
             .expect("登记应当成功");
 
@@ -324,7 +430,8 @@ mod tests {
         test_support::fake_interface(&sysfs_directory, "enp1s0", MAC);
         let environment = test_support::environment(&configuration_directory, &sysfs_directory);
         let backup = apply_configuration(&environment, INTERFACE_ID, &static_configuration())
-            .expect("应用应当成功");
+            .expect("应用应当成功")
+            .backup;
 
         let registry = PendingChangeRegistry::default();
         registry
@@ -332,11 +439,14 @@ mod tests {
                 operation_id: "operation-confirmed".to_owned(),
                 interface_id: INTERFACE_ID.to_owned(),
                 backup,
+                retained_addresses: Vec::new(),
                 confirmation_deadline_unix_milliseconds: 1,
-                status: STATUS_AWAITING_CONFIRMATION,
+                status: STATUS_AWAITING_CONFIRMATION.to_owned(),
             })
             .expect("登记应当成功");
-        let confirmed = registry.confirm_and_remove("operation-confirmed");
+        let confirmed = registry
+            .confirm_and_remove("operation-confirmed")
+            .expect("确认应当成功");
         assert!(matches!(confirmed, Some(change) if change.status == STATUS_CONFIRMED));
 
         let rolled_back = sweep_expired_changes(&registry, &environment, 1_000);
@@ -360,8 +470,9 @@ mod tests {
                 operation_id: "operation-failed".to_owned(),
                 interface_id: INTERFACE_ID.to_owned(),
                 backup: ManagedFileBackup::Absent,
+                retained_addresses: Vec::new(),
                 confirmation_deadline_unix_milliseconds: 1,
-                status: STATUS_AWAITING_CONFIRMATION,
+                status: STATUS_AWAITING_CONFIRMATION.to_owned(),
             })
             .expect("登记应当成功");
 
@@ -379,8 +490,9 @@ mod tests {
             operation_id: "operation-duplicate".to_owned(),
             interface_id: INTERFACE_ID.to_owned(),
             backup: ManagedFileBackup::Absent,
+            retained_addresses: Vec::new(),
             confirmation_deadline_unix_milliseconds: 1,
-            status: STATUS_AWAITING_CONFIRMATION,
+            status: STATUS_AWAITING_CONFIRMATION.to_owned(),
         };
         registry.register(change.clone()).expect("首次登记应当成功");
 
@@ -398,12 +510,46 @@ mod tests {
                 operation_id: "operation-awaiting".to_owned(),
                 interface_id: INTERFACE_ID.to_owned(),
                 backup: ManagedFileBackup::Absent,
+                retained_addresses: Vec::new(),
                 confirmation_deadline_unix_milliseconds: i64::MAX,
-                status: STATUS_AWAITING_CONFIRMATION,
+                status: STATUS_AWAITING_CONFIRMATION.to_owned(),
             })
             .expect("登记应当成功");
 
         assert!(registry.has_awaiting_change_for_interface(INTERFACE_ID));
         assert!(!registry.has_awaiting_change_for_interface("mac:00:11:22:33:44:55"));
+    }
+
+    #[test]
+    fn reloads_persisted_pending_changes_after_a_daemon_restart() {
+        let directory = test_support::temporary_directory("pending-persistence");
+        let path = directory.join("pending.json");
+        let registry =
+            PendingChangeRegistry::load_shared(path.clone()).expect("持久化登记表应当创建成功");
+        registry
+            .register(PendingChange {
+                operation_id: "operation-persisted".to_owned(),
+                interface_id: INTERFACE_ID.to_owned(),
+                backup: ManagedFileBackup::Present("previous-content".to_owned()),
+                retained_addresses: vec!["192.168.1.10/24".to_owned()],
+                confirmation_deadline_unix_milliseconds: 1234,
+                status: STATUS_AWAITING_CONFIRMATION.to_owned(),
+            })
+            .expect("待确认记录应当持久化");
+        drop(registry);
+
+        let reloaded =
+            PendingChangeRegistry::load_shared(path).expect("守护进程重启后应当恢复登记表");
+        let change = reloaded
+            .find("operation-persisted")
+            .expect("持久化记录不应丢失");
+
+        assert_eq!(change.interface_id, INTERFACE_ID);
+        assert_eq!(
+            change.backup,
+            ManagedFileBackup::Present("previous-content".to_owned())
+        );
+        assert_eq!(change.retained_addresses, ["192.168.1.10/24"]);
+        assert!(reloaded.has_awaiting_change_for_interface(INTERFACE_ID));
     }
 }

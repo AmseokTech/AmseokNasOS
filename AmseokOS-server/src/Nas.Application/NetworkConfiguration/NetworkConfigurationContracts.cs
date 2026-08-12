@@ -71,6 +71,16 @@ public enum NetworkConfigurationOperationState
     RolledBack
 }
 
+public enum StoredNetworkConfigurationOperationState
+{
+    Applying,
+    AwaitingConfirmation,
+    Confirmed,
+    RolledBack,
+    Failed,
+    Interrupted
+}
+
 public sealed record NetworkConfigurationOperation(
     Guid Id,
     NetworkConfigurationOperationState State,
@@ -117,8 +127,27 @@ public sealed record NetworkConfigurationExecutionSucceeded(
 public sealed record NetworkConfigurationExecutionRejected(
     NetworkConfigurationExecutionFailure Failure,
     string Code,
-    bool Retryable)
+    bool Retryable,
+    bool ResultUncertain = false)
     : NetworkConfigurationExecutionOutcome;
+
+public sealed record StoredNetworkConfigurationOperation(
+    Guid Id,
+    Guid UserId,
+    string InterfaceId,
+    NormalizedNetworkConfiguration Requested,
+    StoredNetworkConfigurationOperationState State,
+    DateTimeOffset ConfirmationDeadline,
+    string? ErrorCode);
+
+public abstract record NetworkConfigurationOperationStartOutcome;
+
+public sealed record NetworkConfigurationOperationStarted(
+    StoredNetworkConfigurationOperation Operation)
+    : NetworkConfigurationOperationStartOutcome;
+
+public sealed record NetworkConfigurationOperationStartRejected(string Code)
+    : NetworkConfigurationOperationStartOutcome;
 
 public interface INetworkConfigurationService
 {
@@ -169,5 +198,26 @@ public interface INetworkConfigurationExecutor
     Task<NetworkConfigurationExecutionOutcome> RollbackAsync(
         Guid operationId,
         Guid userId,
+        CancellationToken cancellationToken);
+}
+
+public interface INetworkConfigurationOperationStore
+{
+    Task<NetworkConfigurationOperationStartOutcome> StartAsync(
+        Guid userId,
+        string interfaceId,
+        NormalizedNetworkConfiguration requested,
+        DateTimeOffset confirmationDeadline,
+        CancellationToken cancellationToken);
+
+    Task<StoredNetworkConfigurationOperation?> GetAsync(
+        Guid operationId,
+        CancellationToken cancellationToken);
+
+    Task RecordAsync(
+        Guid operationId,
+        StoredNetworkConfigurationOperationState state,
+        string? errorCode,
+        bool releaseLock,
         CancellationToken cancellationToken);
 }

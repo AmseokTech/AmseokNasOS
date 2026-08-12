@@ -22,6 +22,7 @@ public sealed class UnixSocketPrivilegedClient(
     IStorageInventoryClient,
     IDiskSmartClient,
     INetworkConfigurationInventory,
+    INetworkConfigurationExecutor,
     IRaidCommandExecutor,
     IStorageManagementClient,
     IStorageCommandExecutor
@@ -49,6 +50,124 @@ public sealed class UnixSocketPrivilegedClient(
         return await SendAsync<NetworkConfigurationInterfaceSnapshot[]>(
             "network.inspectInterfaces",
             cancellationToken);
+    }
+
+    public async Task<NetworkConfigurationExecutionOutcome> ApplyAsync(
+        Guid operationId,
+        Guid userId,
+        string interfaceId,
+        NormalizedNetworkConfiguration configuration,
+        DateTimeOffset confirmationDeadline,
+        CancellationToken cancellationToken)
+    {
+        _ = userId;
+        return await ExecuteNetworkChangeAsync(
+            "network.applyConfiguration",
+            new NetworkApplyParameters(
+                operationId.ToString("D"),
+                interfaceId,
+                configuration.Mode == NetworkAddressingMode.Dhcp ? "dhcp" : "staticIpv4",
+                configuration.IpAddress,
+                configuration.PrefixLength,
+                configuration.Gateway,
+                confirmationDeadline.ToUnixTimeMilliseconds()),
+            operationId,
+            cancellationToken);
+    }
+
+    public async Task<NetworkConfigurationExecutionOutcome> ConfirmAsync(
+        Guid operationId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        _ = userId;
+        return await ExecuteNetworkChangeAsync(
+            "network.confirmConfiguration",
+            new NetworkOperationParameters(operationId.ToString("D")),
+            operationId,
+            cancellationToken);
+    }
+
+    public async Task<NetworkConfigurationExecutionOutcome> RollbackAsync(
+        Guid operationId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        _ = userId;
+        return await ExecuteNetworkChangeAsync(
+            "network.rollbackConfiguration",
+            new NetworkOperationParameters(operationId.ToString("D")),
+            operationId,
+            cancellationToken);
+    }
+
+    private async Task<NetworkConfigurationExecutionOutcome> ExecuteNetworkChangeAsync(
+        string action,
+        object parameters,
+        Guid expectedOperationId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await SendAsync<NetworkOperationResult>(
+                action,
+                parameters,
+                options.Value.RaidTimeoutSeconds,
+                cancellationToken);
+            if (!Guid.TryParse(result.OperationId, out var operationId)
+                || operationId != expectedOperationId)
+            {
+                return new NetworkConfigurationExecutionRejected(
+                    NetworkConfigurationExecutionFailure.Rejected,
+                    "network.operation_result_mismatch",
+                    Retryable: false);
+            }
+            var state = result.Status switch
+            {
+                "awaitingConfirmation" => NetworkConfigurationOperationState.AwaitingConfirmation,
+                "confirmed" => NetworkConfigurationOperationState.Confirmed,
+                "rolledBack" => NetworkConfigurationOperationState.RolledBack,
+                _ => (NetworkConfigurationOperationState?)null
+            };
+            if (state is null)
+            {
+                return new NetworkConfigurationExecutionRejected(
+                    NetworkConfigurationExecutionFailure.Rejected,
+                    "network.operation_result_mismatch",
+                    Retryable: false);
+            }
+            return new NetworkConfigurationExecutionSucceeded(
+                new NetworkConfigurationOperation(
+                    operationId,
+                    state.Value,
+                    state == NetworkConfigurationOperationState.AwaitingConfirmation
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(
+                            result.ConfirmationDeadlineUnixMilliseconds)
+                        : null));
+        }
+        catch (PrivilegedClientException exception)
+        {
+            var failure = exception.Code switch
+            {
+                "network.operation_not_found" =>
+                    NetworkConfigurationExecutionFailure.OperationNotFound,
+                "network.operation_conflict" =>
+                    NetworkConfigurationExecutionFailure.Conflict,
+                "privileged.disabled" or
+                "privileged.unavailable" or
+                "privileged.unavailable_before_dispatch" =>
+                    NetworkConfigurationExecutionFailure.Unavailable,
+                _ => NetworkConfigurationExecutionFailure.Rejected
+            };
+            var uncertain = exception.Code is "privileged.unavailable"
+                or "request.deadline_exceeded"
+                or "network.tool_timeout";
+            return new NetworkConfigurationExecutionRejected(
+                failure,
+                exception.Code,
+                exception.Retryable,
+                uncertain);
+        }
     }
 
     public async Task<IReadOnlyList<BlockDeviceInformation>> GetBlockDevicesAsync(
@@ -327,6 +446,14 @@ public sealed class UnixSocketPrivilegedClient(
             "storage.permission_failed" => "数据目录权限设置失败",
             "storage.verification_failed" => "数据卷写入读取校验失败",
             "storage.share_validation_failed" => "SMB 或 NFS 配置校验失败",
+            "network.configuration_invalid" or
+            "network.invalid_configuration" => "网络配置参数无效",
+            "network.interface_not_found" => "目标物理网卡不存在或身份已变化",
+            "network.operation_not_found" => "网络变更操作不存在或已经回滚",
+            "network.operation_conflict" => "该网卡已有等待确认的网络变更",
+            "network.apply_failed" => "网络配置应用失败",
+            "network.verification_failed" => "网络配置应用后未通过连通性校验",
+            "network.rollback_failed" => "网络配置回滚失败，需要人工检查",
             _ => "底层系统查询被拒绝"
         };
     }
@@ -428,4 +555,20 @@ public sealed class UnixSocketPrivilegedClient(
         SmbShareSettings? Smb,
         NfsShareSettings? Nfs,
         string SnapshotFingerprint);
+
+    private sealed record NetworkApplyParameters(
+        string OperationId,
+        string InterfaceId,
+        string Mode,
+        string? IpAddress,
+        int? PrefixLength,
+        string? Gateway,
+        long ConfirmationDeadlineUnixMilliseconds);
+
+    private sealed record NetworkOperationParameters(string OperationId);
+
+    private sealed record NetworkOperationResult(
+        string OperationId,
+        string Status,
+        long ConfirmationDeadlineUnixMilliseconds);
 }

@@ -80,6 +80,47 @@ public sealed class PrivilegedClientProtocolTests
     }
 
     [Fact]
+    public async Task NetworkApplyUsesOnlyTheTypedWhitelistedParameters()
+    {
+        var operationId = Guid.NewGuid();
+        var deadline = DateTimeOffset.UtcNow.AddMinutes(2);
+        var outcome = await QueryFakeDaemonAsync(
+            "network.applyConfiguration",
+            new
+            {
+                operationId = operationId.ToString("D"),
+                status = "awaitingConfirmation",
+                confirmationDeadlineUnixMilliseconds = deadline.ToUnixTimeMilliseconds()
+            },
+            (client, token) => ((INetworkConfigurationExecutor)client).ApplyAsync(
+                operationId,
+                Guid.NewGuid(),
+                "mac:00:11:22:33:44:55",
+                new NormalizedNetworkConfiguration(
+                    NetworkAddressingMode.StaticIpv4,
+                    "192.168.1.20",
+                    "255.255.255.0",
+                    24,
+                    "192.168.1.1"),
+                deadline,
+                token),
+            parameters =>
+            {
+                Assert.Equal(operationId.ToString("D"), parameters.GetProperty("operationId").GetString());
+                Assert.Equal("mac:00:11:22:33:44:55", parameters.GetProperty("interfaceId").GetString());
+                Assert.Equal("staticIpv4", parameters.GetProperty("mode").GetString());
+                Assert.Equal("192.168.1.20", parameters.GetProperty("ipAddress").GetString());
+                Assert.Equal(24, parameters.GetProperty("prefixLength").GetInt32());
+                Assert.Equal("192.168.1.1", parameters.GetProperty("gateway").GetString());
+                Assert.Equal(7, parameters.EnumerateObject().Count());
+            });
+
+        var succeeded = Assert.IsType<NetworkConfigurationExecutionSucceeded>(outcome);
+        Assert.Equal(NetworkConfigurationOperationState.AwaitingConfirmation, succeeded.Operation.State);
+        Assert.Equal(operationId, succeeded.Operation.Id);
+    }
+
+    [Fact]
     public async Task BlockDeviceQueryUsesTheRegisteredVersionedAction()
     {
         var devices = await QueryFakeDaemonAsync(
