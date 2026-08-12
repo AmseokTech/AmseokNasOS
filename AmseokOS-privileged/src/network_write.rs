@@ -14,8 +14,8 @@
 // 因此本模块只生成 systemd-networkd 的 .network 配置，不走 NetworkManager 路径
 //
 // 绝不允许跨越的边界：
-// 1. 外部程序调用只使用固定绝对路径 + 固定参数，网卡定位只写进配置文件内容，
-//    严禁把接口标识、地址、网关拼进命令行，避免退化成任意命令执行
+// 1. 外部程序调用只使用固定绝对路径与固定动作；reconfigure 的接口名只能来自
+//    sysfs 对稳定 MAC 身份的重新解析，严禁把请求里的接口标识、地址或网关直接拼进命令行
 // 2. 只写受本系统管理的固定前缀文件，绝不改写第三方或发行版自带的网络配置
 // 3. 重载或校验失败必须立即恢复备份，宁可回到旧状态也不留下半生效配置
 use std::fmt;
@@ -25,7 +25,7 @@ use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use nix::ifaddrs::getifaddrs;
 use serde::{Deserialize, Serialize};
@@ -50,7 +50,9 @@ const RELOAD_PROGRAM_CANDIDATES: [&str; 3] = [
     "/bin/networkctl",
     "/usr/sbin/networkctl",
 ];
+const IP_PROGRAM_CANDIDATES: [&str; 3] = ["/usr/sbin/ip", "/usr/bin/ip", "/bin/ip"];
 const RELOAD_ARGUMENT: &str = "reload";
+const NETWORKCTL_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// 校验窗口：静态地址生效或 DHCP 取得地址都不是瞬时的，
 /// 但也不能无限等待，否则会长期占住特权守护进程的连接线程
@@ -143,11 +145,18 @@ pub struct NormalizedNetworkConfiguration {
 
 /// 受管文件在改写前的原始状态，是回滚唯一依据：
 /// 原文必须逐字节保留，绝不做任何格式化，否则回滚会引入新的差异
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", tag = "kind", content = "content")]
 pub enum ManagedFileBackup {
     /// 改写前该受管文件不存在，回滚时应当删除文件而不是写回空内容
     Absent,
     Present(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AppliedNetworkConfiguration {
+    pub backup: ManagedFileBackup,
+    pub retained_addresses: Vec<String>,
 }
 
 /// 与系统交互的方式：生产路径真实重载并真实校验；
@@ -484,7 +493,10 @@ fn restore_managed_file(path: &Path, backup: &ManagedFileBackup) -> Result<(), N
 
 /// 触发 systemd-networkd 重载：固定绝对路径 + 固定单一参数，
 /// 清空环境变量以缩小外部影响面，且不接收任何来自请求的字符串
-fn reload_network_backend(interaction: SystemInteraction) -> Result<(), NetworkWriteError> {
+fn reload_network_backend(
+    interaction: SystemInteraction,
+    interface_name: &str,
+) -> Result<(), NetworkWriteError> {
     match interaction {
         #[cfg(test)]
         SystemInteraction::Simulated => Ok(()),
@@ -494,21 +506,25 @@ fn reload_network_backend(interaction: SystemInteraction) -> Result<(), NetworkW
                 if !Path::new(program).is_file() {
                     continue;
                 }
-                let outcome = Command::new(program)
-                    .arg(RELOAD_ARGUMENT)
-                    .env_clear()
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null())
-                    .status();
-                match outcome {
-                    Ok(status) if status.success() => return Ok(()),
+                let reload = run_networkctl(program, &[RELOAD_ARGUMENT]);
+                match reload {
+                    Ok(status) if status.success() => {}
                     Ok(status) => {
                         last_error = format!("networkctl reload 返回非零状态 {status}");
+                        continue;
                     }
                     Err(error) => {
                         last_error = error.to_string();
+                        continue;
                     }
+                }
+                let reconfigure = run_networkctl(program, &["reconfigure", interface_name]);
+                match reconfigure {
+                    Ok(status) if status.success() => return Ok(()),
+                    Ok(status) => {
+                        last_error = format!("networkctl reconfigure 返回非零状态 {status}");
+                    }
+                    Err(error) => last_error = error.to_string(),
                 }
             }
             Err(NetworkWriteError::apply_failed(last_error))
@@ -516,18 +532,142 @@ fn reload_network_backend(interaction: SystemInteraction) -> Result<(), NetworkW
     }
 }
 
+fn run_networkctl(program: &str, arguments: &[&str]) -> io::Result<std::process::ExitStatus> {
+    run_bounded_command(program, arguments)
+}
+
+fn run_bounded_command(program: &str, arguments: &[&str]) -> io::Result<std::process::ExitStatus> {
+    let mut child = Command::new(program)
+        .args(arguments)
+        .env_clear()
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+    let started = Instant::now();
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(status);
+        }
+        if started.elapsed() >= NETWORKCTL_TIMEOUT {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "networkctl exceeded the fixed execution timeout",
+            ));
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
 fn interface_ipv4_addresses(interface_name: &str) -> Vec<Ipv4Addr> {
+    interface_ipv4_addresses_with_prefix(interface_name)
+        .into_iter()
+        .map(|(address, _)| address)
+        .collect()
+}
+
+fn interface_ipv4_addresses_with_prefix(interface_name: &str) -> Vec<(Ipv4Addr, u32)> {
     let Ok(addresses) = getifaddrs() else {
         return Vec::new();
     };
     addresses
         .filter(|entry| entry.interface_name == interface_name)
         .filter_map(|entry| {
-            entry
-                .address
-                .and_then(|address| address.as_sockaddr_in().map(|value| value.ip()))
+            let address = entry.address?.as_sockaddr_in()?.ip();
+            let mask = entry.netmask?.as_sockaddr_in()?.ip();
+            let bits = u32::from(mask);
+            let prefix_length = bits.count_ones();
+            let expected = if prefix_length == 0 {
+                0
+            } else {
+                u32::MAX << (32 - prefix_length)
+            };
+            (bits == expected).then_some((address, prefix_length))
         })
         .collect()
+}
+
+fn retain_previous_addresses(
+    interaction: SystemInteraction,
+    interface: &TargetInterface,
+    previous: &[(Ipv4Addr, u32)],
+    configuration: &NormalizedNetworkConfiguration,
+) -> Result<Vec<String>, NetworkWriteError> {
+    #[cfg(test)]
+    if interaction == SystemInteraction::Simulated {
+        return Ok(Vec::new());
+    }
+    let _ = interaction;
+    let desired = configuration
+        .ip_address
+        .as_deref()
+        .and_then(|value| value.parse::<Ipv4Addr>().ok());
+    let active = interface_ipv4_addresses(&interface.name);
+    let mut retained = Vec::new();
+    for (address, prefix_length) in previous {
+        if Some(*address) == desired || address.is_link_local() || address.is_unspecified() {
+            continue;
+        }
+        let cidr = format!("{address}/{prefix_length}");
+        if !active.contains(address) {
+            run_ip_address_action("add", &cidr, &interface.name)?;
+        }
+        retained.push(cidr);
+    }
+    Ok(retained)
+}
+
+fn run_ip_address_action(
+    action: &str,
+    cidr: &str,
+    interface_name: &str,
+) -> Result<(), NetworkWriteError> {
+    let mut last_error = String::from("未找到可用的 ip 可执行文件");
+    for program in IP_PROGRAM_CANDIDATES {
+        if !Path::new(program).is_file() {
+            continue;
+        }
+        match run_bounded_command(program, &["address", action, cidr, "dev", interface_name]) {
+            Ok(status) if status.success() => return Ok(()),
+            Ok(status) => last_error = format!("ip address {action} 返回非零状态 {status}"),
+            Err(error) => last_error = error.to_string(),
+        }
+    }
+    Err(NetworkWriteError::apply_failed(last_error))
+}
+
+pub fn release_retained_addresses(
+    environment: &NetworkWriteEnvironment,
+    interface_id: &str,
+    retained_addresses: &[String],
+) {
+    if retained_addresses.is_empty() {
+        return;
+    }
+    let Ok(interface) = locate_physical_interface(&environment.sysfs_directory, interface_id)
+    else {
+        warn!(
+            interface = interface_id,
+            "could not resolve interface while releasing retained addresses"
+        );
+        return;
+    };
+    #[cfg(test)]
+    if environment.interaction == SystemInteraction::Simulated {
+        return;
+    }
+    for address in retained_addresses {
+        if let Err(failure) = run_ip_address_action("delete", address, &interface.name) {
+            warn!(
+                interface = %interface.name,
+                address,
+                code = failure.code,
+                "confirmed network configuration kept a temporary previous address"
+            );
+        }
+    }
 }
 
 /// 校验配置真正生效：静态模式要求目标地址出现，
@@ -581,7 +721,7 @@ pub fn apply_configuration(
     environment: &NetworkWriteEnvironment,
     interface_id: &str,
     configuration: &NormalizedNetworkConfiguration,
-) -> Result<ManagedFileBackup, NetworkWriteError> {
+) -> Result<AppliedNetworkConfiguration, NetworkWriteError> {
     if !environment.writes_available {
         return Err(NetworkWriteError::apply_failed(
             "超时自动回滚看守线程不可用，已拒绝新的网络配置应用",
@@ -591,6 +731,7 @@ pub fn apply_configuration(
     let interface = locate_physical_interface(&environment.sysfs_directory, interface_id)?;
     let content = build_managed_content(&interface, validated_configuration);
     let path = managed_file_path(&environment.configuration_directory, interface_id)?;
+    let previous_addresses = interface_ipv4_addresses_with_prefix(&interface.name);
 
     let backup = match fs::read_to_string(&path) {
         Ok(existing) => ManagedFileBackup::Present(existing),
@@ -600,16 +741,32 @@ pub fn apply_configuration(
 
     write_managed_file(&path, &content)?;
 
-    let outcome = reload_network_backend(environment.interaction)
+    let outcome = reload_network_backend(environment.interaction, &interface.name)
         .and_then(|()| verify_configuration(environment.interaction, &interface, configuration));
 
     match outcome {
-        Ok(()) => Ok(backup),
+        Ok(()) => match retain_previous_addresses(
+            environment.interaction,
+            &interface,
+            &previous_addresses,
+            configuration,
+        ) {
+            Ok(retained_addresses) => Ok(AppliedNetworkConfiguration {
+                backup,
+                retained_addresses,
+            }),
+            Err(failure) => {
+                restore_managed_file(&path, &backup)
+                    .and_then(|()| reload_network_backend(environment.interaction, &interface.name))
+                    .map_err(|error| NetworkWriteError::rollback_failed(error.message))?;
+                Err(failure)
+            }
+        },
         Err(failure) => {
             // 尽力恢复到改动前状态；恢复本身失败属于最严重情形，
             // 因为机器可能带着半生效配置失联，必须以最高级别日志暴露
             match restore_managed_file(&path, &backup)
-                .and_then(|()| reload_network_backend(environment.interaction))
+                .and_then(|()| reload_network_backend(environment.interaction, &interface.name))
             {
                 Ok(()) => {
                     warn!(
@@ -642,10 +799,12 @@ pub fn rollback_configuration(
     interface_id: &str,
     backup: &ManagedFileBackup,
 ) -> Result<(), NetworkWriteError> {
+    let interface = locate_physical_interface(&environment.sysfs_directory, interface_id)
+        .map_err(|error| NetworkWriteError::rollback_failed(error.message))?;
     let path = managed_file_path(&environment.configuration_directory, interface_id)?;
     restore_managed_file(&path, backup)
         .map_err(|error| NetworkWriteError::rollback_failed(error.message))?;
-    reload_network_backend(environment.interaction)
+    reload_network_backend(environment.interaction, &interface.name)
         .map_err(|error| NetworkWriteError::rollback_failed(error.message))
 }
 
@@ -719,7 +878,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(backup, ManagedFileBackup::Absent);
+        assert_eq!(backup.backup, ManagedFileBackup::Absent);
         let content =
             fs::read_to_string(config_directory.join("70-amseoknas-aabbccddeeff.network")).unwrap();
         assert!(content.contains("MACAddress=aa:bb:cc:dd:ee:ff"));
@@ -843,7 +1002,7 @@ mod tests {
             &configuration(MODE_STATIC_IPV4, Some("10.0.0.5"), Some(24), None),
         )
         .unwrap();
-        rollback_configuration(&environment, INTERFACE_ID, &backup).unwrap();
+        rollback_configuration(&environment, INTERFACE_ID, &backup.backup).unwrap();
 
         assert_eq!(
             fs::read_to_string(&path).unwrap(),
@@ -866,7 +1025,7 @@ mod tests {
             &configuration(MODE_DHCP, None, None, None),
         )
         .unwrap();
-        rollback_configuration(&environment, INTERFACE_ID, &backup).unwrap();
+        rollback_configuration(&environment, INTERFACE_ID, &backup.backup).unwrap();
 
         assert!(
             !config_directory

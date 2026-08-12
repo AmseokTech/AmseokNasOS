@@ -31,6 +31,7 @@ use raid_write::RaidWriteContext;
 use storage_write::StorageWriteContext;
 
 const DEFAULT_SOCKET_PATH: &str = "/run/amseoknas/privileged.sock";
+const DEFAULT_NETWORK_PENDING_REGISTRY_PATH: &str = "/var/lib/amseoknas/network/pending.json";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(5);
 
 fn main() -> io::Result<()> {
@@ -49,7 +50,10 @@ fn main() -> io::Result<()> {
 
     // 待确认登记表与写入环境在启动时各建一份，随后被所有连接共享
     // 登记表必须只有一份：分散成多份会让看守线程看不到部分待确认改动
-    let registry = PendingChangeRegistry::new_shared();
+    let pending_registry_path = env::var_os("AMSEOKNAS_NETWORK_PENDING_REGISTRY_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_NETWORK_PENDING_REGISTRY_PATH));
+    let registry = PendingChangeRegistry::load_shared(pending_registry_path)?;
     let mut environment = NetworkWriteEnvironment::from_environment();
     let raid_context = match RaidWriteContext::from_environment() {
         Ok(context) => Some(context),

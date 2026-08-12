@@ -5,7 +5,7 @@
 [Unit]
 Description=AmseokOS constrained privileged system daemon
 After=local-fs.target modprobe@md_mod.service systemd-networkd.service
-Wants=modprobe@md_mod.service
+Wants=modprobe@md_mod.service systemd-networkd.service
 
 [Service]
 Type=simple
@@ -16,6 +16,7 @@ UMask=0007
 EnvironmentFile=/etc/amseoknas/privileged.env
 # 网络写入只认 systemd-networkd 的受管目录，不能由调用方选择其他路径
 Environment=AMSEOKNAS_PRIVILEGED_NETWORK_CONFIG_DIRECTORY=/etc/systemd/network
+Environment=AMSEOKNAS_NETWORK_PENDING_REGISTRY_PATH=/var/lib/amseoknas/network/pending.json
 Environment=AMSEOKNAS_RAID_OPERATION_REGISTRY_PATH=/var/lib/amseoknas/raid/operations.json
 Environment=AMSEOKNAS_RAID_BACKUP_DIRECTORY=/var/lib/amseoknas/raid/reshape
 Environment=AMSEOKNAS_STORAGE_OPERATION_REGISTRY_PATH=/var/lib/amseoknas/storage/operations.json
@@ -27,7 +28,7 @@ Environment=AMSEOKNAS_SAMBA_INCLUDE_DIRECTORY=/etc/samba/smb.conf.d
 Environment=AMSEOKNAS_NFS_EXPORT_DIRECTORY=/etc/exports.d
 RuntimeDirectory=amseoknas
 RuntimeDirectoryMode=0750
-StateDirectory=amseoknas/raid amseoknas/storage
+StateDirectory=amseoknas/raid amseoknas/storage amseoknas/network
 StateDirectoryMode=0700
 ExecStart=/usr/libexec/amseoknas/amseoknas-privileged
 Restart=on-failure
@@ -46,7 +47,7 @@ ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectSystem=strict
 # 严格系统保护保持开启，只放行受管网络、RAID、数据卷、mount unit 与共享配置目录
-ReadWritePaths=/run/amseoknas /etc/systemd/network /var/lib/amseoknas/raid /var/lib/amseoknas/storage /var/lib/nfs /srv/amseoknas/volumes /etc/systemd/system /etc/samba /etc/exports.d
+ReadWritePaths=/run/amseoknas /etc/systemd/network /var/lib/amseoknas/raid /var/lib/amseoknas/storage /var/lib/amseoknas/network /var/lib/nfs /srv/amseoknas/volumes /etc/systemd/system /etc/samba /etc/exports.d
 RestrictAddressFamilies=AF_UNIX AF_NETLINK
 RestrictNamespaces=yes
 RestrictRealtime=yes

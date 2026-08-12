@@ -155,14 +155,14 @@ public static class DependencyInjection
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddSingleton<IStorageCommandExecutor>(provider =>
             provider.GetRequiredService<UnixSocketPrivilegedClient>());
-        // Keep the HTTP command surface fail-closed until the Rust executor owns
-        // atomic apply, confirmation deadlines, and rollback recovery.
-        services.AddSingleton<INetworkConfigurationExecutor,
-            UnavailableNetworkConfigurationExecutor>();
+        services.AddSingleton<INetworkConfigurationExecutor>(provider =>
+            provider.GetRequiredService<UnixSocketPrivilegedClient>());
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IStorageInventoryService, StorageInventoryService>();
         services.AddScoped<IDiskSmartService, StorageInventoryService>();
         services.AddScoped<INetworkConfigurationService, NetworkConfigurationService>();
+        services.AddScoped<INetworkConfigurationOperationStore,
+            SqliteNetworkConfigurationOperationStore>();
         services.AddSingleton<IRaidPreviewStore, InMemoryRaidPreviewStore>();
         services.AddScoped<IRaidOperationStore, SqliteRaidOperationStore>();
         services.AddScoped<IRaidManagementService, RaidManagementService>();

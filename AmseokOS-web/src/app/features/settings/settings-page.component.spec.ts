@@ -61,7 +61,7 @@ describe('SettingsPageComponent', () => {
     }).compileComponents();
   });
 
-  it('loads About first and switches to the read-only Network view', () => {
+  it('loads About first and opens the guarded Network configuration editor', () => {
     const fixture = TestBed.createComponent(SettingsPageComponent);
     const http = TestBed.inject(HttpTestingController);
 
@@ -81,7 +81,11 @@ describe('SettingsPageComponent', () => {
     expect(compiled.textContent).toContain('192.168.1.10/24');
     const configureButton = [...compiled.querySelectorAll('button')]
       .find((button) => button.textContent?.includes('设置 IP 地址'));
-    expect(configureButton?.disabled).toBe(true);
+    expect(configureButton?.disabled).toBe(false);
+    configureButton?.click();
+    fixture.detectChanges();
+    expect(compiled.textContent).toContain('设置 enp1s0 的 IP 地址');
+    expect(compiled.textContent).toContain('预览变更');
     http.verify();
   });
 

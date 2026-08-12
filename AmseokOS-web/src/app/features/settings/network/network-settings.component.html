@@ -1,8 +1,5 @@
 <section class="settings-panel" aria-labelledby="network-title">
   <header class="settings-panel__header">
-    <span class="settings-panel__icon" aria-hidden="true">
-      <i></i><i></i><i></i>
-    </span>
     <div>
       <h1 id="network-title">网络</h1>
       <p>查看物理网卡、链路状态和当前地址配置。</p>
@@ -10,7 +7,7 @@
   </header>
 
   <aside class="security-note" id="network-write-status">
-    当前版本仅开放查询。IP 配置将在二次认证、连通性确认和自动回滚机制完成后启用。
+    修改 IP 需要管理员密码。应用后必须在两分钟内确认，否则系统会自动恢复原配置。
   </aside>
 
   @if (loading()) {
@@ -31,11 +28,6 @@
       @for (network of interfaces(); track network.id) {
         <article class="network-card">
           <header class="network-card__header">
-            <span
-              class="network-state"
-              [class.network-state--up]="network.linkState.toLowerCase() === 'up'"
-              aria-hidden="true"
-            ></span>
             <div>
               <h2>{{ network.name }}</h2>
               <p>{{ network.model || network.driver || '物理网络接口' }}</p>
@@ -92,12 +84,117 @@
             </div>
           </dl>
 
+          @if (editorInterfaceId() === network.id) {
+            <form class="network-editor" [formGroup]="form" (ngSubmit)="createPreview(network.id)">
+              <header>
+                <div>
+                  <h3>设置 {{ network.name }} 的 IP 地址</h3>
+                  <p>应用前会再次读取网卡身份并生成变更预览。</p>
+                </div>
+                <button type="button" class="quiet-button" (click)="closeEditor()">关闭</button>
+              </header>
+
+              <fieldset [disabled]="working() || operation()?.state === 'awaitingConfirmation'">
+                <legend>地址获取方式</legend>
+                <label class="mode-option">
+                  <input type="radio" formControlName="mode" value="dhcp">
+                  自动获取（DHCP）
+                </label>
+                <label class="mode-option">
+                  <input type="radio" formControlName="mode" value="static">
+                  手动设置固定 IPv4
+                </label>
+              </fieldset>
+
+              @if (isStatic()) {
+                <div class="field-grid">
+                  <label>
+                    <span>IP 地址</span>
+                    <input formControlName="ipAddress" inputmode="decimal" placeholder="192.168.1.20">
+                  </label>
+                  <label>
+                    <span>子网掩码</span>
+                    <input formControlName="subnetMask" inputmode="decimal" placeholder="255.255.255.0">
+                  </label>
+                  <label>
+                    <span>网关（可选）</span>
+                    <input formControlName="gateway" inputmode="decimal" placeholder="192.168.1.1">
+                  </label>
+                </div>
+              }
+
+              @if (!operation() || operation()?.state !== 'awaitingConfirmation') {
+                <label class="password-field">
+                  <span>管理员密码</span>
+                  <input type="password" formControlName="password" autocomplete="current-password">
+                </label>
+              }
+
+              @if (preview(); as change) {
+                <section class="change-preview" aria-label="网络配置变更预览">
+                  <h4>变更预览</h4>
+                  <dl>
+                    <div><dt>当前地址</dt><dd>{{ change.currentAddresses.join('、') || '无' }}</dd></div>
+                    <div><dt>目标模式</dt><dd>{{ change.requestedMode === 'dhcp' ? 'DHCP' : '固定 IPv4' }}</dd></div>
+                    @if (change.requestedIpAddress) {
+                      <div><dt>目标地址</dt><dd>{{ change.requestedIpAddress }}/{{ change.requestedPrefixLength }}</dd></div>
+                    }
+                    <div><dt>目标网关</dt><dd>{{ change.requestedGateway || '自动获取 / 无' }}</dd></div>
+                  </dl>
+                  <p class="warning">应用期间当前管理连接可能中断。未确认的改动会自动回滚。</p>
+                </section>
+              }
+
+              @if (operation(); as currentOperation) {
+                <section class="pending-operation" [class.pending-operation--done]="currentOperation.state !== 'awaitingConfirmation'">
+                  @if (currentOperation.state === 'awaitingConfirmation') {
+                    <strong>等待连通性确认</strong>
+                    <span>确认截止：{{ deadlineLabel(currentOperation.confirmationDeadline) }}</span>
+                    @if (newAddressUrl(); as addressUrl) {
+                      <a [href]="addressUrl" target="_blank" rel="noopener">在新地址打开管理界面</a>
+                    }
+                  } @else {
+                    <strong>{{ currentOperation.state === 'confirmed' ? '配置已确认' : '配置已回滚' }}</strong>
+                  }
+                </section>
+              }
+
+              @if (operationMessage()) {
+                <p class="operation-message" role="status">{{ operationMessage() }}</p>
+              }
+              @if (operationError()) {
+                <p class="operation-error" role="alert">{{ operationError() }}</p>
+              }
+
+              <footer class="editor-actions">
+                @if (operation()?.state === 'awaitingConfirmation') {
+                  <button type="button" class="danger-button" [disabled]="working()" (click)="rollback()">
+                    立即回滚
+                  </button>
+                  <button type="button" class="primary-button" [disabled]="working()" (click)="confirm()">
+                    确认连接正常
+                  </button>
+                } @else {
+                  <button type="submit" [disabled]="working() || form.invalid">预览变更</button>
+                  <button
+                    type="button"
+                    class="primary-button"
+                    [disabled]="working() || !preview()?.canApply"
+                    (click)="apply(network.id)"
+                  >
+                    应用配置
+                  </button>
+                }
+              </footer>
+            </form>
+          }
+
           <footer class="network-card__actions">
             <button
               type="button"
-              disabled
               aria-describedby="network-write-status"
-              title="安全写入与自动回滚机制完成后开放"
+              [disabled]="working() || (editorInterfaceId() !== null && editorInterfaceId() !== network.id)"
+              (click)="openEditor(network)"
             >
               设置 IP 地址
             </button>

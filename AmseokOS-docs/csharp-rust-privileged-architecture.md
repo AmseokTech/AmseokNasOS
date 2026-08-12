@@ -1,8 +1,8 @@
 # AmseokOS C# 与 Rust 特权执行架构
 
-状态：第一阶段只读查询已开始实现；关于本机、物理网卡、物理块设备和现有 MD RAID 阵列查询代码已完成，写操作尚未开放
+状态：第一阶段查询及受控网络、RAID、数据卷写入已实现；真实 Debian 故障与重启矩阵仍待验收
 
-最后确认日期：2026-08-03
+最后确认日期：2026-08-12
 
 ## 1. 设计结论
 
@@ -31,7 +31,7 @@ Rust daemon 是独立进程，不作为动态库加载到 ASP.NET Core 中。C# 
 - C# 业务预检和 Rust 执行前复核必须同时通过
 - 设备路径变化、服务重启、消息重投和进程崩溃不能导致操作落到错误设备或自动重复破坏性步骤
 - 所有操作具有稳定 ID、幂等键、fencing token、超时、输出限制、结构化错误和审计关联
-- 第一阶段只实现只读查询和受控测试动作，破坏性动作延后到第二阶段
+- 写入能力按独立资源逐项开放，未通过真实故障矩阵的能力不得视为完成验收
 
 本设计不能保证系统调用永不失败。可靠性目标是允许操作以明确结果失败，但失败不得绕过权限、选错设备、静默丢失状态或自动重复不可逆动作。
 
@@ -135,7 +135,7 @@ daemon 启动时不得盲目删除 socket 路径。应先确认路径类型、ow
 
 ### 5.1 传输方式
 
-第一版使用 Unix Domain Stream Socket。C# 使用 .NET 的 `UnixDomainSocketEndPoint` 连接，Rust 使用标准库 `UnixListener` 监听；当前守护进程按连接串行处理只读小请求，后续出现长耗时动作前必须引入有界并发和动作级超时。
+第一版使用 Unix Domain Stream Socket。C# 使用 .NET 的 `UnixDomainSocketEndPoint` 连接，Rust 使用标准库 `UnixListener` 监听；当前守护进程按连接串行处理请求，所有外部工具动作必须拥有独立固定超时，后续增加并发时仍需按资源锁限制同一目标的并行度。
 
 Stream Socket 不保留消息边界，因此协议使用：
 
@@ -260,6 +260,16 @@ raid.inspectArrays
 这些动作只从受信任的 `/proc`、`/sys`、`/run` 和文件系统接口读取数据，不接受参数，也不执行外部命令。块设备查询返回 WWN/序列号优先的身份、分区、直接挂载、swap、占用状态和传递式依赖设备；它沿 sysfs `holders` 关系追踪 MD、dm-crypt、LVM 与通用 device-mapper，使根文件系统经过多层块设备后仍能保护底层物理盘。阵列查询返回级别、状态、UUID、成员、降级数和内核同步进度。`ID_PATH` 和内核主次设备号明确标记为非稳定身份，重复 WWN/序列号也会标记 `identityConflict` 并撤销稳定身份；若 holder 无法完整解析，`topologyComplete` 为 `false`，后续危险流程必须失败关闭。Rust 守护进程要求显式配置唯一允许的 API 进程 UID，并在 Unix Socket 上校验 peer credentials；C# 端通过独立的 `system.read`、`network.read` 与 `storage.read` 权限策略开放 HTTP 查询。
 
 当前只读实现已用伪 sysfs 集成测试覆盖分区经 dm-crypt 与 LVM 承载根文件系统，以及 MD 经加密层承载数据挂载的组合关系；尚未在真实 Linux loop device、测试机物理磁盘或实际 LUKS/LVM/MD 设备上验证，也未执行 SMART 查询。第二阶段的任何写动作仍必须等待真实设备集成测试、Operation、资源锁和执行前二次复核完成，不能只依据展示字段判断“可写”。
+
+当前网络配置写入只支持 `systemd-networkd`，固定动作如下：
+
+```text
+network.applyConfiguration
+network.confirmConfiguration
+network.rollbackConfiguration
+```
+
+C# 在调用 Rust 前执行 `network.manage` 授权、CSRF、限速、管理员密码重新认证、参数规范化、SQLite Operation、物理网卡资源锁和 Outbox 审计。Rust 只接受稳定 MAC 身份以及 DHCP 或固定 IPv4 的强类型字段，原子维护 `70-amseoknas-*.network`，以固定路径调用 `networkctl reload`、`networkctl reconfigure` 和必要的 `ip address` 地址保留动作。应用后暂时保留原 IPv4 地址，使原管理连接仍可提交确认；确认时移除临时旧地址，显式回滚或两分钟超时则恢复受管文件原文。待确认记录、原文备份和临时地址列表持久化到 `/var/lib/amseoknas/network/pending.json`，daemon 重启会恢复看守并立即扫描到期记录。该流程已有模拟 sysfs、跨协议和持久化测试，但仍必须在具备控制台或第二管理链路的真实 Debian 测试机验证 DHCP、跨子网静态地址、错误网关、daemon 重启和整机重启。
 
 第一阶段还可以继续提供不接触真实存储的受控测试动作，用于验证 socket、peer credentials、超时、取消、错误映射和协议兼容性。
 

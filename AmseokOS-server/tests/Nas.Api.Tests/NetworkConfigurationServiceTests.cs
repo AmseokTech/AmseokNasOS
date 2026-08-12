@@ -10,7 +10,7 @@ namespace Nas.Api.Tests;
 public sealed class NetworkConfigurationServiceTests
 {
     [Fact]
-    public async Task DhcpPreviewReauthenticatesAndRemainsBlockedUntilSafeWriteExists()
+    public async Task DhcpPreviewReauthenticatesAndAllowsTheGuardedWriteFlow()
     {
         var authentication = new AuthenticationServiceStub { PasswordIsValid = true };
         var inventory = new NetworkConfigurationInventoryStub();
@@ -30,8 +30,8 @@ public sealed class NetworkConfigurationServiceTests
         var created = Assert.IsType<NetworkConfigurationPreviewCreated>(outcome);
         Assert.Equal(NetworkAddressingMode.Dhcp, created.Preview.Requested.Mode);
         Assert.Null(created.Preview.Requested.IpAddress);
-        Assert.False(created.Preview.CanApply);
-        Assert.Contains("network.write_unavailable", created.Preview.BlockingReasons);
+        Assert.True(created.Preview.CanApply);
+        Assert.Empty(created.Preview.BlockingReasons);
         Assert.Equal(1, authentication.VerificationCount);
         Assert.Equal(1, inventory.InspectionCount);
     }
@@ -388,10 +388,12 @@ public sealed class NetworkConfigurationServiceTests
                     NetworkConfigurationOperationState.Confirmed,
                     null))
         };
+        var store = NetworkConfigurationOperationStoreStub.Awaiting(operationId, userId);
         var service = CreateService(
             new AuthenticationServiceStub(),
             new NetworkConfigurationInventoryStub(),
-            executor);
+            executor,
+            operationStore: store);
 
         var outcome = await service.ConfirmAsync(userId, operationId, CancellationToken.None);
 
@@ -402,8 +404,34 @@ public sealed class NetworkConfigurationServiceTests
     }
 
     [Fact]
+    public async Task ConfirmDoesNotExposeAnotherUsersPendingOperation()
+    {
+        var operationId = Guid.NewGuid();
+        var executor = new NetworkConfigurationExecutorStub();
+        var store = NetworkConfigurationOperationStoreStub.Awaiting(
+            operationId,
+            Guid.NewGuid());
+        var service = CreateService(
+            new AuthenticationServiceStub(),
+            new NetworkConfigurationInventoryStub(),
+            executor,
+            operationStore: store);
+
+        var outcome = await service.ConfirmAsync(
+            Guid.NewGuid(),
+            operationId,
+            CancellationToken.None);
+
+        var rejected = Assert.IsType<NetworkConfigurationCommandRejected>(outcome);
+        Assert.Equal(NetworkConfigurationCommandFailure.OperationNotFound, rejected.Failure);
+        Assert.Equal(Guid.Empty, executor.LastOperationId);
+    }
+
+    [Fact]
     public async Task RollbackConflictIsReturnedWithoutChangingItsErrorCode()
     {
+        var operationId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
         var executor = new NetworkConfigurationExecutorStub
         {
             RollbackOutcome = new NetworkConfigurationExecutionRejected(
@@ -411,14 +439,16 @@ public sealed class NetworkConfigurationServiceTests
                 "network.operation_not_awaiting_confirmation",
                 Retryable: false)
         };
+        var store = NetworkConfigurationOperationStoreStub.Awaiting(operationId, userId);
         var service = CreateService(
             new AuthenticationServiceStub(),
             new NetworkConfigurationInventoryStub(),
-            executor);
+            executor,
+            operationStore: store);
 
         var outcome = await service.RollbackAsync(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            userId,
+            operationId,
             CancellationToken.None);
 
         var rejected = Assert.IsType<NetworkConfigurationCommandRejected>(outcome);
@@ -438,31 +468,37 @@ public sealed class NetworkConfigurationServiceTests
                     NetworkConfigurationOperationState.RolledBack,
                     null))
         };
+        var userId = Guid.NewGuid();
+        var store = NetworkConfigurationOperationStoreStub.Awaiting(operationId, userId);
         var service = CreateService(
             new AuthenticationServiceStub(),
             new NetworkConfigurationInventoryStub(),
-            executor);
+            executor,
+            operationStore: store);
 
         var outcome = await service.ConfirmAsync(
-            Guid.NewGuid(),
+            userId,
             operationId,
             CancellationToken.None);
 
         var rejected = Assert.IsType<NetworkConfigurationCommandRejected>(outcome);
         Assert.Equal(NetworkConfigurationCommandFailure.ExecutorRejected, rejected.Failure);
         Assert.Equal("network.operation_result_mismatch", rejected.Code);
+        Assert.Equal(StoredNetworkConfigurationOperationState.Interrupted, store.State);
     }
 
     private static NetworkConfigurationService CreateService(
         IAuthenticationService authentication,
         INetworkConfigurationInventory inventory,
         INetworkConfigurationExecutor? executor = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INetworkConfigurationOperationStore? operationStore = null)
     {
         return new NetworkConfigurationService(
             authentication,
             inventory,
             executor ?? new NetworkConfigurationExecutorStub(),
+            operationStore ?? new NetworkConfigurationOperationStoreStub(),
             timeProvider ?? TimeProvider.System);
     }
 
@@ -603,6 +639,76 @@ public sealed class NetworkConfigurationServiceTests
                 NetworkConfigurationExecutionFailure.Unavailable,
                 "network.write_unavailable",
                 Retryable: false);
+        }
+    }
+
+    private sealed class NetworkConfigurationOperationStoreStub :
+        INetworkConfigurationOperationStore
+    {
+        private StoredNetworkConfigurationOperation? operation;
+        public StoredNetworkConfigurationOperationState? State => operation?.State;
+
+        public static NetworkConfigurationOperationStoreStub Awaiting(
+            Guid operationId,
+            Guid userId)
+        {
+            return new NetworkConfigurationOperationStoreStub
+            {
+                operation = new StoredNetworkConfigurationOperation(
+                    operationId,
+                    userId,
+                    "mac:00:11:22:33:44:55",
+                    new NormalizedNetworkConfiguration(
+                        NetworkAddressingMode.StaticIpv4,
+                        "192.168.1.20",
+                        "255.255.255.0",
+                        24,
+                        "192.168.1.1"),
+                    StoredNetworkConfigurationOperationState.AwaitingConfirmation,
+                    DateTimeOffset.UtcNow.AddMinutes(2),
+                    null)
+            };
+        }
+
+        public Task<NetworkConfigurationOperationStartOutcome> StartAsync(
+            Guid userId,
+            string interfaceId,
+            NormalizedNetworkConfiguration requested,
+            DateTimeOffset confirmationDeadline,
+            CancellationToken cancellationToken)
+        {
+            operation = new StoredNetworkConfigurationOperation(
+                Guid.NewGuid(),
+                userId,
+                interfaceId,
+                requested,
+                StoredNetworkConfigurationOperationState.Applying,
+                confirmationDeadline,
+                null);
+            return Task.FromResult<NetworkConfigurationOperationStartOutcome>(
+                new NetworkConfigurationOperationStarted(operation));
+        }
+
+        public Task<StoredNetworkConfigurationOperation?> GetAsync(
+            Guid operationId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                operation?.Id == operationId ? operation : null);
+        }
+
+        public Task RecordAsync(
+            Guid operationId,
+            StoredNetworkConfigurationOperationState state,
+            string? errorCode,
+            bool releaseLock,
+            CancellationToken cancellationToken)
+        {
+            if (operation?.Id == operationId)
+            {
+                operation = operation with { State = state, ErrorCode = errorCode };
+            }
+            return Task.CompletedTask;
         }
     }
 

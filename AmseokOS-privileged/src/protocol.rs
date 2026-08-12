@@ -227,7 +227,13 @@ fn process_request(
             );
         }
         "network.confirmConfiguration" => {
-            return confirm_configuration_action(&parameters, request_id, registry, started);
+            return confirm_configuration_action(
+                &parameters,
+                request_id,
+                registry,
+                environment,
+                started,
+            );
         }
         "network.rollbackConfiguration" => {
             return rollback_configuration_action(
@@ -610,12 +616,12 @@ fn apply_configuration_action(
         prefix_length: parameters.prefix_length,
         gateway: parameters.gateway,
     };
-    let backup = match network_write::apply_configuration(
+    let applied = match network_write::apply_configuration(
         environment,
         &parameters.interface_id,
         &configuration,
     ) {
-        Ok(backup) => backup,
+        Ok(applied) => applied,
         Err(error) => return write_failure(request_id, error, started),
     };
 
@@ -624,14 +630,15 @@ fn apply_configuration_action(
     if let Err(error) = registry.register(PendingChange {
         operation_id: parameters.operation_id.clone(),
         interface_id: parameters.interface_id.clone(),
-        backup: backup.clone(),
+        backup: applied.backup.clone(),
+        retained_addresses: applied.retained_addresses,
         confirmation_deadline_unix_milliseconds: parameters.confirmation_deadline_unix_milliseconds,
-        status: STATUS_AWAITING_CONFIRMATION,
+        status: STATUS_AWAITING_CONFIRMATION.to_owned(),
     }) {
         return match network_write::rollback_configuration(
             environment,
             &parameters.interface_id,
-            &backup,
+            &applied.backup,
         ) {
             Ok(()) => write_failure(request_id, error, started),
             Err(rollback_error) => write_failure(request_id, rollback_error, started),
@@ -655,6 +662,7 @@ fn confirm_configuration_action(
     parameters: &Value,
     request_id: String,
     registry: &SharedPendingChangeRegistry,
+    environment: &NetworkWriteEnvironment,
     started: Instant,
 ) -> ResponseEnvelope {
     let parameters = match serde_json::from_value::<OperationParameters>(parameters.clone()) {
@@ -671,21 +679,29 @@ fn confirm_configuration_action(
     // 确认与移除在登记表的一次持锁操作内完成；若记录正被回滚占用，
     // 同样按不存在回复，绝不能在回滚已经开始后再假装确认成功
     match registry.confirm_and_remove(&parameters.operation_id) {
-        Some(change) => write_success(
-            request_id,
-            OperationResult {
-                operation_id: change.operation_id,
-                status: STATUS_CONFIRMED,
-                confirmation_deadline_unix_milliseconds: change
-                    .confirmation_deadline_unix_milliseconds,
-            },
-            started,
-        ),
-        None => write_failure(
+        Ok(Some(change)) => {
+            network_write::release_retained_addresses(
+                environment,
+                &change.interface_id,
+                &change.retained_addresses,
+            );
+            write_success(
+                request_id,
+                OperationResult {
+                    operation_id: change.operation_id,
+                    status: STATUS_CONFIRMED,
+                    confirmation_deadline_unix_milliseconds: change
+                        .confirmation_deadline_unix_milliseconds,
+                },
+                started,
+            )
+        }
+        Ok(None) => write_failure(
             request_id,
             NetworkWriteError::operation_not_found("该待确认改动已被超时回滚"),
             started,
         ),
+        Err(error) => write_failure(request_id, error, started),
     }
 }
 
@@ -722,7 +738,9 @@ fn rollback_configuration_action(
 
     match network_write::rollback_configuration(environment, &change.interface_id, &change.backup) {
         Ok(()) => {
-            registry.finish_rollback(&change.operation_id, true);
+            if let Err(error) = registry.finish_rollback(&change.operation_id, true) {
+                return write_failure(request_id, error, started);
+            }
             write_success(
                 request_id,
                 OperationResult {
@@ -735,7 +753,7 @@ fn rollback_configuration_action(
             )
         }
         Err(error) => {
-            registry.finish_rollback(&change.operation_id, false);
+            let _ = registry.finish_rollback(&change.operation_id, false);
             write_failure(request_id, error, started)
         }
     }
@@ -1250,8 +1268,9 @@ mod tests {
                 operation_id: "operation-failed-rollback".to_owned(),
                 interface_id: INTERFACE_ID.to_owned(),
                 backup: crate::network_write::ManagedFileBackup::Absent,
+                retained_addresses: Vec::new(),
                 confirmation_deadline_unix_milliseconds: current_unix_milliseconds() + 120_000,
-                status: STATUS_AWAITING_CONFIRMATION,
+                status: STATUS_AWAITING_CONFIRMATION.to_owned(),
             })
             .unwrap();
 
