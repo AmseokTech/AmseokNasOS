@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="112" height="112" viewBox="0 0 112 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="white line symbol">
+<path id="Vector" d="M30 25V48C30 63 40 73 55 73C70 73 80 63 80 48V25" stroke="white" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_2" d="M55 73V79C55 90 63 97 74 97C83 97 90 91 92 83" stroke="white" stroke-width="7" stroke-linecap="round"/>
+<path id="Vector_3" d="M92 86C96.9706 86 101 81.9706 101 77C101 72.0294 96.9706 68 92 68C87.0294 68 83 72.0294 83 77C83 81.9706 87.0294 86 92 86Z" stroke="white" stroke-width="6"/>
+<path id="Vector_4" d="M30 27C32.7614 27 35 24.7614 35 22C35 19.2386 32.7614 17 30 17C27.2386 17 25 19.2386 25 22C25 24.7614 27.2386 27 30 27Z" fill="white"/>
+<path id="Vector_5" d="M80 27C82.7614 27 85 24.7614 85 22C85 19.2386 82.7614 17 80 17C77.2386 17 75 19.2386 75 22C75 24.7614 77.2386 27 80 27Z" fill="white"/>
+</g>
+</svg>

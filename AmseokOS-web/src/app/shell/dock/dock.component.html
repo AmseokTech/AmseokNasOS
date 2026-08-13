@@ -16,10 +16,12 @@
       (click)="appSelected.emit(app)"
     >
       <span class="dock-tooltip" aria-hidden="true">{{ app.label }}</span>
-      <span class="dock-icon" [style.background]="app.iconBackground" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path [attr.d]="app.iconPath" />
-        </svg>
+      <span
+        class="dock-icon"
+        [attr.data-app-id]="app.id"
+        aria-hidden="true"
+      >
+        <img [src]="app.iconUrl" alt="" />
       </span>
       <span class="active-dot" aria-hidden="true"></span>
     </button>
