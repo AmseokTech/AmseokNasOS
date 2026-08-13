@@ -23,6 +23,7 @@ import {
   provideNativeDateAdapter
 } from '@angular/material/core';
 import { MatCalendar } from '@angular/material/datepicker';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 class NumericDateAdapter extends NativeDateAdapter {
   override getDateNames(): string[] {
@@ -37,6 +38,20 @@ interface DesktopNotification {
   readonly time: string;
   readonly read: boolean;
 }
+
+interface WifiNetwork {
+  readonly id: string;
+  readonly name: string;
+  readonly strength: 1 | 2 | 3;
+  readonly secured: boolean;
+}
+
+const WIFI_NETWORKS: readonly WifiNetwork[] = [
+  { id: 'home', name: 'HomeNet-5G', strength: 3, secured: true },
+  { id: 'office', name: 'Amseok-Office', strength: 3, secured: true },
+  { id: 'guest', name: 'Guest Network', strength: 2, secured: false },
+  { id: 'backup', name: 'NAS-Backup', strength: 1, secured: true }
+];
 
 const INITIAL_NOTIFICATIONS: readonly DesktopNotification[] = [
   {
@@ -64,7 +79,7 @@ const INITIAL_NOTIFICATIONS: readonly DesktopNotification[] = [
 
 @Component({
   selector: 'app-top-bar',
-  imports: [DatePipe, MatButtonModule, MatCalendar],
+  imports: [DatePipe, MatButtonModule, MatCalendar, MatSlideToggleModule],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'zh-CN' },
     provideNativeDateAdapter(),
@@ -92,6 +107,10 @@ export class TopBarComponent implements OnDestroy {
   readonly notifications = signal<readonly DesktopNotification[]>(INITIAL_NOTIFICATIONS);
   readonly dateTimePanelOpen = signal(false);
   readonly notificationCenterOpen = signal(false);
+  readonly wifiPanelOpen = signal(false);
+  readonly wifiEnabled = signal(true);
+  readonly wifiNetworks = WIFI_NETWORKS;
+  readonly selectedWifiId = signal('home');
   readonly unreadNotificationCount = computed(
     () => this.notifications().filter((notification) => !notification.read).length
   );
@@ -104,12 +123,33 @@ export class TopBarComponent implements OnDestroy {
 
   toggleNotificationCenter(): void {
     this.dateTimePanelOpen.set(false);
+    this.wifiPanelOpen.set(false);
     this.notificationCenterOpen.update((isOpen) => !isOpen);
   }
 
   toggleDateTimePanel(): void {
     this.notificationCenterOpen.set(false);
+    this.wifiPanelOpen.set(false);
     this.dateTimePanelOpen.update((isOpen) => !isOpen);
+  }
+
+  toggleWifiPanel(): void {
+    this.dateTimePanelOpen.set(false);
+    this.notificationCenterOpen.set(false);
+    this.wifiPanelOpen.update((isOpen) => !isOpen);
+  }
+
+  setWifiEnabled(enabled: boolean): void {
+    this.wifiEnabled.set(enabled);
+    if (!enabled) {
+      this.selectedWifiId.set('');
+    }
+  }
+
+  selectWifiNetwork(id: string): void {
+    if (this.wifiEnabled()) {
+      this.selectedWifiId.set(id);
+    }
   }
 
   selectDate(date: Date | null): void {
@@ -144,7 +184,7 @@ export class TopBarComponent implements OnDestroy {
   closeOpenPanelsOnOutsideClick(event: MouseEvent): void {
     const target = event.target;
     if (
-      (!this.notificationCenterOpen() && !this.dateTimePanelOpen()) ||
+      (!this.notificationCenterOpen() && !this.dateTimePanelOpen() && !this.wifiPanelOpen()) ||
       (target instanceof Node && this.host.nativeElement.contains(target))
     ) {
       return;
@@ -152,11 +192,13 @@ export class TopBarComponent implements OnDestroy {
 
     this.notificationCenterOpen.set(false);
     this.dateTimePanelOpen.set(false);
+    this.wifiPanelOpen.set(false);
   }
 
   @HostListener('document:keydown.escape')
   closeOpenPanelsOnEscape(): void {
     this.notificationCenterOpen.set(false);
     this.dateTimePanelOpen.set(false);
+    this.wifiPanelOpen.set(false);
   }
 }

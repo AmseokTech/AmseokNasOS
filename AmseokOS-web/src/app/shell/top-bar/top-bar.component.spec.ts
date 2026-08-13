@@ -80,6 +80,42 @@ describe('TopBarComponent', () => {
     expect(compiled.querySelector('.notification-center')).not.toBeNull();
   });
 
+  it('opens the Wi-Fi panel, selects a network, and keeps system panels exclusive', () => {
+    const fixture = TestBed.createComponent(TopBarComponent);
+    fixture.componentRef.setInput('activeApp', '概览');
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleWifiPanel();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const trigger = compiled.querySelector<HTMLButtonElement>('.network-status');
+    expect(compiled.querySelector('.wifi-panel')).not.toBeNull();
+    expect(trigger?.getAttribute('aria-expanded')).toBe('true');
+
+    fixture.componentInstance.selectWifiNetwork('office');
+    fixture.detectChanges();
+    expect(compiled.querySelector('.wifi-network--selected')?.textContent).toContain('Amseok-Office');
+
+    fixture.componentInstance.toggleNotificationCenter();
+    fixture.detectChanges();
+    expect(compiled.querySelector('.wifi-panel')).toBeNull();
+    expect(compiled.querySelector('.notification-center')).not.toBeNull();
+  });
+
+  it('disables network selection when Wi-Fi is switched off', () => {
+    const fixture = TestBed.createComponent(TopBarComponent);
+    fixture.componentRef.setInput('activeApp', '概览');
+    fixture.componentInstance.toggleWifiPanel();
+    fixture.componentInstance.setWifiEnabled(false);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.wifi-panel__networks--disabled')).not.toBeNull();
+    expect(compiled.querySelector<HTMLButtonElement>('.wifi-network')?.disabled).toBe(true);
+    expect(fixture.componentInstance.selectedWifiId()).toBe('');
+  });
+
   it('updates the selected date shown below the calendar', () => {
     const fixture = TestBed.createComponent(TopBarComponent);
     fixture.componentRef.setInput('activeApp', '概览');
