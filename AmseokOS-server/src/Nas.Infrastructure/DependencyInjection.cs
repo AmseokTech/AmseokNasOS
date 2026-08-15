@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Nas.Application.AppStore;
 using Nas.Application.Authentication;
 using Nas.Application.NetworkConfiguration;
 using Nas.Application.RaidManagement;
@@ -19,6 +20,7 @@ using Nas.Application.Storage;
 using Nas.Application.StorageManagement;
 using Nas.Application.Terminal;
 using Nas.Infrastructure.Authentication;
+using Nas.Infrastructure.AppStore;
 using Nas.Infrastructure.ClusterServices;
 using Nas.Infrastructure.Persistence;
 using Nas.Infrastructure.Persistence.Cluster;
@@ -73,6 +75,30 @@ public static class DependencyInjection
                 options => options.TimeoutSeconds is >= 1 and <= 15
                     && options.RaidTimeoutSeconds is >= 15 and <= 120,
                 "Privileged client timeout is outside the supported range")
+            .ValidateOnStart();
+        services.AddOptions<AppStoreOptions>()
+            .Bind(configuration.GetSection(AppStoreOptions.SectionName))
+            .Validate(
+                options => options.BaseUrl.IsAbsoluteUri
+                    && options.BaseUrl.Scheme == Uri.UriSchemeHttps
+                    && options.BaseUrl.AbsolutePath == "/",
+                "App store base URL must be an HTTPS origin")
+            .Validate(
+                options => Uri.TryCreate(options.ChannelPath, UriKind.Relative, out _)
+                    && options.ChannelPath.StartsWith(
+                        "manifests/v1/channels/",
+                        StringComparison.Ordinal)
+                    && options.ChannelPath.EndsWith("/current.json", StringComparison.Ordinal)
+                    && !options.ChannelPath.Contains('\\')
+                    && !options.ChannelPath.Contains('?')
+                    && !options.ChannelPath.Contains('#')
+                    && !options.ChannelPath.Contains("..", StringComparison.Ordinal),
+                "App store channel path must stay below manifests/v1/channels")
+            .Validate(
+                options => options.RefreshSeconds is >= 10 and <= 3_600
+                    && options.TimeoutSeconds is >= 1 and <= 30
+                    && options.MaximumDocumentBytes is >= 16_384 and <= 8_388_608,
+                "App store refresh, timeout, or document limit is outside the supported range")
             .ValidateOnStart();
 
         services.AddDbContext<ClusterDbContext>(options => options.UseNpgsql(clusterConnection));
@@ -169,6 +195,28 @@ public static class DependencyInjection
         services.AddSingleton<IStoragePreviewStore, InMemoryStoragePreviewStore>();
         services.AddScoped<IStorageOperationStore, SqliteStorageOperationStore>();
         services.AddScoped<IStorageManagementService, StorageManagementService>();
+
+        services.AddSingleton(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<AppStoreOptions>>().Value;
+            return new AppCatalogPolicy(
+                options.BaseUrl,
+                TimeSpan.FromSeconds(options.RefreshSeconds));
+        });
+        services.AddSingleton<IAppCatalogService, AppCatalogService>();
+        services.AddSingleton<IRemoteAppCatalogClient, RemoteAppCatalogClient>();
+        services.AddHttpClient(
+            RemoteAppCatalogClient.HttpClientName,
+            (provider, client) =>
+            {
+                var options = provider.GetRequiredService<IOptions<AppStoreOptions>>().Value;
+                client.BaseAddress = options.BaseUrl;
+                client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false
+            });
 
         services.AddHttpClient("cluster-health", client =>
         {

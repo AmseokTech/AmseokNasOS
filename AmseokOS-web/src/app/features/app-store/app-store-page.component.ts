@@ -1,31 +1,23 @@
 //--------------------------//
-//--------提供内置应用商店的只读探索界面---------//
-//--------Provides the read-only built-in app store discovery view--------//
+//--------展示由本机 API 校验的远端应用目录---------//
+//--------Displays the remote app catalog validated by the local API--------//
 //-------------------------//
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, EMPTY, exhaustMap, interval, merge, of, Subject } from 'rxjs';
 
+import type { AppStoreCategoryId, StoreApp } from './app-store-catalog.models';
+import { AppStoreCatalogService } from './app-store-catalog.service';
 import { AppStoreDownloadCenterComponent } from './app-store-download-center.component';
 import { AppStorePreviewCenterComponent } from './app-store-preview-center.component';
 import { AppStoreSubscriptionCenterComponent } from './app-store-subscription-center.component';
 
-type AppStoreCategoryId = 'explore' | 'create' | 'work' | 'tools' | 'development';
 type AppStoreView = 'catalog' | 'detail' | 'preview' | 'subscription' | 'downloads';
 
 interface AppStoreCategory {
   readonly id: AppStoreCategoryId;
   readonly label: string;
   readonly iconPath: string;
-}
-
-interface StoreApp {
-  readonly id: string;
-  readonly name: string;
-  readonly category: AppStoreCategoryId;
-  readonly eyebrow: string;
-  readonly description: string;
-  readonly overview: string;
-  readonly features: readonly string[];
-  readonly imagePath: string;
 }
 
 const CATEGORIES: readonly AppStoreCategory[] = [
@@ -56,49 +48,6 @@ const CATEGORIES: readonly AppStoreCategory[] = [
   }
 ];
 
-const STORE_APPS: readonly StoreApp[] = [
-  {
-    id: 'photo-library',
-    name: 'Photo Library',
-    category: 'create',
-    eyebrow: '媒体管理',
-    description: '把家庭影像按时间、人物和相册清晰整理。',
-    overview: '集中查看家庭照片和视频，为按时间整理、相册管理及日后的设备同步预留清晰入口。',
-    features: ['按时间线和相册浏览影像', '为家庭资料建立可识别的归档入口', '后续同步能力将遵循权限边界开放'],
-    imagePath: '/assets/app-store/photo-library-card.jpg'
-  },
-  {
-    id: 'studio-sync',
-    name: 'Studio Sync',
-    category: 'work',
-    eyebrow: '团队协作',
-    description: '让素材、项目文件和成员进度始终保持同步。',
-    overview: '为创作素材、项目文件与团队进度准备统一入口，减少分散文件带来的协作成本。',
-    features: ['汇总项目资料的协作状态', '为成员同步保留清晰的工作上下文', '当前仅展示产品规划，不会修改本地文件'],
-    imagePath: '/assets/app-store/studio-sync-card.jpg'
-  },
-  {
-    id: 'screen-cast',
-    name: 'Screen Cast',
-    category: 'tools',
-    eyebrow: '效率工具',
-    description: '在可信设备之间轻松投送演示和媒体内容。',
-    overview: '将演示内容和媒体资料投送到可信设备，适合会议展示与日常协作场景。',
-    features: ['为可信设备间的内容投送提供入口', '保留演示与媒体资料的使用场景', '设备发现和投送操作尚未开放'],
-    imagePath: '/assets/app-store/screen-cast-card.jpg'
-  },
-  {
-    id: 'backup-vault',
-    name: 'Backup Vault',
-    category: 'development',
-    eyebrow: '开发工具',
-    description: '为项目快照和构建产物预留统一归档入口。',
-    overview: '为项目快照和构建产物提供可追溯的归档视图，便于后续管理备份策略。',
-    features: ['为构建产物与快照保留统一视图', '突出可靠归档和恢复的产品方向', '备份任务和存储写入均保持关闭'],
-    imagePath: '/assets/app-store/backup-vault-card.jpg'
-  }
-];
-
 @Component({
   selector: 'app-app-store-page',
   imports: [
@@ -111,7 +60,16 @@ const STORE_APPS: readonly StoreApp[] = [
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppStorePageComponent {
+  private readonly catalogService = inject(AppStoreCatalogService);
+  private readonly refreshRequests = new Subject<void>();
+
   readonly categories = CATEGORIES;
+  readonly apps = signal<readonly StoreApp[]>([]);
+  readonly catalogRevision = signal<string | null>(null);
+  readonly catalogRefreshedAt = signal<string | null>(null);
+  readonly catalogIsStale = signal(false);
+  readonly catalogLoading = signal(true);
+  readonly catalogError = signal<string | null>(null);
   readonly activeView = signal<AppStoreView>('catalog');
   readonly activeCategory = signal<AppStoreCategoryId>('explore');
   readonly searchTerm = signal('');
@@ -120,7 +78,7 @@ export class AppStorePageComponent {
   readonly visibleApps = computed(() => {
     const term = this.searchTerm().trim().toLocaleLowerCase();
     const category = this.activeCategory();
-    return STORE_APPS.filter((app) => {
+    return this.apps().filter((app) => {
       const inCategory = category === 'explore' || app.category === category;
       const inSearch = !term || [app.name, app.eyebrow, app.description]
         .join(' ')
@@ -129,6 +87,51 @@ export class AppStorePageComponent {
       return inCategory && inSearch;
     });
   });
+
+  constructor() {
+    merge(of(undefined), interval(60_000), this.refreshRequests)
+      .pipe(
+        exhaustMap(() => {
+          if (this.apps().length === 0) {
+            this.catalogLoading.set(true);
+          }
+          this.catalogError.set(null);
+          return this.catalogService.getCatalog().pipe(
+            catchError((error: unknown) => {
+              this.catalogError.set(
+                error instanceof Error ? error.message : '应用目录加载失败'
+              );
+              this.catalogLoading.set(false);
+              return EMPTY;
+            })
+          );
+        }),
+        takeUntilDestroyed()
+      )
+      .subscribe((catalog) => {
+        this.apps.set(catalog.apps);
+        this.catalogRevision.set(catalog.revision);
+        this.catalogRefreshedAt.set(catalog.refreshedAt);
+        this.catalogIsStale.set(catalog.isStale);
+        this.catalogLoading.set(false);
+
+        const selected = this.selectedApp();
+        if (selected) {
+          const current = catalog.apps.find((app) =>
+            app.publisherId === selected.publisherId && app.id === selected.id
+          );
+          if (current) {
+            this.selectedApp.set(current);
+          } else {
+            this.returnToCatalog();
+          }
+        }
+      });
+  }
+
+  refreshCatalog(): void {
+    this.refreshRequests.next();
+  }
 
   selectCategory(category: AppStoreCategoryId): void {
     this.activeView.set('catalog');
