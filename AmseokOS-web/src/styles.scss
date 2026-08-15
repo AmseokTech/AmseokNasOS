@@ -174,6 +174,10 @@ app-top-bar .date-time-panel__content--enter {
   animation-delay: var(--date-time-delay, 55ms);
 }
 
+app-top-bar .wifi-panel--enter { animation: wifi-panel-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+app-top-bar .wifi-panel--leave { animation: wifi-panel-leave 180ms cubic-bezier(0.4, 0, 1, 1) both; }
+app-top-bar .wifi-panel__item--enter { animation: wifi-item-enter 270ms cubic-bezier(0.16, 1, 0.3, 1) var(--wifi-delay, 30ms) both; }
+
 @keyframes notification-center-enter {
   from {
     opacity: 0;
@@ -246,6 +250,21 @@ app-top-bar .date-time-panel__content--enter {
   }
 }
 
+@keyframes wifi-panel-enter {
+  from { opacity: 0; transform: translateY(-9px) scale(0.95); filter: blur(5px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes wifi-panel-leave {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-5px) scale(0.975); }
+}
+
+@keyframes wifi-item-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 640px) {
   app-top-bar .date-time-panel {
     right: 0;
@@ -265,7 +284,10 @@ app-top-bar .date-time-panel__content--enter {
   app-top-bar .notification-empty--enter,
   app-top-bar .date-time-panel--enter,
   app-top-bar .date-time-panel--leave,
-  app-top-bar .date-time-panel__content--enter {
+  app-top-bar .date-time-panel__content--enter,
+  app-top-bar .wifi-panel--enter,
+  app-top-bar .wifi-panel--leave,
+  app-top-bar .wifi-panel__item--enter {
     animation-delay: 0ms;
     animation-duration: 1ms;
   }
