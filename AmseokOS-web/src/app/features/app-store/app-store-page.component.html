@@ -64,7 +64,7 @@
       </button>
     </nav>
 
-    <p class="app-store__sidebar-note">当前仅展示内置应用规划</p>
+    <p class="app-store__sidebar-note">目录由 NAS 安全校验后展示</p>
   </aside>
 
   <main class="app-store__content">
@@ -91,7 +91,7 @@
 
             <div class="app-store-detail__hero">
               <div class="app-store-detail__art">
-                <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" width="512" height="512" />
+                <img [src]="app.imageUrl" [alt]="app.name + ' 应用预览'" width="512" height="512" />
               </div>
               <div class="app-store-detail__hero-copy">
                 <p>{{ app.eyebrow }}</p>
@@ -114,7 +114,7 @@
             <div class="app-store-detail__sections">
               <section aria-labelledby="app-detail-overview">
                 <p>应用概览</p>
-                <h2 id="app-detail-overview">为 NAS 准备的内置应用方向</h2>
+                <h2 id="app-detail-overview">为 NAS 准备的官方应用方向</h2>
                 <span>{{ app.overview }}</span>
               </section>
               <section aria-labelledby="app-detail-features">
@@ -134,10 +134,25 @@
       }
       @default {
         <section class="app-store__masthead" aria-labelledby="app-store-title">
-          <p>内置应用中心</p>
+          <p>官方应用中心</p>
           <h1 id="app-store-title">探索</h1>
-          <span>{{ visibleApps().length }} 个精选应用</span>
+          <span [attr.title]="catalogRefreshedAt() ? '最近同步：' + catalogRefreshedAt() : null">
+            {{ visibleApps().length }} 个精选应用
+            @if (catalogRevision(); as revision) { · {{ revision }} }
+          </span>
         </section>
+
+        @if (catalogIsStale()) {
+          <div class="app-store__catalog-status app-store__catalog-status--warning" role="status">
+            当前展示上次成功同步的目录，远端恢复后会自动更新。
+            <button type="button" (click)="refreshCatalog()">立即重试</button>
+          </div>
+        } @else if (catalogError() && apps().length) {
+          <div class="app-store__catalog-status app-store__catalog-status--warning" role="status">
+            {{ catalogError() }}，当前目录保持不变。
+            <button type="button" (click)="refreshCatalog()">立即重试</button>
+          </div>
+        }
 
         <section class="app-store__hero" aria-label="应用商店精选">
           <div class="app-store__hero-copy">
@@ -157,7 +172,19 @@
             <span aria-live="polite">{{ visibleApps().length }} 个应用</span>
           </div>
 
-          @if (visibleApps().length) {
+          @if (catalogLoading() && apps().length === 0) {
+            <div class="app-store__empty" role="status">正在同步应用目录…</div>
+          } @else if (catalogError() && apps().length === 0) {
+            <div class="app-store__empty" role="alert">
+              {{ catalogError() }}
+              <button type="button" (click)="refreshCatalog()">重新加载</button>
+            </div>
+          } @else if (apps().length === 0) {
+            <div class="app-store__empty" role="status">
+              应用目录暂时为空。
+              <button type="button" (click)="refreshCatalog()">检查更新</button>
+            </div>
+          } @else if (visibleApps().length) {
             <div class="app-store__grid">
               @for (app of visibleApps(); track app.id) {
                 <article class="app-store-card">
@@ -171,7 +198,7 @@
                     </button>
                   </div>
                   <div class="app-store-card__art">
-                    <img [src]="app.imagePath" [alt]="app.name + ' 应用预览'" width="512" height="512" loading="lazy" />
+                    <img [src]="app.imageUrl" [alt]="app.name + ' 应用预览'" width="512" height="512" loading="lazy" />
                   </div>
                 </article>
               }

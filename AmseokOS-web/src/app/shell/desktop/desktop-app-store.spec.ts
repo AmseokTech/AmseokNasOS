@@ -50,6 +50,15 @@ describe('Desktop app store launcher', () => {
       fixture.detectChanges();
       expect(compiled.querySelector('.app-store')).not.toBeNull();
     });
+    http.expectOne('/api/app-store/catalog').flush({
+      format: 'amseok-app-catalog-v1',
+      revision: 'revision-1',
+      generatedAt: '2026-08-15T08:00:00Z',
+      refreshedAt: '2026-08-15T08:01:00Z',
+      isStale: false,
+      apps: []
+    });
+    fixture.detectChanges();
     expect(compiled.querySelector('.managed-window')?.getAttribute('aria-label')).toBe(
       '应用商店 窗口'
     );

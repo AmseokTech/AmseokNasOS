@@ -1,17 +1,91 @@
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
+import type { AppCatalogResponse } from './app-store-catalog.models';
 import { AppStorePageComponent } from './app-store-page.component';
+
+const catalog: AppCatalogResponse = {
+  format: 'amseok-app-catalog-v1',
+  revision: '2026.08.15.1',
+  generatedAt: '2026-08-15T08:00:00Z',
+  refreshedAt: '2026-08-15T08:01:00Z',
+  isStale: false,
+  apps: [
+    {
+      publisherId: 'amseok',
+      id: 'photo-library',
+      name: 'Photo Library',
+      category: 'create',
+      eyebrow: '媒体管理',
+      description: '把家庭影像按时间、人物和相册清晰整理。',
+      overview: '集中查看家庭照片和视频。',
+      features: ['按时间线浏览', '相册管理'],
+      imageUrl: 'https://download.amseok.cn/assets/photo-library-card.jpg'
+    },
+    {
+      publisherId: 'amseok',
+      id: 'studio-sync',
+      name: 'Studio Sync',
+      category: 'work',
+      eyebrow: '团队协作',
+      description: '让素材、项目文件和成员进度始终保持同步。',
+      overview: '为创作素材和项目文件准备统一入口。',
+      features: ['汇总协作状态', '保留工作上下文'],
+      imageUrl: 'https://download.amseok.cn/assets/studio-sync-card.jpg'
+    },
+    {
+      publisherId: 'amseok',
+      id: 'screen-cast',
+      name: 'Screen Cast',
+      category: 'tools',
+      eyebrow: '效率工具',
+      description: '在可信设备之间轻松投送演示和媒体内容。',
+      overview: '为可信设备之间的内容投送提供入口。',
+      features: ['设备投送', '会议演示'],
+      imageUrl: 'https://download.amseok.cn/assets/screen-cast-card.jpg'
+    },
+    {
+      publisherId: 'amseok',
+      id: 'backup-vault',
+      name: 'Backup Vault',
+      category: 'development',
+      eyebrow: '开发工具',
+      description: '为项目快照和构建产物预留统一归档入口。',
+      overview: '为构建产物提供可追溯的归档视图。',
+      features: ['构建产物归档', '快照管理'],
+      imageUrl: 'https://download.amseok.cn/assets/backup-vault-card.jpg'
+    }
+  ]
+};
 
 describe('AppStorePageComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppStorePageComponent]
+      imports: [AppStorePageComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     }).compileComponents();
   });
 
-  it('filters apps and opens an image-backed application detail view', () => {
+  afterEach(() => {
+    TestBed.inject(HttpTestingController).verify();
+  });
+
+  function createLoadedFixture() {
     const fixture = TestBed.createComponent(AppStorePageComponent);
     fixture.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/app-store/catalog')
+      .flush(catalog);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('filters apps and opens an image-backed application detail view', () => {
+    const fixture = createLoadedFixture();
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Photo Library');
@@ -31,7 +105,7 @@ describe('AppStorePageComponent', () => {
     expect(compiled.textContent).toContain('应用概览');
     expect(compiled.textContent).toContain('安装功能暂未开放');
     expect(compiled.querySelector<HTMLImageElement>('.app-store-detail__art > img')?.src)
-      .toContain('/assets/app-store/studio-sync-card.jpg');
+      .toBe('https://download.amseok.cn/assets/studio-sync-card.jpg');
 
     const back = [...compiled.querySelectorAll('button')]
       .find((button) => button.textContent?.includes('返回探索')) as HTMLButtonElement;
@@ -41,8 +115,7 @@ describe('AppStorePageComponent', () => {
   });
 
   it('shows an empty state for unmatched searches and can clear the filters', () => {
-    const fixture = TestBed.createComponent(AppStorePageComponent);
-    fixture.detectChanges();
+    const fixture = createLoadedFixture();
 
     fixture.componentInstance.setSearch('no-match');
     fixture.detectChanges();
@@ -57,8 +130,7 @@ describe('AppStorePageComponent', () => {
   });
 
   it('keeps search available in service views and returns to matching catalog results', () => {
-    const fixture = TestBed.createComponent(AppStorePageComponent);
-    fixture.detectChanges();
+    const fixture = createLoadedFixture();
     const compiled = fixture.nativeElement as HTMLElement;
 
     const serviceViews = [
@@ -89,8 +161,7 @@ describe('AppStorePageComponent', () => {
   });
 
   it('switches to the preview, subscription, and download centers without exposing installation', () => {
-    const fixture = TestBed.createComponent(AppStorePageComponent);
-    fixture.detectChanges();
+    const fixture = createLoadedFixture();
     const compiled = fixture.nativeElement as HTMLElement;
 
     const preview = [...compiled.querySelectorAll('nav button')]
@@ -123,5 +194,38 @@ describe('AppStorePageComponent', () => {
     const demoDownload = compiled.querySelector<HTMLButtonElement>('.download-center__download');
     expect(demoDownload?.textContent).toContain('下载演示包');
     expect(demoDownload?.disabled).toBe(false);
+  });
+
+  it('shows a retryable state when no verified catalog is available', () => {
+    const fixture = TestBed.createComponent(AppStorePageComponent);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne('/api/app-store/catalog').flush(
+      { detail: '暂时无法连接远端应用市场，请稍后重试' },
+      { status: 503, statusText: 'Service Unavailable' }
+    );
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('暂时无法连接远端应用市场，请稍后重试');
+    const retry = [...compiled.querySelectorAll<HTMLButtonElement>('button')]
+      .find((button) => button.textContent?.includes('重新加载'));
+    retry?.click();
+    http.expectOne('/api/app-store/catalog').flush(catalog);
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('Photo Library');
+  });
+
+  it('labels a catalog served from the NAS fallback cache', () => {
+    const fixture = TestBed.createComponent(AppStorePageComponent);
+    fixture.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/app-store/catalog')
+      .flush({ ...catalog, isStale: true });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent)
+      .toContain('当前展示上次成功同步的目录');
   });
 });
