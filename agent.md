@@ -12,7 +12,7 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 
 ## 2. 当前项目进展
 
-最后检查日期：2026-08-10
+最后检查日期：2026-08-19
 
 当前状态：第一阶段进行中，第 1 项最小项目骨架已完成；第 3 项持久化基础与真实 PostgreSQL 迁移已验证；第 4 项管理员认证、强制改密代码闭环和测试机认证请求链路已建立；前端桌面 Shell、可复用 WindowFrame 和多窗口管理已建立，支持最小化、最大化/还原、关闭、拖动、缩放和布局持久化，并已接入系统设置、RAID 磁盘管理与数据卷管理页面，Dashboard 仍未实现；C# 与 Rust 特权边界已完成“关于本机”、物理网卡、物理块设备和现有 MD RAID 阵列查询，并完成 RAID0/1/5/6/10 生命周期以及 ext4 数据卷格式化、UUID 持久挂载、目录权限、读写校验和 SMB/NFS 共享的代码闭环，危险写入具备两阶段预检、重新认证、一次性令牌、确认短语、稳定阵列复核、Operation、资源锁、fencing、幂等登记和审计意图；存储纵向闭环已在 `.10` 使用隔离 loop RAID1 完成真实格式化、挂载恢复、权限、读写与共享配置验证，新七包已签名发布并由 `.7` 通过局域网 curl 安装运行，但 `.7` 的真实 20GB RAID1 仍保持未格式化、未挂载，等待管理员在界面明确确认初始化；网络实际写操作仍保持关闭；作为用户明确要求的插入项，低权限 Web Terminal 代码闭环已建立并已从独立构建机生成 Release 产物部署到测试机，独立系统账户、systemd 沙箱、异常自动重启、真实 Socket/PTY、权限迁移、Nginx HTTPS/WebSocket 路由和未登录拦截均已验证，仍待使用当前 Web 管理员密码完成浏览器登录后的交互终端端到端验证；终端重新认证与一次性会话流程已从 Controller 移入 Application 用例，浏览器与 broker 的双向转发也已移入独立 API Relay；作为用户明确要求的 CI/CD 基础设施插入项，OneDev 已部署到 `console`，管理员初始化、容器持久化、AmseokOS 项目导入、独立 Agent、远程 Shell 执行器、版本化 Build Spec、完整测试构建、OneDev 制品保留和存储机上传链路均已真实验证；作为用户明确要求的 Debian 发行版插入项，Qt/QML 图形安装器、Debian source package 和 live-build 镜像配置的只读架构骨架已建立，安装器二进制包已在 Debian trixie amd64 构建、签名发布并由独立测试机通过 APT 安装与冒烟验证；当前 Web、API、privileged daemon、Terminal broker、本地控制台和单节点 etcd/NATS 配置已由 `.10` 基于最新 `main` 构建为七个 Debian 包并签名发布，由 `.7` 通过局域网 curl、签名和 SHA-256 验证后安装运行；Data Protection 外部密钥保护尚未完成
 
@@ -21,6 +21,8 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 进度更正（2026-08-10）：上段“Dashboard 仍未实现”和“Data Protection 外部密钥保护尚未完成”的描述已经过时；Dashboard 只读纵切与 Data Protection 外部证书保护现已完成并部署。`.7` 当前实际运行测试版本为 `0.1.0+test20260810.c8ea3b7.smart4`；该版本仍是 `.10` 工作树覆盖构建而不是纯提交构建，正式发布前必须在本地解决 `devkihon` 与 `origin/main` 分叉并按授权完成审查、提交和推送
 
 合并状态更新（2026-08-10）：本地 SMART、Dashboard 与 Data Protection 改动已提交为 `7cc8e78`，`origin/main` 已无冲突合并到 `devkihon`；`.7` 当前工作树覆盖测试包仍不是本次合并结果的纯提交构建
+
+部署状态更新（2026-08-10）：`.10` 已 fetch 最新 `origin/main` 提交 `ae6ac6395b319eafbd35fab90aef9a8760ad36ff`，因原构建工作树保留历史测试覆盖而未执行 reset、clean 或 stash，改从该提交导出干净快照构建并保留独立 detached worktree `/home/test_build/AmseokOS-main`。版本 `0.1.0+test20260810.zzzae6ac63.main1` 的七个 Debian 包已完成 Angular 59 项测试与覆盖率门禁、生产构建、.NET 77 项测试、privileged 60 项和 Terminal 4 项 Rust 测试、Console 测试、包结构、生产依赖 0 漏洞、SHA-256 与签名验证，并发布到 `.10` 签名 APT 仓库；`.7` 已通过局域网 curl 下载 42.8 MB 并升级七包，PostgreSQL、etcd、NATS、privileged、Terminal、API、Nginx 与 Console 均 active/enabled，live/ready、HTTPS 前端、包完整性、Socket 权限和近期 warning 日志复核通过，新壁纸从 HTTPS 回读的 SHA-256 与构建资源一致。真实 `/dev/md127` 仍为健康 `[UU]` RAID1，未格式化且未挂载
 
 检查结果：
 
@@ -49,8 +51,10 @@ AI 必须在现有项目基础上完成下一个尚未完成的小目标，不�
 - 已增加固定初始管理员 `admin` 的 Identity 哈希种子、全部现有权限、`MustChangePassword` 状态和独立迁移；初始密码明文不写入运行时配置或数据库
 - 已实现登录、会话查询、修改密码和退出 API，启用安全 Cookie、CSRF、防暴力登录锁定与限速，并由后端默认授权策略阻止未改密会话访问普通受保护接口
 - 已实现 Angular 登录与强制改密闭环；修改密码后新 Identity 哈希覆盖初始哈希、清除强制改密状态、递增安全版本并退出临时会话
+- 已将登录页视觉重构为复用系统桌面壁纸的全屏模糊背景，中部显示 AmseokOS 品牌，底部使用两个紧凑液态玻璃账户/密码输入框与内嵌登录按钮；当前认证边界仍只开放固定管理员 `admin`，未扩大后端登录契约。登录页 5 项测试、Angular ESLint 和生产构建通过，并在 1440×900 与 390×844 视口完成实际渲染检查；构建仅保留三个与本次无关的既有组件样式预算警告
 - 已建立深蓝色桌面 Shell，按职责拆分顶部任务栏、Dock 和桌面应用展示契约；所有成功登录统一进入懒加载的 `/desktop` 路由，强制改密会话在桌面右上角显示可复用内容投影提醒，刷新桌面后通过会话接口恢复提醒；Dock 支持键盘焦点、当前入口状态和窄屏横向滚动
 - 已将桌面壁纸更新为用户提供的蓝白粉 16:9 油画纹理图片，转换为 3840×2160 高质量 JPEG 后沿用原有 `cover` 和深蓝色加载兜底；Angular ESLint、桌面 5 项测试与生产构建通过，构建产物中的壁纸 SHA-256 与源资源一致
+- 已移除 Dock 中尚无启动行为的存储空间、共享文件、用户和任务中心占位入口，在 Dock 最左侧新增由 `shell/app-launcher` 独立承载的启动台；启动台只消费桌面应用展示契约，以全屏网格列出概览、终端、应用商店和系统设置四个已安装且可启动组件，复用现有桌面启动流程，并支持焦点约束、关闭按钮、Esc 退出和窄屏双列布局。Angular ESLint、25 个测试文件共 63 项测试、覆盖率门禁与生产构建通过；语句/分支/函数/行覆盖率为 68.03%/50.83%/67.43%/67.35%，生产构建只保留既有三个组件样式预算告警
 - 已将前端用户可见的旧产品名统一为 `AmseokOS`，移除桌面品牌区的 CSS 手绘 Logo，将“更便捷地管理你的服务器”与产品名移至桌面右下角，并在窄屏避让底部 Dock；Angular 26 项测试与生产构建通过
 - 已将系统设置注册为桌面窗口管理器中的单例应用，Dock 可打开、聚焦、最小化和恢复窗口；设置页面采用左侧“关于本机/网络”导航，关于本机展示操作系统、内核、运行时间、CPU 型号/核心/频率、内存和系统盘容量，网络页展示物理网卡型号、驱动、链路、速率、地址、网关和 DNS；当前仅在检测到 systemd DHCP 租约时标记 DHCP，其他已配置来源显示未知，避免把 NetworkManager、ifupdown 或 SLAAC 地址误报为固定地址；尚未具备安全回滚能力的 IP 写入按钮保持禁用
 - 网络配置已形成前端、C# 与 Rust 的完整受控链路：前端物理网卡卡片支持 DHCP 和固定 IPv4 的地址、子网掩码、网关编辑，管理员密码重新认证、预览、应用、确认、显式回滚及新静态地址跳转；C# `NetworkConfiguration` Application 继续集中参数规范化与两分钟确认期限，并通过 SQLite `Operations`、`ResourceLocks` 和 Outbox 审计意图持久化调用身份、操作状态与网卡互斥锁，生产 DI 已接通 `UnixSocketPrivilegedClient` 的 `network.applyConfiguration`、`network.confirmConfiguration`、`network.rollbackConfiguration` 三个固定协议动作；Rust 仅接受稳定 MAC 网卡身份和强类型参数，在 `/etc/systemd/network` 原子维护受管文件，依次执行带固定超时的 `networkctl reload` 与 `networkctl reconfigure <已复核接口名>`，校验地址后临时保留原 IPv4 地址供前端继续确认，确认时移除临时地址，显式或超时回滚恢复原文。待确认记录、回滚备份和临时地址列表已持久化到 `/var/lib/amseoknas/network/pending.json`，守护进程重启后会恢复看守并立即扫描到期记录。已通过 Rust 61 项测试与 Clippy、C# 80 项测试、前端 5 项组件测试、TypeScript 和 ESLint；真实 Debian 双网卡、DHCP 服务器、错误网关导致失联、daemon/整机重启期间超时回滚仍需部署环境 E2E，当前后端只支持 systemd-networkd
