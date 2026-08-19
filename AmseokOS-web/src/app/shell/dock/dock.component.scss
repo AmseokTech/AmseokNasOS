@@ -60,6 +60,30 @@
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 18%));
 }
 
+.launcher-icon {
+  grid-template-columns: repeat(3, 7px);
+  align-content: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(145deg, #eef7ff, #adcff2);
+}
+
+.launcher-icon span {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #297be6;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
+}
+
+.launcher-icon span:nth-child(3n + 2) {
+  background: #a650da;
+}
+
+.launcher-icon span:nth-child(3n) {
+  background: #ef6b7f;
+}
+
 .dock-item:hover .dock-icon,
 .dock-item:focus-visible .dock-icon {
   filter: brightness(1.08);
@@ -118,6 +142,11 @@
 }
 
 .dock-item--focused .dock-icon {
+  outline: 2px solid rgb(214 237 255 / 72%);
+  outline-offset: 2px;
+}
+
+.dock-item--launcher.dock-item--selected .dock-icon {
   outline: 2px solid rgb(214 237 255 / 72%);
   outline-offset: 2px;
 }

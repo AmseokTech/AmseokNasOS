@@ -1,0 +1,60 @@
+import { TestBed } from '@angular/core/testing';
+
+import { DesktopApp } from '../desktop/desktop-app.model';
+import { AppLauncherComponent } from './app-launcher.component';
+
+const installedApps: readonly DesktopApp[] = [
+  {
+    id: 'dashboard',
+    label: '概览',
+    kind: 'window',
+    iconPath: 'M0 0',
+    iconBackground: '#06f',
+    windowAppId: 'dashboard'
+  },
+  {
+    id: 'settings',
+    label: '系统设置',
+    kind: 'window',
+    iconPath: 'M0 0',
+    iconBackground: '#888',
+    windowAppId: 'settings'
+  }
+];
+
+describe('AppLauncherComponent', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AppLauncherComponent]
+    }).compileComponents();
+  });
+
+  it('renders installed components and emits the selected app', () => {
+    const fixture = TestBed.createComponent(AppLauncherComponent);
+    const selected = vi.fn();
+    fixture.componentRef.setInput('apps', installedApps);
+    fixture.componentInstance.appSelected.subscribe(selected);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+    expect(compiled.querySelector('#app-launcher-description')?.textContent).toContain(
+      '2 个已安装组件'
+    );
+    compiled.querySelector<HTMLButtonElement>('button[aria-label="打开系统设置"]')?.click();
+
+    expect(selected).toHaveBeenCalledWith(installedApps[1]);
+  });
+
+  it('can be dismissed with Escape', () => {
+    const fixture = TestBed.createComponent(AppLauncherComponent);
+    const dismissed = vi.fn();
+    fixture.componentRef.setInput('apps', installedApps);
+    fixture.componentInstance.dismissed.subscribe(dismissed);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(dismissed).toHaveBeenCalledOnce();
+  });
+});

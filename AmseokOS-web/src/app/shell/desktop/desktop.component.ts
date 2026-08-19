@@ -9,6 +9,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthenticationService } from '../../core/auth/authentication.service';
 import { TerminalLauncherService } from '../../features/terminal/terminal-launcher.service';
 import { ReminderPopoverComponent } from '../../shared/components/reminder-popover/reminder-popover.component';
+import { AppLauncherComponent } from '../app-launcher/app-launcher.component';
 import { DockComponent } from '../dock/dock.component';
 import { TopBarComponent } from '../top-bar/top-bar.component';
 import { WindowHostComponent } from '../window-manager/window-host.component';
@@ -18,6 +19,7 @@ import { DESKTOP_APPS, DesktopApp } from './desktop-app.model';
 @Component({
   selector: 'app-desktop',
   imports: [
+    AppLauncherComponent,
     DockComponent,
     MatButtonModule,
     ReminderPopoverComponent,
@@ -36,9 +38,12 @@ export class DesktopComponent implements OnInit {
   private readonly windowManager = inject(WindowManagerService);
 
   readonly apps = DESKTOP_APPS;
+  readonly launcherOpen = signal(false);
   readonly selectedApp = signal<DesktopApp>(DESKTOP_APPS[0]);
   readonly activeAppLabel = computed(
-    () => this.windowManager.focusedWindow()?.title ?? this.selectedApp().label
+    () => this.launcherOpen()
+      ? '启动台'
+      : this.windowManager.focusedWindow()?.title ?? this.selectedApp().label
   );
   readonly session = this.authentication.session;
 
@@ -53,7 +58,9 @@ export class DesktopComponent implements OnInit {
   }
 
   selectApp(app: DesktopApp): void {
-    if (app.launch === 'terminal') {
+    this.launcherOpen.set(false);
+
+    if (app.kind === 'terminal') {
       if (this.session()?.mustChangePassword) {
         void this.router.navigate(['/change-password']);
         return;
@@ -63,17 +70,20 @@ export class DesktopComponent implements OnInit {
       return;
     }
 
-    if (app.route) {
+    if (app.kind === 'route') {
       void this.router.navigate([app.route]);
       return;
     }
 
-    if (app.windowAppId) {
-      this.selectedApp.set(app);
-      this.windowManager.open(app.windowAppId);
-      return;
-    }
-
     this.selectedApp.set(app);
+    this.windowManager.open(app.windowAppId);
+  }
+
+  toggleLauncher(): void {
+    this.launcherOpen.update((open) => !open);
+  }
+
+  closeLauncher(): void {
+    this.launcherOpen.set(false);
   }
 }

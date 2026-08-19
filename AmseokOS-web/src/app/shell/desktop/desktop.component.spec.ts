@@ -121,4 +121,31 @@ describe('DesktopComponent', () => {
     expect(manager.windows()).toHaveLength(1);
     http.verify();
   });
+
+  it('opens Launchpad with only installed components and launches from its grid', () => {
+    const fixture = TestBed.createComponent(DesktopComponent);
+    const http = TestBed.inject(HttpTestingController);
+    const launcher = TestBed.inject(TerminalLauncherService) as unknown as TerminalLauncherStub;
+
+    fixture.detectChanges();
+    http.expectOne('/api/auth/session').flush({ userName: 'admin', mustChangePassword: false });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    compiled.querySelector<HTMLButtonElement>('button[aria-label="启动台"]')?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.launcherOpen()).toBe(true);
+    expect(fixture.componentInstance.activeAppLabel()).toBe('启动台');
+    expect(compiled.querySelectorAll('.app-launcher__app')).toHaveLength(4);
+    expect(compiled.textContent).not.toContain('共享文件');
+    expect(compiled.textContent).not.toContain('任务中心');
+
+    compiled.querySelector<HTMLButtonElement>('button[aria-label="打开终端"]')?.click();
+    fixture.detectChanges();
+
+    expect(launcher.openCalls).toBe(1);
+    expect(fixture.componentInstance.launcherOpen()).toBe(false);
+    http.verify();
+  });
 });

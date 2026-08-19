@@ -18,16 +18,18 @@ class StubComponent {}
 const terminalApp: DesktopApp = {
   id: 'terminal',
   label: '终端',
+  kind: 'terminal',
   iconPath: 'M0 0',
-  iconBackground: '#000',
-  launch: 'terminal'
+  iconBackground: '#000'
 };
 
 const dashboardApp: DesktopApp = {
   id: 'dashboard',
   label: '概览',
+  kind: 'window',
   iconPath: 'M0 0',
-  iconBackground: '#00f'
+  iconBackground: '#00f',
+  windowAppId: 'dashboard'
 };
 
 const definition: AppComponentDefinition = {
@@ -58,24 +60,44 @@ describe('DockComponent', () => {
     fixture.componentRef.setInput('apps', [dashboardApp, terminalApp]);
     fixture.componentRef.setInput('selectedAppId', 'dashboard');
     fixture.detectChanges();
-    const buttons = () =>
-      [...fixture.nativeElement.querySelectorAll('.dock-item')] as HTMLButtonElement[];
+    const compiled = fixture.nativeElement as HTMLElement;
+    const button = (label: string) => compiled.querySelector<HTMLButtonElement>(
+      `button[aria-label="${label}"]`
+    );
 
-    expect(buttons()[0].classList.contains('dock-item--selected')).toBe(true);
-    expect(buttons()[0].getAttribute('aria-current')).toBe('page');
-    expect(buttons()[0].getAttribute('aria-pressed')).toBeNull();
-    expect(buttons()[1].classList.contains('dock-item--running')).toBe(false);
+    expect(button('启动台')?.getAttribute('aria-pressed')).toBe('false');
+    expect(button('概览')?.classList.contains('dock-item--selected')).toBe(true);
+    expect(button('概览')?.getAttribute('aria-current')).toBe('page');
+    expect(button('概览')?.getAttribute('aria-pressed')).toBeNull();
+    expect(button('终端')?.classList.contains('dock-item--running')).toBe(false);
     const windowId = manager.open('terminal');
     fixture.detectChanges();
-    expect(buttons()[1].classList.contains('dock-item--running')).toBe(true);
-    expect(buttons()[1].classList.contains('dock-item--focused')).toBe(true);
-    expect(buttons()[1].getAttribute('aria-pressed')).toBe('true');
+    expect(button('终端')?.classList.contains('dock-item--running')).toBe(true);
+    expect(button('终端')?.classList.contains('dock-item--focused')).toBe(true);
+    expect(button('终端')?.getAttribute('aria-pressed')).toBe('true');
 
     manager.minimize(windowId);
     fixture.detectChanges();
-    expect(buttons()[1].classList.contains('dock-item--minimized')).toBe(true);
-    expect(buttons()[1].classList.contains('dock-item--focused')).toBe(false);
-    expect(buttons()[1].getAttribute('aria-pressed')).toBe('false');
-    expect(buttons()[0].getAttribute('aria-current')).toBe('page');
+    expect(button('终端')?.classList.contains('dock-item--minimized')).toBe(true);
+    expect(button('终端')?.classList.contains('dock-item--focused')).toBe(false);
+    expect(button('终端')?.getAttribute('aria-pressed')).toBe('false');
+    expect(button('概览')?.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('renders the Launchpad first and reports toggle requests', () => {
+    const fixture = TestBed.createComponent(DockComponent);
+    const toggled = vi.fn();
+    fixture.componentRef.setInput('apps', [dashboardApp, terminalApp]);
+    fixture.componentRef.setInput('launcherOpen', true);
+    fixture.componentRef.setInput('selectedAppId', 'dashboard');
+    fixture.componentInstance.launcherToggled.subscribe(toggled);
+    fixture.detectChanges();
+
+    const buttons = [...fixture.nativeElement.querySelectorAll('.dock-item')] as HTMLButtonElement[];
+    expect(buttons[0].getAttribute('aria-label')).toBe('启动台');
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
+    buttons[0].click();
+
+    expect(toggled).toHaveBeenCalledOnce();
   });
 });
