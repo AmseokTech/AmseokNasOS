@@ -4,17 +4,16 @@
 //-------------------------//
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
-import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
-import { UserAvatarComponent } from '../../../shared/components/user-avatar/user-avatar.component';
 import { AuthenticationService } from '../authentication.service';
+
+const ADMINISTRATOR_USER_NAME = 'admin';
 
 @Component({
   selector: 'app-login-page',
-  imports: [MatButtonModule, PasswordFieldComponent, ReactiveFormsModule, UserAvatarComponent],
+  imports: [ReactiveFormsModule],
   templateUrl: './login-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './login-page.component.scss'
@@ -24,11 +23,16 @@ export class LoginPageComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
+  readonly usernameControl = new FormControl(ADMINISTRATOR_USER_NAME, {
+    nonNullable: true,
+    validators: [Validators.required, Validators.maxLength(64)]
+  });
   readonly passwordControl = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required]
   });
   readonly loginForm = new FormGroup({
+    username: this.usernameControl,
     password: this.passwordControl
   });
   readonly submitting = signal(false);
@@ -42,9 +46,15 @@ export class LoginPageComponent {
   submitLogin(): void {
     this.errorMessage.set('');
     this.successMessage.set('');
-    this.passwordControl.markAsTouched();
+    this.loginForm.markAllAsTouched();
 
-    if (this.passwordControl.invalid) {
+    if (this.loginForm.invalid) {
+      return;
+    }
+
+    // 当前认证边界只开放固定管理员，前端不能把未受支持的账户伪装成可登录账户
+    if (this.usernameControl.value.trim().toLowerCase() !== ADMINISTRATOR_USER_NAME) {
+      this.errorMessage.set('当前版本仅支持管理员账户 admin');
       return;
     }
 

@@ -20,14 +20,18 @@ describe('LoginPageComponent', () => {
     }).compileComponents();
   });
 
-  it('should show the default administrator and password input', () => {
+  it('should show the AmseokOS identity and compact account credentials', () => {
     const fixture = TestBed.createComponent(LoginPageComponent);
 
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.username')?.textContent).toContain('admin');
-    expect(compiled.querySelector('input')?.getAttribute('type')).toBe('password');
+    const username = compiled.querySelector<HTMLInputElement>('input[autocomplete="username"]');
+    const password = compiled.querySelector<HTMLInputElement>('input[autocomplete="current-password"]');
+    expect(compiled.querySelector('h1')?.textContent).toContain('AmseokOS');
+    expect(username?.value).toBe('admin');
+    expect(password?.type).toBe('password');
+    expect(compiled.querySelectorAll('.glass-field')).toHaveLength(2);
   });
 
   it('should require a password before login', () => {
@@ -38,7 +42,22 @@ describe('LoginPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('mat-error')?.textContent).toContain('请输入密码');
+    expect(compiled.querySelector('[role="alert"]')?.textContent).toContain('请输入密码');
+  });
+
+  it('should reject an unsupported account before sending credentials', () => {
+    const fixture = TestBed.createComponent(LoginPageComponent);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.componentInstance.usernameControl.setValue('someone');
+    fixture.componentInstance.passwordControl.setValue('Password1!');
+
+    fixture.componentInstance.submitLogin();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[role="alert"]')?.textContent).toContain('仅支持管理员账户 admin');
+    http.expectNone('/api/auth/csrf');
+    http.expectNone('/api/auth/login');
   });
 
   it('should open the desktop and preserve the forced password-change session', async () => {
