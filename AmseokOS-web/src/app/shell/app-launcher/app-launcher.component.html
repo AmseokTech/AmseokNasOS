@@ -35,12 +35,10 @@
       >
         <span
           class="app-launcher__icon"
-          [style.background]="app.iconBackground"
+          [attr.data-app-id]="app.id"
           aria-hidden="true"
         >
-          <svg viewBox="0 0 24 24">
-            <path [attr.d]="app.iconPath" />
-          </svg>
+          <img [src]="app.iconUrl" alt="" />
         </span>
         <span>{{ app.label }}</span>
       </button>

@@ -8,16 +8,14 @@ const installedApps: readonly DesktopApp[] = [
     id: 'dashboard',
     label: '概览',
     kind: 'window',
-    iconPath: 'M0 0',
-    iconBackground: '#06f',
+    iconUrl: '/assets/dock-icons/dashboard.svg',
     windowAppId: 'dashboard'
   },
   {
     id: 'settings',
     label: '系统设置',
     kind: 'window',
-    iconPath: 'M0 0',
-    iconBackground: '#888',
+    iconUrl: '/assets/dock-icons/settings.svg',
     windowAppId: 'settings'
   }
 ];
@@ -41,6 +39,9 @@ describe('AppLauncherComponent', () => {
     expect(compiled.querySelector('#app-launcher-description')?.textContent).toContain(
       '2 个已安装组件'
     );
+    expect(
+      compiled.querySelector<HTMLImageElement>('[data-app-id="dashboard"] img')?.getAttribute('src')
+    ).toBe('/assets/dock-icons/dashboard.svg');
     compiled.querySelector<HTMLButtonElement>('button[aria-label="打开系统设置"]')?.click();
 
     expect(selected).toHaveBeenCalledWith(installedApps[1]);

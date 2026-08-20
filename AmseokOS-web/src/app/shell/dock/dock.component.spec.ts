@@ -18,14 +18,16 @@ class StubComponent {}
 const terminalApp: DesktopApp = {
   id: 'terminal',
   label: '终端',
+  kind: 'terminal',
   iconUrl: '/assets/dock-icons/terminal.svg',
-  launch: 'terminal'
 };
 
 const dashboardApp: DesktopApp = {
   id: 'dashboard',
   label: '概览',
-  iconUrl: '/assets/dock-icons/dashboard.svg'
+  kind: 'window',
+  iconUrl: '/assets/dock-icons/dashboard.svg',
+  windowAppId: 'dashboard'
 };
 
 const definition: AppComponentDefinition = {
