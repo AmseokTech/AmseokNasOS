@@ -94,6 +94,10 @@ describe('DockComponent', () => {
     const buttons = [...fixture.nativeElement.querySelectorAll('.dock-item')] as HTMLButtonElement[];
     expect(buttons[0].getAttribute('aria-label')).toBe('启动台');
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
+    expect(buttons[0].querySelector('img')?.getAttribute('src')).toBe(
+      '/assets/dock-icons/launchpad.svg'
+    );
+    expect(fixture.nativeElement.querySelector('.dock-tooltip')).toBeNull();
     buttons[0].click();
 
     expect(toggled).toHaveBeenCalledOnce();

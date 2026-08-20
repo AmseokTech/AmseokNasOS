@@ -22,6 +22,68 @@ public sealed record CpuInformation(
 
 public sealed record MemoryInformation(long TotalBytes);
 
+public sealed record SystemPerformanceInformation(
+    long CapturedAtUnixMilliseconds,
+    CpuPerformanceInformation Cpu,
+    MemoryPerformanceInformation Memory,
+    IReadOnlyList<DiskPerformanceInformation> Disks,
+    IReadOnlyList<NetworkPerformanceInformation> Networks,
+    IReadOnlyList<GpuPerformanceInformation> Gpus);
+
+public sealed record CpuPerformanceInformation(
+    string Model,
+    int PhysicalCoreCount,
+    int LogicalProcessorCount,
+    long? CurrentFrequencyMhz,
+    long? MaximumFrequencyMhz,
+    long? L1CacheBytes,
+    long? L2CacheBytes,
+    long? L3CacheBytes,
+    CpuTimeCounterInformation Aggregate,
+    IReadOnlyList<CpuTimeCounterInformation> LogicalProcessors);
+
+public sealed record CpuTimeCounterInformation(
+    string Id,
+    long TotalTicks,
+    long IdleTicks);
+
+public sealed record MemoryPerformanceInformation(
+    long TotalBytes,
+    long UsedBytes,
+    long AvailableBytes,
+    long CachedBytes,
+    long SwapTotalBytes,
+    long SwapUsedBytes);
+
+public sealed record DiskPerformanceInformation(
+    string Id,
+    string Name,
+    string? Model,
+    long TotalBytes,
+    long ReadBytes,
+    long WrittenBytes,
+    long BusyMilliseconds);
+
+public sealed record NetworkPerformanceInformation(
+    string Id,
+    string Name,
+    string? Model,
+    long? SpeedMbps,
+    long ReceivedBytes,
+    long TransmittedBytes);
+
+public sealed record GpuPerformanceInformation(
+    string Id,
+    string Name,
+    string? Driver,
+    long? MemoryTotalBytes,
+    long? MemoryUsedBytes,
+    double? CoreUtilizationPercent,
+    double? TwoDUtilizationPercent,
+    double? ThreeDUtilizationPercent,
+    long? CurrentFrequencyMhz,
+    long? MaximumFrequencyMhz);
+
 public sealed record SystemStorageInformation(
     string Source,
     string? StableId,
@@ -49,6 +111,8 @@ public interface ISystemSettingsService
 {
     Task<SystemAboutInformation> GetAboutAsync(CancellationToken cancellationToken);
 
+    Task<SystemPerformanceInformation> GetPerformanceAsync(CancellationToken cancellationToken);
+
     Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(
         CancellationToken cancellationToken);
 }
@@ -56,6 +120,8 @@ public interface ISystemSettingsService
 public interface ISystemSettingsClient
 {
     Task<SystemAboutInformation> GetAboutAsync(CancellationToken cancellationToken);
+
+    Task<SystemPerformanceInformation> GetPerformanceAsync(CancellationToken cancellationToken);
 
     Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(
         CancellationToken cancellationToken);

@@ -8,12 +8,14 @@ import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 import { ApiHealthService } from '../../core/services/api-health.service';
 import { SystemSettingsService } from '../settings';
+import type { SystemPerformanceSnapshot } from '../settings';
 import {
   StorageInventoryService,
   StorageManagementService
 } from '../storage';
 import type { DiskSmartStatus, StorageInventory } from '../storage';
 import {
+  DashboardPerformanceSample,
   DashboardSection,
   DashboardSnapshot,
   SmartSummary
@@ -25,6 +27,7 @@ export class DashboardService {
   private readonly settings = inject(SystemSettingsService);
   private readonly storage = inject(StorageInventoryService);
   private readonly storageManagement = inject(StorageManagementService);
+  private previousPerformance: SystemPerformanceSnapshot | null = null;
 
   load(): Observable<DashboardSnapshot> {
     return forkJoin({
@@ -38,6 +41,129 @@ export class DashboardService {
         map((smart) => ({ ...base, smart }))
       ))
     );
+  }
+
+  samplePerformance(): Observable<DashboardPerformanceSample> {
+    return this.settings.getPerformance().pipe(
+      map((current) => {
+        const sample = this.toPerformanceSample(current, this.previousPerformance);
+        this.previousPerformance = current;
+        return sample;
+      })
+    );
+  }
+
+  private toPerformanceSample(
+    current: SystemPerformanceSnapshot,
+    previous: SystemPerformanceSnapshot | null
+  ): DashboardPerformanceSample {
+    const elapsedMilliseconds = previous
+      ? current.capturedAtUnixMilliseconds - previous.capturedAtUnixMilliseconds
+      : 0;
+    const elapsedSeconds = elapsedMilliseconds / 1000;
+    const previousCores = new Map(
+      previous?.cpu.logicalProcessors.map((counter) => [counter.id, counter]) ?? []
+    );
+    const previousDisks = new Map(previous?.disks.map((disk) => [disk.id, disk]) ?? []);
+    const previousNetworks = new Map(
+      previous?.networks.map((network) => [network.id, network]) ?? []
+    );
+
+    return {
+      capturedAtUnixMilliseconds: current.capturedAtUnixMilliseconds,
+      cpu: {
+        model: current.cpu.model,
+        physicalCoreCount: current.cpu.physicalCoreCount,
+        logicalProcessorCount: current.cpu.logicalProcessorCount,
+        currentFrequencyMhz: current.cpu.currentFrequencyMhz,
+        maximumFrequencyMhz: current.cpu.maximumFrequencyMhz,
+        l1CacheBytes: current.cpu.l1CacheBytes,
+        l2CacheBytes: current.cpu.l2CacheBytes,
+        l3CacheBytes: current.cpu.l3CacheBytes,
+        utilizationPercent: this.cpuUtilization(
+          current.cpu.aggregate,
+          previous?.cpu.aggregate ?? null
+        ),
+        logicalProcessors: current.cpu.logicalProcessors.map((counter) => ({
+          id: counter.id,
+          utilizationPercent: this.cpuUtilization(
+            counter,
+            previousCores.get(counter.id) ?? null
+          )
+        }))
+      },
+      memory: {
+        ...current.memory,
+        utilizationPercent: this.percentage(
+          current.memory.usedBytes,
+          current.memory.totalBytes
+        ) ?? 0
+      },
+      disks: current.disks.map((disk) => {
+        const previousDisk = previousDisks.get(disk.id);
+        return {
+          ...disk,
+          readBytesPerSecond: this.rate(
+            disk.readBytes,
+            previousDisk?.readBytes ?? null,
+            elapsedSeconds
+          ),
+          writtenBytesPerSecond: this.rate(
+            disk.writtenBytes,
+            previousDisk?.writtenBytes ?? null,
+            elapsedSeconds
+          ),
+          activePercent: previousDisk
+            ? this.percentage(
+              disk.busyMilliseconds - previousDisk.busyMilliseconds,
+              elapsedMilliseconds
+            )
+            : null
+        };
+      }),
+      networks: current.networks.map((network) => {
+        const previousNetwork = previousNetworks.get(network.id);
+        return {
+          ...network,
+          receivedBytesPerSecond: this.rate(
+            network.receivedBytes,
+            previousNetwork?.receivedBytes ?? null,
+            elapsedSeconds
+          ),
+          transmittedBytesPerSecond: this.rate(
+            network.transmittedBytes,
+            previousNetwork?.transmittedBytes ?? null,
+            elapsedSeconds
+          )
+        };
+      }),
+      gpus: current.gpus
+    };
+  }
+
+  private cpuUtilization(
+    current: SystemPerformanceSnapshot['cpu']['aggregate'],
+    previous: SystemPerformanceSnapshot['cpu']['aggregate'] | null
+  ): number | null {
+    if (!previous) {
+      return null;
+    }
+    const totalTicks = current.totalTicks - previous.totalTicks;
+    const idleTicks = current.idleTicks - previous.idleTicks;
+    return totalTicks > 0 && idleTicks >= 0
+      ? this.percentage(totalTicks - idleTicks, totalTicks)
+      : null;
+  }
+
+  private rate(current: number, previous: number | null, elapsedSeconds: number): number | null {
+    const delta = previous === null ? -1 : current - previous;
+    return delta >= 0 && elapsedSeconds > 0 ? delta / elapsedSeconds : null;
+  }
+
+  private percentage(value: number, total: number): number | null {
+    return Number.isFinite(value) && Number.isFinite(total) && value >= 0 && total > 0
+      ? Math.min(100, value / total * 100)
+      : null;
   }
 
   private loadSmartSummary(

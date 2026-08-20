@@ -1,7 +1,32 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="112" height="112" viewBox="0 0 112 112" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="white line symbol">
-<path id="Vector" d="M69 20C51 24 39 37 34 55L57 78C75 73 88 60 92 42C94 34 93 27 92 22C85 20 77 19 69 20Z" stroke="white" stroke-width="6" stroke-linejoin="round"/>
-<path id="Vector_2" d="M69 48C72.866 48 76 44.866 76 41C76 37.134 72.866 34 69 34C65.134 34 62 37.134 62 41C62 44.866 65.134 48 69 48Z" stroke="white" stroke-width="5"/>
-<path id="Vector_3" d="M36 58L22 63L14 79L34 75M59 77L54 97L70 89L75 75M34 79C26 80 21 85 19 93C27 91 32 86 34 79Z" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">系统概览</title>
+  <desc id="desc">青蓝渐变背景上的系统监控面板</desc>
+  <defs>
+    <linearGradient id="overview-bg" x1="76" y1="62" x2="448" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#31D7D1"/>
+      <stop offset="0.48" stop-color="#1493D8"/>
+      <stop offset="1" stop-color="#1850B8"/>
+    </linearGradient>
+    <linearGradient id="overview-panel" x1="136" y1="126" x2="384" y2="394" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.96"/>
+      <stop offset="1" stop-color="#D9F7FF" stop-opacity="0.84"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#overview-bg)"/>
+    <circle cx="134" cy="122" r="116" fill="#FFFFFF" opacity="0.08"/>
+    <path d="M51 332C164 253 277 383 461 248V435C461 452 448 465 431 465H81C64 465 51 452 51 435V332Z" fill="#0B3C9E" opacity="0.13"/>
+    <rect x="46" y="46" width="420" height="420" rx="102" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="2"/>
+  </g>
+  <rect x="104" y="112" width="304" height="288" rx="54" fill="url(#overview-panel)"/>
+  <rect x="124" y="132" width="264" height="248" rx="36" fill="#0F6FC4" opacity="0.1"/>
+  <circle cx="148" cy="160" r="8" fill="#21C7CB"/>
+  <circle cx="176" cy="160" r="8" fill="#4A9EEA"/>
+  <circle cx="204" cy="160" r="8" fill="#7869EC"/>
+  <path d="M148 226H364" stroke="#0E6AB5" stroke-opacity="0.14" stroke-width="12" stroke-linecap="round"/>
+  <path d="M148 281H364" stroke="#0E6AB5" stroke-opacity="0.14" stroke-width="12" stroke-linecap="round"/>
+  <path d="M148 336H364" stroke="#0E6AB5" stroke-opacity="0.14" stroke-width="12" stroke-linecap="round"/>
+  <path d="M148 299L186 279L216 308L254 235L287 273L319 218L364 246" fill="none" stroke="#087FCB" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="254" cy="235" r="10" fill="#FFFFFF" stroke="#20BFD0" stroke-width="8"/>
+  <circle cx="319" cy="218" r="10" fill="#FFFFFF" stroke="#5864E9" stroke-width="8"/>
 </svg>

@@ -1,7 +1,34 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="112" height="112" viewBox="0 0 112 112" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="white line symbol">
-<path id="Vector" d="M56 22V32M56 80V90M22 56H32M80 56H90M32 32L39 39M73 73L80 80M80 32L73 39M39 73L32 80" stroke="white" stroke-width="7" stroke-linecap="round"/>
-<path id="Vector_2" d="M56 81C69.8071 81 81 69.8071 81 56C81 42.1929 69.8071 31 56 31C42.1929 31 31 42.1929 31 56C31 69.8071 42.1929 81 56 81Z" stroke="white" stroke-width="7"/>
-<path id="Vector_3" d="M56 66C61.5228 66 66 61.5228 66 56C66 50.4772 61.5228 46 56 46C50.4772 46 46 50.4772 46 56C46 61.5228 50.4772 66 56 66Z" stroke="white" stroke-width="6"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">设置</title>
+  <desc id="desc">蓝紫渐变背景上的齿轮图标</desc>
+  <defs>
+    <linearGradient id="settings-bg" x1="92" y1="70" x2="431" y2="451" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C5CFF"/>
+      <stop offset="0.52" stop-color="#5357E8"/>
+      <stop offset="1" stop-color="#173CBE"/>
+    </linearGradient>
+    <linearGradient id="settings-shine" x1="144" y1="119" x2="330" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#C7E6FF" stop-opacity="0.82"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#settings-bg)"/>
+    <path d="M72 172C94 96 151 68 230 60H352C400 60 441 101 452 147C354 113 224 116 72 172Z" fill="#FFFFFF" opacity="0.12"/>
+    <rect x="46" y="46" width="420" height="420" rx="102" fill="none" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="2"/>
+  </g>
+  <g fill="url(#settings-shine)" transform="translate(256 256)">
+    <rect x="-22" y="-147" width="44" height="72" rx="18"/>
+    <rect x="-22" y="75" width="44" height="72" rx="18"/>
+    <rect x="75" y="-22" width="72" height="44" rx="18"/>
+    <rect x="-147" y="-22" width="72" height="44" rx="18"/>
+    <rect x="-22" y="-147" width="44" height="72" rx="18" transform="rotate(45)"/>
+    <rect x="-22" y="75" width="44" height="72" rx="18" transform="rotate(45)"/>
+    <rect x="75" y="-22" width="72" height="44" rx="18" transform="rotate(45)"/>
+    <rect x="-147" y="-22" width="72" height="44" rx="18" transform="rotate(45)"/>
+    <circle r="104"/>
+  </g>
+  <circle cx="256" cy="256" r="63" fill="#4B54E5"/>
+  <circle cx="256" cy="256" r="39" fill="none" stroke="#DDF7FF" stroke-width="15"/>
+  <circle cx="242" cy="239" r="11" fill="#FFFFFF" opacity="0.55"/>
 </svg>

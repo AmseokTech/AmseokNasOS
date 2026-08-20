@@ -15,9 +15,15 @@ describe('WindowFrameComponent', () => {
     fixture.componentInstance.closed.subscribe(() => (closed += 1));
 
     const compiled = fixture.nativeElement as HTMLElement;
-    compiled.querySelector<HTMLButtonElement>('[aria-label="最小化窗口"]')?.click();
-    compiled.querySelector<HTMLButtonElement>('[aria-label="最大化窗口"]')?.click();
-    compiled.querySelector<HTMLButtonElement>('[aria-label="关闭窗口"]')?.click();
+    const controls = [
+      ...compiled.querySelectorAll<HTMLButtonElement>('.window-frame__control')
+    ];
+    expect(controls.map((control) => control.getAttribute('aria-label'))).toEqual([
+      '最小化窗口',
+      '最大化窗口',
+      '关闭窗口'
+    ]);
+    controls.forEach((control) => control.click());
 
     expect(minimized).toBe(1);
     expect(maximizeToggled).toBe(1);

@@ -1,22 +1,19 @@
 # Dock icon sources
 
-The active SVG glyphs are exported from the editable Figma components in
-[AmseokOS Logo Family](https://www.figma.com/design/oH46ZrNcvNnigREpEAKa6a)
-on 2026-08-13. Their glossy squircle tiles are rendered by the Dock component
-so they remain sharp at every responsive size.
+The active system app icons were supplied as `system-icons-svg.zip` on
+2026-08-20 and are versioned locally with their squircle artwork. Their
+embedded drop shadows are removed locally to avoid dark halos in the Dock.
 
-| Local SVG | Figma component |
+| Local SVG | Supplied SVG |
 | --- | --- |
-| `dashboard.svg` | `Logo/rocket` |
-| `storage.svg` | `Logo/stethoscope` |
-| `shares.svg` | `Logo/finder` |
-| `users.svg` | `Logo/space` |
-| `operations.svg` | `Logo/tasks` |
-| `terminal.svg` | `Logo/terminal` |
-| `app-store.svg` | `Logo/store` |
-| `settings.svg` | `Logo/settings` |
+| `dashboard.svg` | `system-overview.svg` |
+| `terminal.svg` | `terminal.svg` |
+| `app-store.svg` | `app-store.svg` |
+| `settings.svg` | `settings.svg` |
+| `launchpad.svg` | `launchpad.svg` |
 
-The application never loads assets from Figma at runtime. Every glyph is
-versioned in this directory, and its tile colors and effects are versioned in
-`dock.component.scss`, so fresh clones render the same Dock without external
-network access.
+The inactive `storage.svg`, `shares.svg`, `users.svg`, and `operations.svg`
+glyphs remain exports from the editable Figma components in
+[AmseokOS Logo Family](https://www.figma.com/design/oH46ZrNcvNnigREpEAKa6a).
+
+The application never loads icon assets from an external service at runtime.

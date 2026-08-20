@@ -3,6 +3,7 @@
 //--------Collects read-only system, network, and storage state for the current node--------//
 //-------------------------//
 pub mod network;
+pub mod performance;
 pub mod raid;
 pub mod smart;
 pub mod storage;

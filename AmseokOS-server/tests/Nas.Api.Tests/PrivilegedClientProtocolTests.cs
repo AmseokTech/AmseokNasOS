@@ -56,6 +56,91 @@ public sealed class PrivilegedClientProtocolTests
     }
 
     [Fact]
+    public async Task PerformanceQueryUsesTheRegisteredVersionedAction()
+    {
+        var performance = await QueryFakeDaemonAsync(
+            "system.inspectPerformance",
+            new
+            {
+                capturedAtUnixMilliseconds = 1_700_000_000_000L,
+                cpu = new
+                {
+                    model = "Test CPU",
+                    physicalCoreCount = 2,
+                    logicalProcessorCount = 4,
+                    currentFrequencyMhz = 2400,
+                    maximumFrequencyMhz = 4200,
+                    l1CacheBytes = 256L * 1024,
+                    l2CacheBytes = 4L * 1024 * 1024,
+                    l3CacheBytes = 16L * 1024 * 1024,
+                    aggregate = new { id = "cpu", totalTicks = 1000L, idleTicks = 250L },
+                    logicalProcessors = new[]
+                    {
+                        new { id = "cpu0", totalTicks = 250L, idleTicks = 50L },
+                        new { id = "cpu1", totalTicks = 250L, idleTicks = 75L }
+                    }
+                },
+                memory = new
+                {
+                    totalBytes = 1024L,
+                    usedBytes = 512L,
+                    availableBytes = 512L,
+                    cachedBytes = 128L,
+                    swapTotalBytes = 256L,
+                    swapUsedBytes = 64L
+                },
+                disks = new[]
+                {
+                    new
+                    {
+                        id = "block:sda",
+                        name = "sda",
+                        model = "Test Disk",
+                        totalBytes = 4096L,
+                        readBytes = 1024L,
+                        writtenBytes = 2048L,
+                        busyMilliseconds = 200L
+                    }
+                },
+                networks = new[]
+                {
+                    new
+                    {
+                        id = "mac:00:11:22:33:44:55",
+                        name = "enp1s0",
+                        model = "test-driver",
+                        speedMbps = 1000L,
+                        receivedBytes = 4096L,
+                        transmittedBytes = 2048L
+                    }
+                },
+                gpus = new[]
+                {
+                    new
+                    {
+                        id = "drm:card0",
+                        name = "test GPU",
+                        driver = "test",
+                        memoryTotalBytes = 8192L,
+                        memoryUsedBytes = 2048L,
+                        coreUtilizationPercent = 25.0,
+                        twoDUtilizationPercent = (double?)null,
+                        threeDUtilizationPercent = (double?)null,
+                        currentFrequencyMhz = 500L,
+                        maximumFrequencyMhz = 1000L
+                    }
+                }
+            },
+            (client, token) => client.GetPerformanceAsync(token));
+
+        Assert.Equal("Test CPU", performance.Cpu.Model);
+        Assert.Equal(2, performance.Cpu.LogicalProcessors.Count);
+        Assert.Equal(512, performance.Memory.UsedBytes);
+        Assert.Equal("block:sda", Assert.Single(performance.Disks).Id);
+        Assert.Equal("drm:card0", Assert.Single(performance.Gpus).Id);
+    }
+
+    [Fact]
     public async Task NetworkConfigurationInventoryUsesTheRegisteredReadAction()
     {
         var interfaces = await QueryFakeDaemonAsync(

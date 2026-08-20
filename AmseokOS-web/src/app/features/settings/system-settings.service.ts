@@ -1,6 +1,6 @@
 //--------------------------//
-//--------封装关于本机与网络只读查询---------//
-//--------Encapsulates read-only About and Network queries--------//
+//--------封装本机性能与网络只读查询---------//
+//--------Encapsulates read-only system, performance, and network queries--------//
 //-------------------------//
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
@@ -8,7 +8,8 @@ import { catchError, Observable, throwError } from 'rxjs';
 
 import {
   NetworkInterfaceInformation,
-  SystemAbout
+  SystemAbout,
+  SystemPerformanceSnapshot
 } from './system-settings.models';
 
 interface ProblemDetails {
@@ -21,6 +22,12 @@ export class SystemSettingsService {
 
   getAbout(): Observable<SystemAbout> {
     return this.http.get<SystemAbout>('/api/system/about').pipe(
+      catchError((error: unknown) => throwError(() => this.normalizeError(error)))
+    );
+  }
+
+  getPerformance(): Observable<SystemPerformanceSnapshot> {
+    return this.http.get<SystemPerformanceSnapshot>('/api/system/performance').pipe(
       catchError((error: unknown) => throwError(() => this.normalizeError(error)))
     );
   }

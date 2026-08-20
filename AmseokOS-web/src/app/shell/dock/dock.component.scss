@@ -68,14 +68,10 @@
   pointer-events: none;
 }
 
-.dock-icon[data-app-id='dashboard'] { --icon-highlight: #ff8a8f; --icon-base: #ff3c62; }
 .dock-icon[data-app-id='storage'] { --icon-highlight: #78f29b; --icon-base: #18c949; }
 .dock-icon[data-app-id='shares'] { --icon-highlight: #78e6ff; --icon-base: #1688e8; }
 .dock-icon[data-app-id='users'] { --icon-highlight: #95f0a4; --icon-base: #32c85b; }
 .dock-icon[data-app-id='operations'] { --icon-highlight: #ff8cab; --icon-base: #f03d72; }
-.dock-icon[data-app-id='terminal'] { --icon-highlight: #555a64; --icon-base: #121317; }
-.dock-icon[data-app-id='app-store'] { --icon-highlight: #63c8ff; --icon-base: #1676e7; }
-.dock-icon[data-app-id='settings'] { --icon-highlight: #a6a6a8; --icon-base: #56575b; }
 
 .dock-icon img {
   position: relative;
@@ -87,28 +83,31 @@
   transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.launcher-icon {
-  grid-template-columns: repeat(3, 7px);
-  align-content: center;
-  justify-content: center;
-  gap: 4px;
-  background: linear-gradient(145deg, #eef7ff, #adcff2);
+.launcher-icon,
+.dock-icon[data-app-id='dashboard'],
+.dock-icon[data-app-id='terminal'],
+.dock-icon[data-app-id='app-store'],
+.dock-icon[data-app-id='settings'] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.launcher-icon span {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: #297be6;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
+.launcher-icon::before,
+.dock-icon[data-app-id='dashboard']::before,
+.dock-icon[data-app-id='terminal']::before,
+.dock-icon[data-app-id='app-store']::before,
+.dock-icon[data-app-id='settings']::before {
+  display: none;
 }
 
-.launcher-icon span:nth-child(3n + 2) {
-  background: #a650da;
-}
-
-.launcher-icon span:nth-child(3n) {
-  background: #ef6b7f;
+.launcher-icon img,
+.dock-icon[data-app-id='dashboard'] img,
+.dock-icon[data-app-id='terminal'] img,
+.dock-icon[data-app-id='app-store'] img,
+.dock-icon[data-app-id='settings'] img {
+  width: 100%;
+  height: 100%;
 }
 
 .dock-item:hover .dock-icon,
@@ -129,28 +128,6 @@
 .dock-item:focus-visible .dock-icon {
   outline: 3px solid rgb(177 221 255 / 90%);
   outline-offset: 3px;
-}
-
-.dock-tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  padding: 5px 9px;
-  border: 1px solid rgb(255 255 255 / 20%);
-  border-radius: 8px;
-  background: rgb(7 25 52 / 86%);
-  box-shadow: 0 8px 20px rgb(0 9 27 / 25%);
-  font-size: 12px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(5px);
-  transition: opacity 140ms ease, transform 140ms ease;
-  white-space: nowrap;
-}
-
-.dock-item:hover .dock-tooltip,
-.dock-item:focus-visible .dock-tooltip {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .active-dot {
@@ -201,8 +178,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dock-icon,
-  .dock-tooltip {
+  .dock-icon {
     transition: none;
   }
 }

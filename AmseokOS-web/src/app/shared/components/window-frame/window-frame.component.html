@@ -31,27 +31,21 @@
         title="最小化"
         aria-label="最小化窗口"
         (click)="minimized.emit()"
-      >
-        <span aria-hidden="true"></span>
-      </button>
+      ></button>
       <button
         class="window-frame__control window-frame__control--maximize"
         type="button"
         [title]="maximized() ? '还原' : '最大化'"
         [attr.aria-label]="maximized() ? '还原窗口' : '最大化窗口'"
         (click)="maximizeToggled.emit()"
-      >
-        <span [class.window-frame__restore-icon]="maximized()" aria-hidden="true"></span>
-      </button>
+      ></button>
       <button
         class="window-frame__control window-frame__control--close"
         type="button"
         title="关闭"
         aria-label="关闭窗口"
         (click)="closed.emit()"
-      >
-        <span aria-hidden="true"></span>
-      </button>
+      ></button>
     </div>
   </header>
 

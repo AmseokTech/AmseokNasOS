@@ -190,6 +190,12 @@ fn process_request(
             Err(failure) => return *failure,
             Ok(()) => inventory::system::get_about().and_then(to_json_value),
         },
+        "system.inspectPerformance" => {
+            match require_empty_parameters(&parameters, &request_id, started) {
+                Err(failure) => return *failure,
+                Ok(()) => inventory::performance::inspect_performance().and_then(to_json_value),
+            }
+        }
         "network.inspectInterfaces" => {
             match require_empty_parameters(&parameters, &request_id, started) {
                 Err(failure) => return *failure,

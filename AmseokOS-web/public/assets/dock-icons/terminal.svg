@@ -1,8 +1,22 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="112" height="112" viewBox="0 0 112 112" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="white line symbol">
-<path id="Vector" d="M27 39L44 55L27 71M53 74H84" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<path id="Vector_2" d="M30 28C32.2091 28 34 26.2091 34 24C34 21.7909 32.2091 20 30 20C27.7909 20 26 21.7909 26 24C26 26.2091 27.7909 28 30 28Z" fill="#FF6B6B"/>
-<path id="Vector_3" d="M43 28C45.2091 28 47 26.2091 47 24C47 21.7909 45.2091 20 43 20C40.7909 20 39 21.7909 39 24C39 26.2091 40.7909 28 43 28Z" fill="#FFD45D"/>
-<path id="Vector_4" d="M56 28C58.2091 28 60 26.2091 60 24C60 21.7909 58.2091 20 56 20C53.7909 20 52 21.7909 52 24C52 26.2091 53.7909 28 56 28Z" fill="#35D6A3"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Terminal</title>
+  <desc id="desc">深色渐变背景上的大号终端提示符</desc>
+  <defs>
+    <linearGradient id="terminal-bg" x1="80" y1="64" x2="444" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#334458"/>
+      <stop offset="0.48" stop-color="#182635"/>
+      <stop offset="1" stop-color="#07111C"/>
+    </linearGradient>
+    <linearGradient id="terminal-accent" x1="144" y1="178" x2="366" y2="337" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7BFFD2"/>
+      <stop offset="1" stop-color="#33C9A1"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#terminal-bg)"/>
+    <circle cx="131" cy="102" r="118" fill="#8DC9FF" opacity="0.08"/>
+    <rect x="46" y="46" width="420" height="420" rx="102" fill="none" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2"/>
+  </g>
+  <path d="M151 181L231 256L151 331" fill="none" stroke="url(#terminal-accent)" stroke-width="35" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M276 331H371" stroke="#D7FFF2" stroke-width="35" stroke-linecap="round"/>
 </svg>

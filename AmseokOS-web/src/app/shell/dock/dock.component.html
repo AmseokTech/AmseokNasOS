@@ -7,11 +7,8 @@
     aria-label="启动台"
     (click)="launcherToggled.emit()"
   >
-    <span class="dock-tooltip" aria-hidden="true">启动台</span>
     <span class="dock-icon launcher-icon" aria-hidden="true">
-      @for (tile of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track tile) {
-        <span></span>
-      }
+      <img src="/assets/dock-icons/launchpad.svg" alt="" />
     </span>
   </button>
 
@@ -31,7 +28,6 @@
       [attr.aria-label]="app.label"
       (click)="appSelected.emit(app)"
     >
-      <span class="dock-tooltip" aria-hidden="true">{{ app.label }}</span>
       <span
         class="dock-icon"
         [attr.data-app-id]="app.id"

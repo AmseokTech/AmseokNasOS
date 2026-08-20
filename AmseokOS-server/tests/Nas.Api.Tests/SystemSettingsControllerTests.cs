@@ -33,12 +33,30 @@ public sealed class SystemSettingsControllerTests
     }
 
     [Fact]
+    public async Task GetPerformanceMapsTheServiceResult()
+    {
+        var service = new SystemSettingsServiceStub();
+        var controller = new SystemSettingsController(
+            service,
+            NullLogger<SystemSettingsController>.Instance);
+
+        var result = await controller.GetPerformance(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<SystemPerformanceResponse>(ok.Value);
+        Assert.Equal(service.Performance.Cpu.Model, response.Cpu.Model);
+        Assert.Equal(service.Performance.Memory.UsedBytes, response.Memory.UsedBytes);
+    }
+
+    [Fact]
     public void ReadEndpointsRequireTheirSpecificPolicies()
     {
         var aboutPolicy = PolicyFor(nameof(SystemSettingsController.GetAbout));
+        var performancePolicy = PolicyFor(nameof(SystemSettingsController.GetPerformance));
         var networkPolicy = PolicyFor(nameof(SystemSettingsController.GetNetworkInterfaces));
 
         Assert.Equal(AuthenticationDefaults.SystemReadPolicy, aboutPolicy);
+        Assert.Equal(AuthenticationDefaults.SystemReadPolicy, performancePolicy);
         Assert.Equal(AuthenticationDefaults.NetworkReadPolicy, networkPolicy);
     }
 
@@ -95,12 +113,38 @@ public sealed class SystemSettingsControllerTests
 
         public PrivilegedClientException? Error { get; init; }
 
+        public SystemPerformanceInformation Performance { get; } = new(
+            1_700_000_000_000,
+            new CpuPerformanceInformation(
+                "Test CPU",
+                4,
+                8,
+                2400,
+                4200,
+                256 * 1024,
+                4 * 1024 * 1024,
+                16 * 1024 * 1024,
+                new CpuTimeCounterInformation("cpu", 1000, 250),
+                [new CpuTimeCounterInformation("cpu0", 125, 25)]),
+            new MemoryPerformanceInformation(1024, 512, 512, 128, 256, 64),
+            [],
+            [],
+            []);
+
         public Task<SystemAboutInformation> GetAboutAsync(
             CancellationToken cancellationToken)
         {
             return Error is null
                 ? Task.FromResult(About)
                 : Task.FromException<SystemAboutInformation>(Error);
+        }
+
+        public Task<SystemPerformanceInformation> GetPerformanceAsync(
+            CancellationToken cancellationToken)
+        {
+            return Error is null
+                ? Task.FromResult(Performance)
+                : Task.FromException<SystemPerformanceInformation>(Error);
         }
 
         public Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(

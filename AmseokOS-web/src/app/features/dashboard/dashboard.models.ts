@@ -6,7 +6,8 @@
 import type { HealthStatus } from '../../shared/models/health-status';
 import type {
   NetworkInterfaceInformation,
-  SystemAbout
+  SystemAbout,
+  SystemPerformanceSnapshot
 } from '../settings';
 import type {
   ManagedVolume,
@@ -35,3 +36,40 @@ export interface DashboardSnapshot {
   readonly volumes: DashboardSection<readonly ManagedVolume[]>;
   readonly smart: DashboardSection<SmartSummary>;
 }
+
+export interface DashboardPerformanceSample {
+  readonly capturedAtUnixMilliseconds: number;
+  readonly cpu: DashboardCpuPerformance;
+  readonly memory: DashboardMemoryPerformance;
+  readonly disks: readonly DashboardDiskPerformance[];
+  readonly networks: readonly DashboardNetworkPerformance[];
+  readonly gpus: SystemPerformanceSnapshot['gpus'];
+}
+
+export type DashboardCpuPerformance = Omit<
+  SystemPerformanceSnapshot['cpu'],
+  'aggregate' | 'logicalProcessors'
+> & {
+  readonly utilizationPercent: number | null;
+  readonly logicalProcessors: readonly DashboardCpuCorePerformance[];
+};
+
+export interface DashboardCpuCorePerformance {
+  readonly id: string;
+  readonly utilizationPercent: number | null;
+}
+
+export type DashboardMemoryPerformance = SystemPerformanceSnapshot['memory'] & {
+  readonly utilizationPercent: number;
+};
+
+export type DashboardDiskPerformance = SystemPerformanceSnapshot['disks'][number] & {
+  readonly readBytesPerSecond: number | null;
+  readonly writtenBytesPerSecond: number | null;
+  readonly activePercent: number | null;
+};
+
+export type DashboardNetworkPerformance = SystemPerformanceSnapshot['networks'][number] & {
+  readonly receivedBytesPerSecond: number | null;
+  readonly transmittedBytesPerSecond: number | null;
+};

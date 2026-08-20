@@ -1,6 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
 
 import {
   APP_COMPONENT_REGISTRY,
@@ -13,16 +11,6 @@ import {
 import { TerminalLauncherService } from './terminal-launcher.service';
 import type { TerminalSession } from './terminal-session.service';
 
-class MatDialogStub {
-  readonly closedResults: Subject<TerminalSession | undefined>[] = [];
-
-  open(): { afterClosed: () => Subject<TerminalSession | undefined> } {
-    const result = new Subject<TerminalSession | undefined>();
-    this.closedResults.push(result);
-    return { afterClosed: () => result };
-  }
-}
-
 const terminalDefinition: AppComponentDefinition = {
   appId: 'terminal',
   title: 'terminal',
@@ -34,6 +22,17 @@ const terminalDefinition: AppComponentDefinition = {
   loadComponent: async () => class {}
 };
 
+const terminalAuthenticationDefinition: AppComponentDefinition = {
+  appId: 'terminal-auth',
+  title: '使用 Terminal',
+  singleton: true,
+  defaultWidth: 520,
+  defaultHeight: 390,
+  minWidth: 420,
+  minHeight: 330,
+  loadComponent: async () => class {}
+};
+
 const session: TerminalSession = {
   sessionId: '0190f6f4-7de8-7000-8000-000000000001',
   expiresAt: '2026-07-22T12:00:00Z',
@@ -41,18 +40,18 @@ const session: TerminalSession = {
 };
 
 describe('TerminalLauncherService', () => {
-  let dialog: MatDialogStub;
   let launcher: TerminalLauncherService;
   let manager: WindowManagerService;
 
   beforeEach(() => {
-    dialog = new MatDialogStub();
     TestBed.configureTestingModule({
       providers: [
-        { provide: MatDialog, useValue: dialog },
         {
           provide: APP_COMPONENT_REGISTRY,
-          useValue: new Map([['terminal', terminalDefinition]])
+          useValue: new Map([
+            ['terminal', terminalDefinition],
+            ['terminal-auth', terminalAuthenticationDefinition]
+          ])
         },
         { provide: WINDOW_LAYOUT_STORAGE, useValue: null }
       ]
@@ -61,36 +60,36 @@ describe('TerminalLauncherService', () => {
     manager = TestBed.inject(WindowManagerService);
   });
 
-  it('suppresses repeated authentication and restores an existing terminal without reauthenticating', async () => {
+  it('opens one managed authentication window and restores it when reopened', () => {
     launcher.open();
     launcher.open();
-    await vi.waitFor(() => expect(dialog.closedResults).toHaveLength(1));
-
-    dialog.closedResults[0].next(session);
-    dialog.closedResults[0].complete();
     expect(manager.windows()).toHaveLength(1);
-    expect(manager.windows()[0].data).toBe(session);
+    expect(manager.windows()[0].appId).toBe('terminal-auth');
 
     manager.minimize(manager.windows()[0].id);
     launcher.open();
     expect(manager.windows()[0].displayState).toBe('normal');
-    expect(dialog.closedResults).toHaveLength(1);
   });
 
-  it('unlocks after cancellation and closes the old window before reauthentication', async () => {
-    launcher.open();
-    await vi.waitFor(() => expect(dialog.closedResults).toHaveLength(1));
-    dialog.closedResults[0].next(undefined);
-    dialog.closedResults[0].complete();
+  it('restores an existing terminal without opening authentication again', () => {
+    const windowId = manager.open('terminal', { data: session });
+    manager.minimize(windowId);
 
     launcher.open();
-    await vi.waitFor(() => expect(dialog.closedResults).toHaveLength(2));
-    dialog.closedResults[1].next(session);
-    dialog.closedResults[1].complete();
-    const windowId = manager.windows()[0].id;
+
+    expect(manager.windows()).toHaveLength(1);
+    expect(manager.windows()[0].appId).toBe('terminal');
+    expect(manager.windows()[0].displayState).toBe('normal');
+    expect(manager.windows()[0].data).toBe(session);
+  });
+
+  it('closes the old terminal before opening a managed reauthentication window', () => {
+    const windowId = manager.open('terminal', { data: session });
 
     launcher.reauthenticate(windowId);
-    expect(manager.windows()).toHaveLength(0);
-    await vi.waitFor(() => expect(dialog.closedResults).toHaveLength(3));
+
+    expect(manager.windowForApp('terminal')).toBeUndefined();
+    expect(manager.windows()).toHaveLength(1);
+    expect(manager.windows()[0].appId).toBe('terminal-auth');
   });
 });

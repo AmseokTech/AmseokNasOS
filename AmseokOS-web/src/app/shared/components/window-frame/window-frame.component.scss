@@ -15,8 +15,9 @@
   min-height: 46px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #aaa;
-  background: #d5d5d5;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--window-title-color, #1f1f1f);
   user-select: none;
 }
 
@@ -45,7 +46,7 @@
 
 .window-frame__identity strong {
   overflow: hidden;
-  color: #1f1f1f;
+  color: inherit;
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -54,8 +55,9 @@
 .window-frame__identity small {
   margin-top: 1px;
   overflow: hidden;
-  color: #555;
+  color: inherit;
   font-size: 10px;
+  opacity: 0.7;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -89,87 +91,64 @@
   height: 46px;
   flex: 0 0 auto;
   align-self: stretch;
+  align-items: center;
+  padding: 0 12px;
 }
 
 .window-frame__control {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 24px;
+  height: 32px;
+  flex: 0 0 auto;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #242424;
-  cursor: default;
+  cursor: pointer;
 }
 
-.window-frame__control:hover,
-.window-frame__control:focus-visible {
-  outline: none;
-  background: rgb(0 0 0 / 10%);
-}
-
-.window-frame__control:focus-visible {
-  box-shadow: inset 0 0 0 2px #72b6ff;
-}
-
-.window-frame__control--close:hover,
-.window-frame__control--close:focus-visible {
-  background: #c42b1c;
-  color: #fff;
-}
-
-.window-frame__control--minimize span {
+.window-frame__control::before {
   position: absolute;
-  top: 24px;
-  left: 18px;
-  width: 10px;
-  height: 1px;
-  background: currentColor;
-}
-
-.window-frame__control--maximize span {
-  position: absolute;
-  top: 17px;
-  left: 18px;
-  width: 10px;
-  height: 10px;
-  border: 1px solid currentColor;
-}
-
-.window-frame__control--maximize .window-frame__restore-icon {
-  top: 19px;
-  left: 16px;
-  background: #d5d5d5;
-}
-
-.window-frame__control--maximize .window-frame__restore-icon::before {
-  position: absolute;
-  top: -3px;
-  left: 3px;
-  width: 8px;
-  height: 8px;
-  border: 1px solid currentColor;
+  top: 50%;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  border: 1px solid rgb(0 0 0 / 14%);
+  border-radius: 50%;
+  background: var(--window-control-color);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 38%),
+    0 1px 2px rgb(0 0 0 / 16%);
   content: '';
-  z-index: -1;
+  transform: translate(-50%, -50%);
+  transition: filter 120ms ease, transform 120ms ease;
 }
 
-.window-frame__control--close span::before,
-.window-frame__control--close span::after {
-  position: absolute;
-  top: 22px;
-  left: 17px;
-  width: 12px;
-  height: 1px;
-  background: currentColor;
-  content: '';
+.window-frame__control:hover::before,
+.window-frame__control:focus-visible::before {
+  filter: brightness(0.93) saturate(1.08);
+  transform: translate(-50%, -50%) scale(1.08);
 }
 
-.window-frame__control--close span::before {
-  transform: rotate(45deg);
+.window-frame__control:focus-visible {
+  outline: 2px solid #72b6ff;
+  outline-offset: -3px;
+  border-radius: 7px;
 }
 
-.window-frame__control--close span::after {
-  transform: rotate(-45deg);
+.window-frame__control:active::before {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.window-frame__control--close {
+  --window-control-color: #ff5f57;
+}
+
+.window-frame__control--maximize {
+  --window-control-color: #28c840;
+}
+
+.window-frame__control--minimize {
+  --window-control-color: #febc2e;
 }
 
 .window-frame__content {
@@ -182,33 +161,14 @@
     padding-left: 10px;
   }
 
-  .window-frame__control,
   .window-frame__controls {
     height: 42px;
+    padding-inline: 8px;
   }
+}
 
-  .window-frame__control {
-    width: 42px;
-  }
-
-  .window-frame__control--minimize span {
-    top: 22px;
-    left: 16px;
-  }
-
-  .window-frame__control--maximize span {
-    top: 15px;
-    left: 16px;
-  }
-
-  .window-frame__control--maximize .window-frame__restore-icon {
-    top: 17px;
-    left: 14px;
-  }
-
-  .window-frame__control--close span::before,
-  .window-frame__control--close span::after {
-    top: 20px;
-    left: 15px;
+@media (prefers-reduced-motion: reduce) {
+  .window-frame__control::before {
+    transition: none;
   }
 }

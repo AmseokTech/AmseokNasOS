@@ -29,6 +29,22 @@ const BUILT_IN_APP_COMPONENTS: ReadonlyMap<string, AppComponentDefinition> = new
     }
   ],
   [
+    'terminal-auth',
+    {
+      appId: 'terminal-auth',
+      title: '使用 Terminal',
+      singleton: true,
+      defaultWidth: 520,
+      defaultHeight: 390,
+      minWidth: 420,
+      minHeight: 330,
+      loadComponent: () =>
+        import('../../features/terminal/terminal-authentication-page.component').then(
+          ({ TerminalAuthenticationPageComponent }) => TerminalAuthenticationPageComponent
+        )
+    }
+  ],
+  [
     'terminal',
     {
       appId: 'terminal',

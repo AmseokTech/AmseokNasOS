@@ -1,6 +1,6 @@
 //--------------------------//
-//--------鉴权并转换关于本机与网络只读查询---------//
-//--------Authorizes and translates read-only About and Network queries--------//
+//--------鉴权并转换本机性能与网络只读查询---------//
+//--------Authorizes and translates read-only system performance and network queries--------//
 //-------------------------//
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +28,24 @@ public sealed class SystemSettingsController(
         {
             return Ok(SystemAboutResponse.From(
                 await settings.GetAboutAsync(cancellationToken)));
+        }
+        catch (PrivilegedClientException exception)
+        {
+            return PrivilegedUnavailable(exception);
+        }
+    }
+
+    [HttpGet("system/performance")]
+    [Authorize(Policy = AuthenticationDefaults.SystemReadPolicy)]
+    [ProducesResponseType<SystemPerformanceResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<SystemPerformanceResponse>> GetPerformance(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(SystemPerformanceResponse.From(
+                await settings.GetPerformanceAsync(cancellationToken)));
         }
         catch (PrivilegedClientException exception)
         {

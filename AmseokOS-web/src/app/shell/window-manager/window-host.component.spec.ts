@@ -49,6 +49,9 @@ describe('WindowHostComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.stub-content')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('.managed-window')?.getAttribute('data-app-id')
+    ).toBe('test-app');
 
     manager.minimize(windowId);
     fixture.detectChanges();

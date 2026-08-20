@@ -36,6 +36,14 @@ public sealed class UnixSocketPrivilegedClient(
         return SendAsync<SystemAboutInformation>("system.getAbout", cancellationToken);
     }
 
+    public Task<SystemPerformanceInformation> GetPerformanceAsync(
+        CancellationToken cancellationToken)
+    {
+        return SendAsync<SystemPerformanceInformation>(
+            "system.inspectPerformance",
+            cancellationToken);
+    }
+
     public async Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(
         CancellationToken cancellationToken)
     {

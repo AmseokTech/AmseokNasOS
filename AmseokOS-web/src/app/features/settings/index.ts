@@ -7,5 +7,6 @@ export { SystemSettingsService } from './system-settings.service';
 export { formatBytes, formatUptime, storageUsagePercentage } from './settings-format';
 export type {
   NetworkInterfaceInformation,
-  SystemAbout
+  SystemAbout,
+  SystemPerformanceSnapshot
 } from './system-settings.models';

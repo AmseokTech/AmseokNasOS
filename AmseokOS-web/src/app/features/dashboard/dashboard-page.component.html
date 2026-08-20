@@ -1,97 +1,182 @@
-<section class="dashboard" aria-labelledby="dashboard-title">
-  <header class="dashboard__header">
-    <div>
-      <p class="eyebrow">SYSTEM OVERVIEW</p>
-      <h1 id="dashboard-title">系统概览</h1>
-      <p>汇总控制面、主机、网络、磁盘、阵列与数据卷的只读状态。</p>
-    </div>
-    <div class="dashboard__refresh">
+<section class="dashboard" aria-label="系统概览">
+  <div class="dashboard__toolbar">
+    <div class="live-state">
+      <span class="live-state__dot" [class.live-state__dot--active]="performance()"></span>
+      <span>{{ performance() ? '实时更新' : '静态信息' }}</span>
       @if (lastUpdated(); as updatedAt) {
-        <small>更新于 {{ updatedAt.toLocaleTimeString('zh-CN') }}</small>
+        <small>{{ updatedAt.toLocaleTimeString('zh-CN') }}</small>
       }
-      <button mat-stroked-button type="button" [disabled]="loading()" (click)="refresh()">
-        {{ loading() ? '正在刷新…' : '刷新' }}
-      </button>
     </div>
-  </header>
+    <button mat-stroked-button type="button" [disabled]="loading()" (click)="refresh()">
+      {{ loading() ? '正在刷新…' : '刷新' }}
+    </button>
+  </div>
 
   @if (!snapshot() && loading()) {
-    <div class="dashboard-state" role="status">正在读取节点状态…</div>
+    <div class="dashboard-state" role="status">正在读取硬件性能…</div>
+  }
+
+  @if (performanceError()) {
+    <aside class="dashboard-notice" role="status">
+      实时性能暂不可用，当前显示静态硬件信息：{{ performanceError() }}
+    </aside>
   }
 
   @if (errors().length > 0) {
     <aside class="dashboard-alert" role="alert">
-      <strong>部分状态暂不可用</strong>
-      <span>系统会每 30 秒自动重试，也可以立即刷新。</span>
-      <ul>
-        @for (error of errors(); track error) { <li>{{ error }}</li> }
-      </ul>
+      <strong>部分硬件信息暂不可用</strong>
+      <span>{{ errors().join('；') }}</span>
     </aside>
   }
 
-  @if (snapshot(); as state) {
-    <div class="dashboard-grid">
-      <article class="summary-card summary-card--wide">
-        <div class="summary-card__heading">
-          <span class="status-dot" [class.status-dot--online]="isOnline(state)"></span>
-          <div><small>控制面</small><h2>{{ isOnline(state) ? '运行正常' : '连接异常' }}</h2></div>
-        </div>
-        <dl>
-          <div><dt>主机</dt><dd>{{ state.about.value?.hostName ?? '—' }}</dd></div>
-          <div><dt>系统</dt><dd>{{ state.about.value?.operatingSystem ?? '—' }}</dd></div>
-          <div><dt>运行时间</dt><dd>{{ state.about.value ? formatUptime(state.about.value.uptimeSeconds) : '—' }}</dd></div>
-        </dl>
-      </article>
+  @if (snapshot() || performance()) {
+    <div class="performance-layout">
+      <app-performance-resource-list
+        [resources]="resources()"
+        [selectedKey]="selectedResource()?.key ?? ''"
+        (resourceSelected)="selectResource($event)"
+      />
 
-      <article class="summary-card">
-        <small>计算资源</small>
-        <h2>{{ state.about.value?.cpu?.logicalProcessorCount ?? '—' }} <span>线程</span></h2>
-        <p>{{ state.about.value?.cpu?.model ?? 'CPU 信息暂不可用' }}</p>
-        <footer>内存 {{ state.about.value ? formatBytes(state.about.value.memory.totalBytes) : '—' }}</footer>
-      </article>
+      <main class="performance-detail">
+        @if (selectedResource(); as selected) {
+          @switch (selected.kind) {
+            @case ('cpu') {
+              <header class="detail-heading detail-heading--cpu">
+                <div>
+                  <h1>CPU</h1>
+                  <p>{{ performance()?.cpu?.model ?? snapshot()?.about?.value?.cpu?.model ?? '处理器信息暂不可用' }}</p>
+                </div>
+                <div class="headline-metric">
+                  <strong>{{ formatPercent(performance()?.cpu?.utilizationPercent) }}</strong>
+                  <span>实时占用</span>
+                </div>
+              </header>
 
-      <article class="summary-card">
-        <small>网络</small>
-        <h2>{{ connectedInterfaces(state) }} <span>已连接</span></h2>
-        <p>共 {{ state.network.value?.length ?? 0 }} 个物理接口</p>
-        <footer>{{ state.network.error ? '等待底层服务恢复' : '只读链路状态' }}</footer>
-      </article>
+              <section class="core-grid" aria-label="各逻辑处理器占用">
+                @for (core of cpuCores(); track core.id) {
+                  <app-performance-chart
+                    [label]="core.label"
+                    [value]="formatPercent(core.utilizationPercent)"
+                    [series]="coreSeries(core.id)"
+                    [compact]="true"
+                    color="#2b7cd3"
+                  />
+                } @empty {
+                  <div class="empty-state">逻辑处理器信息暂不可用</div>
+                }
+              </section>
 
-      <article class="summary-card summary-card--storage">
-        <small>系统盘</small>
-        <h2>{{ state.about.value ? formatBytes(state.about.value.systemStorage.usedBytes) : '—' }}</h2>
-        <p>总计 {{ state.about.value ? formatBytes(state.about.value.systemStorage.totalBytes) : '—' }}</p>
-        <div class="meter" role="progressbar" aria-label="系统盘使用率"
-          [attr.aria-valuenow]="state.about.value ? storageUsagePercentage(state.about.value.systemStorage.totalBytes, state.about.value.systemStorage.usedBytes) : 0"
-          aria-valuemin="0" aria-valuemax="100">
-          <span [style.width.%]="state.about.value ? storageUsagePercentage(state.about.value.systemStorage.totalBytes, state.about.value.systemStorage.usedBytes) : 0"></span>
-        </div>
-      </article>
+              <dl class="metric-grid">
+                <div class="metric-grid__primary"><dt>占用率</dt><dd>{{ formatPercent(performance()?.cpu?.utilizationPercent) }}</dd></div>
+                <div class="metric-grid__primary"><dt>实时频率</dt><dd>{{ formatFrequency(performance()?.cpu?.currentFrequencyMhz ?? snapshot()?.about?.value?.cpu?.currentFrequencyMhz) }}</dd></div>
+                <div><dt>物理核心</dt><dd>{{ performance()?.cpu?.physicalCoreCount ?? snapshot()?.about?.value?.cpu?.physicalCoreCount ?? '—' }}</dd></div>
+                <div><dt>逻辑处理器</dt><dd>{{ performance()?.cpu?.logicalProcessorCount ?? snapshot()?.about?.value?.cpu?.logicalProcessorCount ?? '—' }}</dd></div>
+                <div><dt>最大频率</dt><dd>{{ formatFrequency(performance()?.cpu?.maximumFrequencyMhz ?? snapshot()?.about?.value?.cpu?.maximumFrequencyMhz) }}</dd></div>
+                <div><dt>L1 缓存</dt><dd>{{ formatOptionalBytes(performance()?.cpu?.l1CacheBytes) }}</dd></div>
+                <div><dt>L2 缓存</dt><dd>{{ formatOptionalBytes(performance()?.cpu?.l2CacheBytes) }}</dd></div>
+                <div><dt>L3 缓存</dt><dd>{{ formatOptionalBytes(performance()?.cpu?.l3CacheBytes) }}</dd></div>
+              </dl>
+            }
 
-      <article class="summary-card">
-        <small>磁盘与阵列</small>
-        <h2>{{ state.storage.value?.disks?.length ?? 0 }} <span>磁盘</span></h2>
-        <p>{{ state.storage.value?.arrays?.length ?? 0 }} 个 RAID 阵列</p>
-        <footer [class.warning]="degradedArrays(state) > 0">
-          {{ degradedArrays(state) > 0 ? degradedArrays(state) + ' 个阵列已降级' : '未发现降级阵列' }}
-        </footer>
-      </article>
+            @case ('memory') {
+              <header class="detail-heading detail-heading--memory">
+                <div><h1>内存</h1><p>物理内存实时使用情况</p></div>
+                <div class="headline-metric">
+                  <strong>{{ performance() ? formatBytes(performance()!.memory.totalBytes) : snapshot()?.about?.value ? formatBytes(snapshot()!.about.value!.memory.totalBytes) : '—' }}</strong>
+                  <span>已安装</span>
+                </div>
+              </header>
+              <app-performance-chart
+                label="内存占用"
+                [value]="formatPercent(performance()?.memory?.utilizationPercent)"
+                [series]="memorySeries()"
+                color="#8b5cc7"
+              />
+              <dl class="metric-grid">
+                <div class="metric-grid__primary"><dt>正在使用</dt><dd>{{ performance() ? formatBytes(performance()!.memory.usedBytes) : '—' }}</dd></div>
+                <div class="metric-grid__primary"><dt>可用</dt><dd>{{ performance() ? formatBytes(performance()!.memory.availableBytes) : '—' }}</dd></div>
+                <div><dt>占用率</dt><dd>{{ formatPercent(performance()?.memory?.utilizationPercent) }}</dd></div>
+                <div><dt>已缓存</dt><dd>{{ performance() ? formatBytes(performance()!.memory.cachedBytes) : '—' }}</dd></div>
+                <div><dt>交换空间</dt><dd>{{ performance() ? formatBytes(performance()!.memory.swapUsedBytes) + ' / ' + formatBytes(performance()!.memory.swapTotalBytes) : '—' }}</dd></div>
+              </dl>
+            }
 
-      <article class="summary-card">
-        <small>SMART</small>
-        <h2>{{ state.smart.value?.healthy ?? 0 }} <span>健康</span></h2>
-        <p>{{ state.smart.value?.unsupported ?? 0 }} 不支持 · {{ state.smart.value?.unknown ?? 0 }} 未知</p>
-        <footer [class.warning]="(state.smart.value?.warning ?? 0) + (state.smart.value?.failing ?? 0) > 0">
-          {{ state.smart.value?.warning ?? 0 }} 警告 · {{ state.smart.value?.failing ?? 0 }} 故障
-        </footer>
-      </article>
+            @case ('disk') {
+              <header class="detail-heading detail-heading--disk">
+                <div><h1>{{ selected.title }}</h1><p>{{ selectedDisk()?.model ?? selected.subtitle }}</p></div>
+                <div class="headline-metric"><strong>{{ formatPercent(selectedDisk()?.activePercent) }}</strong><span>活动时间</span></div>
+              </header>
+              @if (selectedDisk(); as disk) {
+                <div class="chart-stack">
+                  <app-performance-chart label="活动时间" [value]="formatPercent(disk.activePercent)" [series]="diskSeries(disk.id, 'active')" color="#4a9b63" />
+                  <div class="chart-pair">
+                    <app-performance-chart label="读取速度" [value]="formatRate(disk.readBytesPerSecond)" [series]="diskSeries(disk.id, 'read')" [maximum]="null" [compact]="true" color="#2984c7" />
+                    <app-performance-chart label="写入速度" [value]="formatRate(disk.writtenBytesPerSecond)" [series]="diskSeries(disk.id, 'write')" [maximum]="null" [compact]="true" color="#df8b2e" />
+                  </div>
+                </div>
+                <dl class="metric-grid">
+                  <div class="metric-grid__primary"><dt>读取速度</dt><dd>{{ formatRate(disk.readBytesPerSecond) }}</dd></div>
+                  <div class="metric-grid__primary"><dt>写入速度</dt><dd>{{ formatRate(disk.writtenBytesPerSecond) }}</dd></div>
+                  <div><dt>容量</dt><dd>{{ formatBytes(disk.totalBytes) }}</dd></div>
+                  <div><dt>设备</dt><dd>{{ disk.name }}</dd></div>
+                </dl>
+              } @else {
+                <div class="empty-state">磁盘实时计数器暂不可用</div>
+              }
+            }
 
-      <article class="summary-card">
-        <small>数据卷</small>
-        <h2>{{ state.volumes.value?.length ?? 0 }} <span>已管理</span></h2>
-        <p>{{ mountedVolumes(state) }} 个已挂载</p>
-        <footer>{{ verifiedVolumes(state) }} 个已通过读写校验</footer>
-      </article>
+            @case ('network') {
+              <header class="detail-heading detail-heading--network">
+                <div><h1>网络</h1><p>{{ selectedNetwork()?.model ?? selected.subtitle }}</p></div>
+                <div class="headline-metric"><strong>{{ selectedNetwork() ? formatLinkSpeed(selectedNetwork()!.speedMbps) : '—' }}</strong><span>链路速度</span></div>
+              </header>
+              @if (selectedNetwork(); as network) {
+                <div class="chart-stack">
+                  <app-performance-chart label="接收" [value]="formatRate(network.receivedBytesPerSecond)" [series]="networkSeries(network.id, 'received')" [maximum]="null" color="#b56b27" />
+                  <app-performance-chart label="发送" [value]="formatRate(network.transmittedBytesPerSecond)" [series]="networkSeries(network.id, 'transmitted')" [maximum]="null" [compact]="true" color="#d5963d" />
+                </div>
+                <dl class="metric-grid">
+                  <div class="metric-grid__primary"><dt>接收</dt><dd>{{ formatRate(network.receivedBytesPerSecond) }}</dd></div>
+                  <div class="metric-grid__primary"><dt>发送</dt><dd>{{ formatRate(network.transmittedBytesPerSecond) }}</dd></div>
+                  <div><dt>接口</dt><dd>{{ network.name }}</dd></div>
+                  <div><dt>链路速度</dt><dd>{{ formatLinkSpeed(network.speedMbps) }}</dd></div>
+                  <div><dt>累计接收</dt><dd>{{ formatBytes(network.receivedBytes) }}</dd></div>
+                  <div><dt>累计发送</dt><dd>{{ formatBytes(network.transmittedBytes) }}</dd></div>
+                </dl>
+              } @else {
+                <div class="empty-state">网络实时计数器暂不可用</div>
+              }
+            }
+
+            @case ('gpu') {
+              <header class="detail-heading detail-heading--gpu">
+                <div><h1>GPU</h1><p>{{ selectedGpu()?.name ?? selected.subtitle }}</p></div>
+                <div class="headline-metric"><strong>{{ formatPercent(selectedGpu()?.coreUtilizationPercent) }}</strong><span>核心占用</span></div>
+              </header>
+              @if (selectedGpu(); as gpu) {
+                <div class="gpu-grid">
+                  <app-performance-chart label="核心" [value]="formatPercent(gpu.coreUtilizationPercent)" [series]="gpuSeries(gpu.id, 'core')" color="#6f62d8" />
+                  <app-performance-chart label="2D" [value]="gpu.twoDUtilizationPercent === null ? '不支持' : formatPercent(gpu.twoDUtilizationPercent)" [series]="gpuSeries(gpu.id, 'twoD')" color="#6f62d8" />
+                  <app-performance-chart label="3D" [value]="gpu.threeDUtilizationPercent === null ? '不支持' : formatPercent(gpu.threeDUtilizationPercent)" [series]="gpuSeries(gpu.id, 'threeD')" color="#6f62d8" />
+                  <app-performance-chart label="显存" [value]="gpu.memoryUsedBytes !== null ? formatBytes(gpu.memoryUsedBytes) : '不支持'" [series]="gpuSeries(gpu.id, 'memory')" color="#6f62d8" />
+                </div>
+                <dl class="metric-grid">
+                  <div class="metric-grid__primary"><dt>显存占用</dt><dd>{{ gpu.memoryUsedBytes !== null ? formatBytes(gpu.memoryUsedBytes) : '不支持' }}</dd></div>
+                  <div class="metric-grid__primary"><dt>显存总量</dt><dd>{{ gpu.memoryTotalBytes !== null ? formatBytes(gpu.memoryTotalBytes) : '不支持' }}</dd></div>
+                  <div><dt>核心占用</dt><dd>{{ formatPercent(gpu.coreUtilizationPercent) }}</dd></div>
+                  <div><dt>2D 占用</dt><dd>{{ gpu.twoDUtilizationPercent === null ? '不支持' : formatPercent(gpu.twoDUtilizationPercent) }}</dd></div>
+                  <div><dt>3D 占用</dt><dd>{{ gpu.threeDUtilizationPercent === null ? '不支持' : formatPercent(gpu.threeDUtilizationPercent) }}</dd></div>
+                  <div><dt>实时频率</dt><dd>{{ formatFrequency(gpu.currentFrequencyMhz) }}</dd></div>
+                  <div><dt>最大频率</dt><dd>{{ formatFrequency(gpu.maximumFrequencyMhz) }}</dd></div>
+                  <div><dt>驱动</dt><dd>{{ gpu.driver ?? '—' }}</dd></div>
+                </dl>
+              } @else {
+                <div class="empty-state">未检测到可读取性能计数器的 GPU</div>
+              }
+            }
+          }
+        }
+      </main>
     </div>
   }
 </section>

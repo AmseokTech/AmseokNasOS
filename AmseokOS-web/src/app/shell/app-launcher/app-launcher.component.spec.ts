@@ -35,10 +35,12 @@ describe('AppLauncherComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
-    expect(compiled.querySelector('#app-launcher-description')?.textContent).toContain(
-      '2 个已安装组件'
-    );
+    const dialog = compiled.querySelector('[role="dialog"]');
+    expect(dialog?.getAttribute('aria-modal')).toBe('true');
+    expect(dialog?.getAttribute('aria-label')).toBe('启动台');
+    expect(compiled.querySelector('.app-launcher__header')).toBeNull();
+    expect(compiled.textContent).not.toContain('AMSEOKOS');
+    expect(compiled.textContent).not.toContain('个已安装组件');
     expect(
       compiled.querySelector<HTMLImageElement>('[data-app-id="dashboard"] img')?.getAttribute('src')
     ).toBe('/assets/dock-icons/dashboard.svg');

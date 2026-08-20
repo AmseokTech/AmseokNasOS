@@ -13,6 +13,7 @@
       [style.width.px]="bounds.width"
       [style.height.px]="bounds.height"
       [style.z-index]="windowState.zIndex"
+      [attr.data-app-id]="windowState.appId"
       [attr.aria-label]="windowState.title + ' 窗口'"
       (cdkDragStarted)="manager.focus(windowState.id)"
       (cdkDragEnded)="handleDragEnd(windowState, $event)"

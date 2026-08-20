@@ -1,5 +1,29 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="112" height="112" viewBox="0 0 112 112" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="white line symbol">
-<path id="Vector" d="M38 81L62 30M51 81H86M29 65H78M65 30L87 81" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">App Store</title>
+  <desc id="desc">粉紫渐变背景上的应用商店购物袋</desc>
+  <defs>
+    <linearGradient id="store-bg" x1="85" y1="69" x2="432" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7BC4"/>
+      <stop offset="0.5" stop-color="#D54FD8"/>
+      <stop offset="1" stop-color="#7338C7"/>
+    </linearGradient>
+    <linearGradient id="store-bag" x1="160" y1="152" x2="356" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFE5F7" stop-opacity="0.88"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#store-bg)"/>
+    <circle cx="391" cy="107" r="128" fill="#FFFFFF" opacity="0.1"/>
+    <path d="M55 390C143 310 294 331 457 225V440C457 454 446 465 432 465H80C66 465 55 454 55 440V390Z" fill="#4D169B" opacity="0.12"/>
+    <rect x="46" y="46" width="420" height="420" rx="102" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="2"/>
+  </g>
+  <path d="M153 206C156 188 171 176 189 176H323C341 176 356 188 359 206L389 373C393 395 376 416 354 416H158C136 416 119 395 123 373L153 206Z" fill="url(#store-bag)"/>
+  <path d="M192 220V190C192 153 220 124 256 124C292 124 320 153 320 190V220" fill="none" stroke="#FFF7FD" stroke-width="24" stroke-linecap="round"/>
+  <rect x="164" y="248" width="68" height="68" rx="20" fill="#E050C8"/>
+  <rect x="280" y="248" width="68" height="68" rx="20" fill="#8550D8"/>
+  <rect x="164" y="336" width="68" height="36" rx="18" fill="#F37DBE"/>
+  <rect x="280" y="336" width="68" height="36" rx="18" fill="#B366E5"/>
+  <path d="M198 266V298M182 282H214" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+  <path d="M314 267L319 277L330 282L319 287L314 297L309 287L298 282L309 277L314 267Z" fill="#FFFFFF"/>
 </svg>

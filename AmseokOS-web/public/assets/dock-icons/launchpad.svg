@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Launchpad</title>
+  <desc id="desc">橙红渐变背景上的九宫格应用启动器</desc>
+  <defs>
+    <linearGradient id="launchpad-bg" x1="83" y1="68" x2="435" y2="453" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB84E"/>
+      <stop offset="0.48" stop-color="#FF755D"/>
+      <stop offset="1" stop-color="#DB345F"/>
+    </linearGradient>
+    <linearGradient id="launchpad-tile" x1="152" y1="145" x2="360" y2="368" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFF0E8" stop-opacity="0.86"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#launchpad-bg)"/>
+    <circle cx="120" cy="108" r="125" fill="#FFFFFF" opacity="0.1"/>
+    <path d="M49 375C190 304 319 365 463 264V441C463 454 452 465 439 465H73C60 465 49 454 49 441V375Z" fill="#9D174B" opacity="0.1"/>
+    <rect x="46" y="46" width="420" height="420" rx="102" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="2"/>
+  </g>
+  <g fill="url(#launchpad-tile)">
+    <rect x="132" y="132" width="68" height="68" rx="22"/>
+    <rect x="222" y="132" width="68" height="68" rx="22"/>
+    <rect x="312" y="132" width="68" height="68" rx="22"/>
+    <rect x="132" y="222" width="68" height="68" rx="22"/>
+    <rect x="222" y="222" width="68" height="68" rx="22"/>
+    <rect x="312" y="222" width="68" height="68" rx="22"/>
+    <rect x="132" y="312" width="68" height="68" rx="22"/>
+    <rect x="222" y="312" width="68" height="68" rx="22"/>
+    <rect x="312" y="312" width="68" height="68" rx="22"/>
+  </g>
+  <circle cx="256" cy="256" r="23" fill="#FF6A61"/>
+  <path d="M256 242V270M242 256H270" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <path d="M153 151H174" stroke="#FFD1BB" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+  <path d="M333 331H354" stroke="#FFD1BB" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+</svg>

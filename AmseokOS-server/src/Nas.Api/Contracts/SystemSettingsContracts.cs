@@ -1,6 +1,6 @@
 //--------------------------//
-//--------定义关于本机与网络只读 HTTP 响应契约---------//
-//--------Defines read-only HTTP responses for About and Network settings--------//
+//--------定义本机性能与网络只读 HTTP 响应契约---------//
+//--------Defines read-only HTTP responses for system performance and network settings--------//
 //-------------------------//
 using Nas.Application.SystemSettings;
 
@@ -25,6 +25,26 @@ public sealed record SystemAboutResponse(
             information.Cpu,
             information.Memory,
             information.SystemStorage);
+    }
+}
+
+public sealed record SystemPerformanceResponse(
+    long CapturedAtUnixMilliseconds,
+    CpuPerformanceInformation Cpu,
+    MemoryPerformanceInformation Memory,
+    IReadOnlyList<DiskPerformanceInformation> Disks,
+    IReadOnlyList<NetworkPerformanceInformation> Networks,
+    IReadOnlyList<GpuPerformanceInformation> Gpus)
+{
+    public static SystemPerformanceResponse From(SystemPerformanceInformation information)
+    {
+        return new(
+            information.CapturedAtUnixMilliseconds,
+            information.Cpu,
+            information.Memory,
+            information.Disks,
+            information.Networks,
+            information.Gpus);
     }
 }
 

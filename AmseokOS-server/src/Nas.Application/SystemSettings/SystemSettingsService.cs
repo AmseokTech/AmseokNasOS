@@ -12,6 +12,12 @@ public sealed class SystemSettingsService(ISystemSettingsClient settingsClient)
         return settingsClient.GetAboutAsync(cancellationToken);
     }
 
+    public Task<SystemPerformanceInformation> GetPerformanceAsync(
+        CancellationToken cancellationToken)
+    {
+        return settingsClient.GetPerformanceAsync(cancellationToken);
+    }
+
     public Task<IReadOnlyList<NetworkInterfaceInformation>> GetNetworkInterfacesAsync(
         CancellationToken cancellationToken)
     {

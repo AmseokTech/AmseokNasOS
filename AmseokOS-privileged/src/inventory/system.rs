@@ -24,12 +24,12 @@ pub struct SystemAbout {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct CpuInformation {
-    model: String,
-    physical_core_count: usize,
-    logical_processor_count: usize,
-    current_frequency_mhz: Option<u64>,
-    maximum_frequency_mhz: Option<u64>,
+pub(super) struct CpuInformation {
+    pub(super) model: String,
+    pub(super) physical_core_count: usize,
+    pub(super) logical_processor_count: usize,
+    pub(super) current_frequency_mhz: Option<u64>,
+    pub(super) maximum_frequency_mhz: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -72,7 +72,7 @@ pub fn get_about() -> io::Result<SystemAbout> {
     })
 }
 
-fn parse_cpu_information(cpu_info: &str) -> CpuInformation {
+pub(super) fn parse_cpu_information(cpu_info: &str) -> CpuInformation {
     let mut model = None;
     let mut logical_processor_count = 0;
     let mut physical_cores = HashSet::new();
@@ -125,7 +125,7 @@ fn parse_cpu_information(cpu_info: &str) -> CpuInformation {
     }
 }
 
-fn average_cpu_frequency(file_name: &str) -> Option<u64> {
+pub(super) fn average_cpu_frequency(file_name: &str) -> Option<u64> {
     let entries = fs::read_dir("/sys/devices/system/cpu").ok()?;
     let frequencies: Vec<u64> = entries
         .filter_map(Result::ok)
