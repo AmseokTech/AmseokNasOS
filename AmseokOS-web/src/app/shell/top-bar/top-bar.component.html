@@ -1,21 +1,47 @@
 <header class="top-bar">
   <div class="top-bar__start">
-    <span class="brand-mark" aria-hidden="true">
-      <span></span>
-      <span></span>
-      <span></span>
-    </span>
-    <strong class="product-name">AmseokOS</strong>
-    <span class="active-app">{{ activeApp() }}</span>
+    <button class="system-menu-trigger" type="button" title="AmseokOS 菜单" aria-label="AmseokOS 菜单">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.4 20.4 7v10L12 21.6 3.6 17V7L12 2.4Zm0 4.1L7.2 9.1v5.8l4.8 2.6 4.8-2.6V9.1L12 6.5Z" />
+      </svg>
+    </button>
+    <strong class="active-app">{{ activeApp() }}</strong>
+    <nav class="app-menu" aria-label="当前应用菜单">
+      <button type="button">文件</button>
+      <button type="button">编辑</button>
+      <button type="button">显示</button>
+      <button type="button">窗口</button>
+      <button type="button">帮助</button>
+    </nav>
   </div>
 
   <div class="top-bar__end" aria-label="系统状态">
-    <span class="status-item" title="网络已连接">
+    <button
+      class="status-item network-status"
+      type="button"
+      title="Wi-Fi"
+      aria-controls="desktop-wifi-panel"
+      [attr.aria-expanded]="wifiPanelOpen()"
+      [attr.aria-label]="wifiEnabled() ? 'Wi-Fi 已连接' : 'Wi-Fi 已关闭'"
+      (click)="toggleWifiPanel()"
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M2.5 8.6a15 15 0 0 1 19 0l-1.7 1.8a12.5 12.5 0 0 0-15.6 0L2.5 8.6Zm3.4 3.5a10 10 0 0 1 12.2 0l-1.8 1.8a7.4 7.4 0 0 0-8.6 0l-1.8-1.8Zm3.5 3.5a4.7 4.7 0 0 1 5.2 0L12 18.3l-2.6-2.7Z" />
       </svg>
       <span class="status-text">已连接</span>
+    </button>
+    <span class="status-item battery-status" title="电源状态正常" aria-label="电源状态正常">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="6.5" width="16" height="11" rx="2" />
+        <path d="M21 10v4M6 9.5v5h9v-5H6Z" />
+      </svg>
     </span>
+    <button class="menu-bar-button search-trigger" type="button" title="搜索" aria-label="搜索">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="5.7" /><path d="m15 15 4.2 4.2" /></svg>
+    </button>
+    <button class="menu-bar-button control-center-trigger" type="button" title="控制中心" aria-label="控制中心">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="2" /><circle cx="15" cy="17" r="2" /></svg>
+    </button>
     <button
       class="date-time-trigger"
       type="button"
@@ -93,6 +119,61 @@
           <i aria-hidden="true"></i>
           暂无日程
         </span>
+      </footer>
+    </section>
+  }
+
+  @if (wifiPanelOpen()) {
+    <section
+      id="desktop-wifi-panel"
+      class="wifi-panel"
+      animate.enter="wifi-panel--enter"
+      animate.leave="wifi-panel--leave"
+      role="dialog"
+      aria-label="Wi-Fi 网络"
+    >
+      <header class="wifi-panel__header wifi-panel__item" animate.enter="wifi-panel__item--enter">
+        <div>
+          <strong>Wi-Fi</strong>
+          <span>{{ wifiEnabled() ? '已开启' : '已关闭' }}</span>
+        </div>
+        <mat-slide-toggle
+          aria-label="开启或关闭 Wi-Fi"
+          [checked]="wifiEnabled()"
+          (change)="setWifiEnabled($event.checked)"
+        />
+      </header>
+
+      <div class="wifi-panel__networks" [class.wifi-panel__networks--disabled]="!wifiEnabled()">
+        @for (network of wifiNetworks; track network.id) {
+          <button
+            class="wifi-network wifi-panel__item"
+            type="button"
+            animate.enter="wifi-panel__item--enter"
+            [style.--wifi-delay]="45 + $index * 35 + 'ms'"
+            [class.wifi-network--selected]="selectedWifiId() === network.id"
+            [disabled]="!wifiEnabled()"
+            (click)="selectWifiNetwork(network.id)"
+          >
+            <svg class="wifi-network__signal" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 9.5a14 14 0 0 1 18 0M6.5 13a9 9 0 0 1 11 0M10 16.5a4 4 0 0 1 4 0" />
+              <circle cx="12" cy="19" r="1" />
+            </svg>
+            <span class="wifi-network__name">{{ network.name }}</span>
+            @if (network.secured) {
+              <svg class="wifi-network__lock" viewBox="0 0 24 24" aria-label="安全网络">
+                <rect x="6" y="10" width="12" height="10" rx="2" /><path d="M9 10V7a3 3 0 0 1 6 0v3" />
+              </svg>
+            }
+            @if (selectedWifiId() === network.id) {
+              <svg class="wifi-network__check" viewBox="0 0 24 24" aria-label="已连接"><path d="m5 12 4 4L19 6" /></svg>
+            }
+          </button>
+        }
+      </div>
+
+      <footer class="wifi-panel__footer wifi-panel__item" animate.enter="wifi-panel__item--enter">
+        <button type="button">Wi-Fi 设置…</button>
       </footer>
     </section>
   }
