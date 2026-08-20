@@ -3,7 +3,7 @@
 //--------Defines the presentation contract for desktop app entries--------//
 //-------------------------//
 
-export interface DesktopApp {
+interface DesktopAppPresentation {
   readonly id: string;
   readonly label: string;
   readonly iconUrl: string;
@@ -11,6 +11,12 @@ export interface DesktopApp {
   readonly launch?: 'terminal';
   readonly windowAppId?: string;
 }
+
+export type DesktopApp = DesktopAppPresentation & (
+  | { readonly kind: 'route'; readonly route: string }
+  | { readonly kind: 'terminal' }
+  | { readonly kind: 'window'; readonly windowAppId: string }
+);
 
 export const DESKTOP_APPS: readonly DesktopApp[] = [
   {

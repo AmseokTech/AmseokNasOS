@@ -1,4 +1,20 @@
 <nav class="dock" aria-label="应用程序 Dock">
+  <button
+    class="dock-item dock-item--launcher"
+    type="button"
+    [class.dock-item--selected]="launcherOpen()"
+    [attr.aria-pressed]="launcherOpen()"
+    aria-label="启动台"
+    (click)="launcherToggled.emit()"
+  >
+    <span class="dock-tooltip" aria-hidden="true">启动台</span>
+    <span class="dock-icon launcher-icon" aria-hidden="true">
+      @for (tile of [1, 2, 3, 4, 5, 6, 7, 8, 9]; track tile) {
+        <span></span>
+      }
+    </span>
+  </button>
+
   @for (app of apps(); track app.id) {
     @let appWindow = windowState(app.id);
     @let focused = isFocused(appWindow);

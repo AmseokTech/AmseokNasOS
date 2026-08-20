@@ -1,0 +1,49 @@
+<section
+  class="app-launcher"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="app-launcher-title"
+  aria-describedby="app-launcher-description"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+>
+  <header class="app-launcher__header">
+    <div>
+      <p class="app-launcher__eyebrow">AMSEOKOS</p>
+      <h1 id="app-launcher-title">启动台</h1>
+      <p id="app-launcher-description">{{ apps().length }} 个已安装组件</p>
+    </div>
+    <button
+      class="app-launcher__close"
+      type="button"
+      aria-label="关闭启动台"
+      (click)="dismissed.emit()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m6.7 5.3 5.3 5.3 5.3-5.3 1.4 1.4-5.3 5.3 5.3 5.3-1.4 1.4-5.3-5.3-5.3 5.3-1.4-1.4 5.3-5.3-5.3-5.3 1.4-1.4Z" />
+      </svg>
+    </button>
+  </header>
+
+  <div class="app-launcher__grid" aria-label="已安装组件">
+    @for (app of apps(); track app.id) {
+      <button
+        class="app-launcher__app"
+        type="button"
+        [attr.aria-label]="'打开' + app.label"
+        (click)="launch(app)"
+      >
+        <span
+          class="app-launcher__icon"
+          [style.background]="app.iconBackground"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24">
+            <path [attr.d]="app.iconPath" />
+          </svg>
+        </span>
+        <span>{{ app.label }}</span>
+      </button>
+    }
+  </div>
+</section>

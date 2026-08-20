@@ -18,8 +18,10 @@ export class DockComponent {
   private readonly windowManager = inject(WindowManagerService);
 
   readonly apps = input.required<readonly DesktopApp[]>();
+  readonly launcherOpen = input(false);
   readonly selectedAppId = input.required<string>();
   readonly appSelected = output<DesktopApp>();
+  readonly launcherToggled = output<void>();
 
   windowState(appId: string): AppWindowState | undefined {
     return this.windowManager.windowForApp(appId);

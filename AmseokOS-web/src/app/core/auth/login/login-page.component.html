@@ -1,25 +1,60 @@
 <main class="login-page">
-  <section class="login-panel" aria-labelledby="login-title">
-    <p class="product-name">AmseokOS</p>
-    <h1 id="login-title" class="visually-hidden">管理员登录</h1>
+  <section class="login-identity" aria-labelledby="login-title">
+    <h1 id="login-title">AmseokOS</h1>
+  </section>
 
-    <app-user-avatar class="login-avatar" />
+  <form
+    class="login-form"
+    [formGroup]="loginForm"
+    (ngSubmit)="submitLogin()"
+    aria-label="登录 AmseokOS"
+    novalidate
+  >
+    <label class="glass-field" for="login-username">
+      <span class="visually-hidden">账户</span>
+      <input
+        id="login-username"
+        type="text"
+        formControlName="username"
+        autocomplete="username"
+        autocapitalize="none"
+        maxlength="64"
+        placeholder="账户"
+        spellcheck="false"
+        [attr.aria-invalid]="usernameControl.touched && usernameControl.invalid"
+      />
+    </label>
 
-    <p class="username">admin</p>
-
-    <form class="login-form" [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
-      <app-password-field [control]="passwordControl" />
-
-      <button class="login-button" mat-flat-button type="submit" [disabled]="submitting()">
-        {{ submitting() ? '正在登录…' : '登录' }}
+    <label class="glass-field glass-field--password" for="login-password">
+      <span class="visually-hidden">密码</span>
+      <input
+        id="login-password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        placeholder="密码"
+        [attr.aria-invalid]="passwordControl.touched && passwordControl.invalid"
+      />
+      <button
+        class="login-button"
+        type="submit"
+        aria-label="登录"
+        [disabled]="submitting()"
+      >
+        <span aria-hidden="true">{{ submitting() ? '…' : '→' }}</span>
       </button>
+    </label>
 
-      @if (errorMessage()) {
+    <div class="login-feedback" aria-live="polite">
+      @if (usernameControl.touched && usernameControl.hasError('required')) {
+        <p class="login-message" role="alert">请输入账户</p>
+      } @else if (passwordControl.touched && passwordControl.hasError('required')) {
+        <p class="login-message" role="alert">请输入密码</p>
+      } @else if (errorMessage()) {
         <p class="login-message" role="alert">{{ errorMessage() }}</p>
-      }
-      @if (successMessage()) {
+      } @else if (successMessage()) {
         <p class="login-message login-message--success" role="status">{{ successMessage() }}</p>
       }
-    </form>
-  </section>
+    </div>
+  </form>
 </main>

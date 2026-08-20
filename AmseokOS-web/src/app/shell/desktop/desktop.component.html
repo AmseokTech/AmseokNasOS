@@ -19,9 +19,19 @@
     </div>
   </section>
 
+  @if (launcherOpen()) {
+    <app-launcher
+      [apps]="apps"
+      (appSelected)="selectApp($event)"
+      (dismissed)="closeLauncher()"
+    />
+  }
+
   <app-dock
     [apps]="apps"
+    [launcherOpen]="launcherOpen()"
     [selectedAppId]="selectedApp().id"
     (appSelected)="selectApp($event)"
+    (launcherToggled)="toggleLauncher()"
   />
 </main>
