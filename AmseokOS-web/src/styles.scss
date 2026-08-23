@@ -22,6 +22,181 @@ body {
   margin: 0;
 }
 
+:root,
+:root[data-theme='dark'] {
+  --panel-background: linear-gradient(145deg, rgb(38 40 48 / 96%), rgb(25 27 34 / 94%));
+  --panel-border: rgb(255 255 255 / 18%);
+  --panel-text: #f5f5f7;
+  --panel-secondary: rgb(245 245 247 / 60%);
+  --panel-tertiary: rgb(245 245 247 / 40%);
+  --panel-divider: rgb(255 255 255 / 10%);
+  --panel-action: #65adff;
+  --panel-shadow: 0 22px 60px rgb(0 0 0 / 42%), inset 0 1px 0 rgb(255 255 255 / 10%);
+  --panel-scrollbar: rgb(255 255 255 / 24%);
+  --tile-background: rgb(255 255 255 / 7%);
+  --tile-border: rgb(255 255 255 / 14%);
+  --tile-active-border: rgb(88 176 255 / 36%);
+  --tile-hover: rgb(255 255 255 / 10%);
+  --section-background: rgb(255 255 255 / 5%);
+  --section-background-solid: #2b2c34;
+  --control-active: #0a84ff;
+  --control-muted: #484952;
+  --control-icon: rgb(255 255 255 / 78%);
+  --control-track: #3a3b43;
+  --control-track-fill: #f4f4f5;
+  --range-thumb: #fff;
+  --range-thumb-border: rgb(0 0 0 / 16%);
+}
+
+:root[data-theme='light'] {
+  --panel-background: linear-gradient(145deg, rgb(252 253 255 / 97%), rgb(238 243 249 / 95%));
+  --panel-border: rgb(149 169 193 / 70%);
+  --panel-text: #17283e;
+  --panel-secondary: #667991;
+  --panel-tertiary: #98a8ba;
+  --panel-divider: rgb(112 133 158 / 20%);
+  --panel-action: #176fd0;
+  --panel-shadow: 0 22px 58px rgb(2 20 45 / 28%), inset 0 1px 0 rgb(255 255 255 / 86%);
+  --panel-scrollbar: rgb(69 91 117 / 26%);
+  --tile-background: rgb(255 255 255 / 60%);
+  --tile-border: rgb(112 133 158 / 24%);
+  --tile-active-border: rgb(10 132 255 / 38%);
+  --tile-hover: rgb(41 111 190 / 10%);
+  --section-background: rgb(255 255 255 / 46%);
+  --section-background-solid: #f4f7fb;
+  --control-active: #087cf0;
+  --control-muted: #d8e0e9;
+  --control-icon: #617287;
+  --control-track: #d5dce6;
+  --control-track-fill: #fff;
+  --range-thumb: #fff;
+  --range-thumb-border: rgb(87 106 129 / 20%);
+}
+
+app-top-bar .wifi-panel,
+app-top-bar .notification-center,
+app-top-bar .date-time-panel,
+app-top-bar .control-center {
+  transition: background 260ms ease, border-color 260ms ease, color 260ms ease, box-shadow 260ms ease;
+}
+
+app-control-center .remove-control {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  left: -8px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  padding: 0 0 2px;
+  border: 1px solid rgb(255 255 255 / 30%);
+  border-radius: 50%;
+  background: #898a91;
+  box-shadow: 0 2px 7px rgb(0 0 0 / 24%);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  place-items: center;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+app-control-center .remove-control:hover,
+app-control-center .remove-control:focus-visible {
+  background: #707178;
+  transform: scale(1.06);
+}
+
+app-control-center .control-picker {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  background: var(--section-background);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+app-control-center .control-picker button {
+  display: flex;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid var(--tile-border);
+  border-radius: 9px;
+  background: var(--tile-background);
+  color: var(--panel-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+}
+
+app-control-center .control-picker button:hover,
+app-control-center .control-picker button:focus-visible {
+  background: var(--tile-hover);
+}
+
+app-control-center .control-picker button span {
+  color: var(--panel-action);
+  font-size: 16px;
+  line-height: 1;
+}
+
+app-control-center .control-picker__empty {
+  padding: 6px;
+  color: var(--panel-secondary);
+  font-size: 11px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+app-control-center .edit-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+app-control-center .add-controls,
+app-control-center .done-controls {
+  min-height: 36px;
+  border-radius: 11px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+app-control-center .add-controls {
+  border: 1px solid var(--tile-border);
+  background: var(--tile-background);
+  color: var(--panel-text);
+}
+
+app-control-center .add-controls span {
+  margin-right: 4px;
+  font-size: 17px;
+  vertical-align: -1px;
+}
+
+app-control-center .add-controls:hover,
+app-control-center .add-controls:focus-visible {
+  background: var(--tile-hover);
+}
+
+app-control-center .done-controls {
+  border: 1px solid #168cf4;
+  background: #168cf4;
+  color: #fff;
+}
+
+app-control-center .done-controls:hover,
+app-control-center .done-controls:focus-visible {
+  background: #0879dc;
+}
+
 button,
 input,
 select,
@@ -77,14 +252,14 @@ app-top-bar .date-time-panel {
   right: 68px;
   width: min(360px, calc(100vw - 24px));
   overflow: hidden;
-  border: 1px solid rgb(169 190 213 / 88%);
-  border-radius: 10px;
-  background: rgb(248 251 255 / 96%);
-  box-shadow: 0 18px 42px rgb(2 20 45 / 30%);
-  color: #17283e;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: var(--panel-background);
+  box-shadow: var(--panel-shadow);
+  color: var(--panel-text);
   transform-origin: top right;
-  backdrop-filter: blur(24px) saturate(130%);
-  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  backdrop-filter: blur(36px) saturate(145%);
+  -webkit-backdrop-filter: blur(36px) saturate(145%);
 }
 
 app-top-bar .date-time-panel__header,
@@ -97,7 +272,7 @@ app-top-bar .date-time-panel__footer {
 }
 
 app-top-bar .date-time-panel__header {
-  border-bottom: 1px solid #dfe7f1;
+  border-bottom: 1px solid var(--panel-divider);
 }
 
 app-top-bar .date-time-panel__header div,
@@ -108,7 +283,7 @@ app-top-bar .date-time-panel__footer div {
 
 app-top-bar .date-time-panel__header span,
 app-top-bar .date-time-panel__footer span {
-  color: #6f8198;
+  color: var(--panel-secondary);
   font-size: 12px;
 }
 
@@ -120,11 +295,26 @@ app-top-bar .date-time-panel__header strong {
 
 app-top-bar .date-time-panel__header button {
   min-width: 54px;
-  color: #176fd0;
+  color: var(--panel-action);
   font-weight: 700;
 }
 
 app-top-bar .date-time-calendar {
+  --mat-datepicker-calendar-body-label-text-color: var(--panel-secondary);
+  --mat-datepicker-calendar-period-button-text-color: var(--panel-text);
+  --mat-datepicker-calendar-period-button-icon-color: var(--panel-secondary);
+  --mat-datepicker-calendar-navigation-button-icon-color: var(--panel-secondary);
+  --mat-datepicker-calendar-header-divider-color: var(--panel-divider);
+  --mat-datepicker-calendar-header-text-color: var(--panel-secondary);
+  --mat-datepicker-calendar-date-today-outline-color: var(--panel-secondary);
+  --mat-datepicker-calendar-date-text-color: var(--panel-text);
+  --mat-datepicker-calendar-date-disabled-state-text-color: var(--panel-tertiary);
+  --mat-datepicker-calendar-date-preview-state-outline-color: var(--panel-secondary);
+  --mat-datepicker-calendar-date-selected-state-text-color: #fff;
+  --mat-datepicker-calendar-date-selected-state-background-color: #237dce;
+  --mat-datepicker-calendar-date-today-selected-state-outline-color: #fff;
+  --mat-datepicker-calendar-date-focus-state-background-color: rgb(55 144 226 / 22%);
+  --mat-datepicker-calendar-date-hover-state-background-color: rgb(55 144 226 / 14%);
   display: block;
   width: 100%;
   padding: 2px 12px 0;
@@ -140,7 +330,7 @@ app-top-bar .date-time-calendar .mat-calendar-body-label {
 }
 
 app-top-bar .date-time-panel__footer {
-  border-top: 1px solid #dfe7f1;
+  border-top: 1px solid var(--panel-divider);
 }
 
 app-top-bar .date-time-panel__footer strong {
@@ -177,6 +367,8 @@ app-top-bar .date-time-panel__content--enter {
 app-top-bar .wifi-panel--enter { animation: wifi-panel-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 app-top-bar .wifi-panel--leave { animation: wifi-panel-leave 180ms cubic-bezier(0.4, 0, 1, 1) both; }
 app-top-bar .wifi-panel__item--enter { animation: wifi-item-enter 270ms cubic-bezier(0.16, 1, 0.3, 1) var(--wifi-delay, 30ms) both; }
+app-top-bar .control-center--enter { animation: wifi-panel-enter 340ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+app-top-bar .control-center--leave { animation: wifi-panel-leave 180ms cubic-bezier(0.4, 0, 1, 1) both; }
 
 @keyframes notification-center-enter {
   from {
@@ -287,7 +479,9 @@ app-top-bar .wifi-panel__item--enter { animation: wifi-item-enter 270ms cubic-be
   app-top-bar .date-time-panel__content--enter,
   app-top-bar .wifi-panel--enter,
   app-top-bar .wifi-panel--leave,
-  app-top-bar .wifi-panel__item--enter {
+  app-top-bar .wifi-panel__item--enter,
+  app-top-bar .control-center--enter,
+  app-top-bar .control-center--leave {
     animation-delay: 0ms;
     animation-duration: 1ms;
   }

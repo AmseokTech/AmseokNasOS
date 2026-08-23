@@ -1,6 +1,6 @@
 //--------------------------//
-//--------展示桌面顶部的产品、当前应用、系统摘要与本地通知---------//
-//--------Presents product, active app, system summary, and local notifications--------//
+//--------展示桌面顶部的产品、当前应用、系统面板与本地通知---------//
+//--------Presents product, active app, system panels, and local notifications--------//
 //-------------------------//
 import { DatePipe } from '@angular/common';
 import {
@@ -24,6 +24,8 @@ import {
 } from '@angular/material/core';
 import { MatCalendar } from '@angular/material/datepicker';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+
+import { ControlCenterComponent } from './control-center/control-center.component';
 
 class NumericDateAdapter extends NativeDateAdapter {
   override getDateNames(): string[] {
@@ -79,7 +81,7 @@ const INITIAL_NOTIFICATIONS: readonly DesktopNotification[] = [
 
 @Component({
   selector: 'app-top-bar',
-  imports: [DatePipe, MatButtonModule, MatCalendar, MatSlideToggleModule],
+  imports: [ControlCenterComponent, DatePipe, MatButtonModule, MatCalendar, MatSlideToggleModule],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'zh-CN' },
     provideNativeDateAdapter(),
@@ -108,9 +110,13 @@ export class TopBarComponent implements OnDestroy {
   readonly dateTimePanelOpen = signal(false);
   readonly notificationCenterOpen = signal(false);
   readonly wifiPanelOpen = signal(false);
+  readonly controlCenterOpen = signal(false);
   readonly wifiEnabled = signal(true);
   readonly wifiNetworks = WIFI_NETWORKS;
   readonly selectedWifiId = signal('home');
+  readonly selectedWifiName = computed(
+    () => this.wifiNetworks.find((network) => network.id === this.selectedWifiId())?.name ?? '未连接'
+  );
   readonly unreadNotificationCount = computed(
     () => this.notifications().filter((notification) => !notification.read).length
   );
@@ -124,19 +130,29 @@ export class TopBarComponent implements OnDestroy {
   toggleNotificationCenter(): void {
     this.dateTimePanelOpen.set(false);
     this.wifiPanelOpen.set(false);
+    this.controlCenterOpen.set(false);
     this.notificationCenterOpen.update((isOpen) => !isOpen);
   }
 
   toggleDateTimePanel(): void {
     this.notificationCenterOpen.set(false);
     this.wifiPanelOpen.set(false);
+    this.controlCenterOpen.set(false);
     this.dateTimePanelOpen.update((isOpen) => !isOpen);
   }
 
   toggleWifiPanel(): void {
     this.dateTimePanelOpen.set(false);
     this.notificationCenterOpen.set(false);
+    this.controlCenterOpen.set(false);
     this.wifiPanelOpen.update((isOpen) => !isOpen);
+  }
+
+  toggleControlCenter(): void {
+    this.dateTimePanelOpen.set(false);
+    this.notificationCenterOpen.set(false);
+    this.wifiPanelOpen.set(false);
+    this.controlCenterOpen.update((isOpen) => !isOpen);
   }
 
   setWifiEnabled(enabled: boolean): void {
@@ -184,7 +200,7 @@ export class TopBarComponent implements OnDestroy {
   closeOpenPanelsOnOutsideClick(event: MouseEvent): void {
     const target = event.target;
     if (
-      (!this.notificationCenterOpen() && !this.dateTimePanelOpen() && !this.wifiPanelOpen()) ||
+      (!this.notificationCenterOpen() && !this.dateTimePanelOpen() && !this.wifiPanelOpen() && !this.controlCenterOpen()) ||
       (target instanceof Node && this.host.nativeElement.contains(target))
     ) {
       return;
@@ -193,6 +209,7 @@ export class TopBarComponent implements OnDestroy {
     this.notificationCenterOpen.set(false);
     this.dateTimePanelOpen.set(false);
     this.wifiPanelOpen.set(false);
+    this.controlCenterOpen.set(false);
   }
 
   @HostListener('document:keydown.escape')
@@ -200,5 +217,6 @@ export class TopBarComponent implements OnDestroy {
     this.notificationCenterOpen.set(false);
     this.dateTimePanelOpen.set(false);
     this.wifiPanelOpen.set(false);
+    this.controlCenterOpen.set(false);
   }
 }

@@ -39,7 +39,15 @@
     <button class="menu-bar-button search-trigger" type="button" title="搜索" aria-label="搜索">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="5.7" /><path d="m15 15 4.2 4.2" /></svg>
     </button>
-    <button class="menu-bar-button control-center-trigger" type="button" title="控制中心" aria-label="控制中心">
+    <button
+      class="menu-bar-button control-center-trigger"
+      type="button"
+      title="控制中心"
+      aria-label="控制中心"
+      aria-controls="desktop-control-center"
+      [attr.aria-expanded]="controlCenterOpen()"
+      (click)="toggleControlCenter()"
+    >
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16" /><circle cx="9" cy="7" r="2" /><circle cx="15" cy="17" r="2" /></svg>
     </button>
     <button
@@ -75,6 +83,13 @@
     </button>
     <span class="user-avatar" aria-label="当前用户 admin">A</span>
   </div>
+
+  <app-control-center
+    [open]="controlCenterOpen()"
+    [wifiEnabled]="wifiEnabled()"
+    [selectedWifiName]="selectedWifiName()"
+    (wifiRequested)="toggleWifiPanel()"
+  />
 
   @if (dateTimePanelOpen()) {
     <section
