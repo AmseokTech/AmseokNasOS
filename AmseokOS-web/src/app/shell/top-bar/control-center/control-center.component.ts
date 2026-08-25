@@ -3,9 +3,9 @@
 //--------Manages desktop quick controls and the system panel theme--------//
 //-------------------------//
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 
-type OptionalControlId = 'battery' | 'display' | 'screenMirroring' | 'sound' | 'stageManager';
+type OptionalControlId = 'battery' | 'display' | 'networkSpeed' | 'sound';
 
 @Component({
   selector: 'app-control-center',
@@ -23,27 +23,34 @@ export class ControlCenterComponent {
 
   readonly darkMode = signal(this.readStoredTheme());
   readonly bluetoothEnabled = signal(true);
-  readonly airdropEnabled = signal(false);
-  readonly focusEnabled = signal(false);
-  readonly stageManagerEnabled = signal(false);
-  readonly screenMirroringEnabled = signal(false);
-  readonly nightShiftEnabled = signal(false);
-  readonly lowPowerModeEnabled = signal(false);
   readonly editingControls = signal(false);
   readonly addingControls = signal(false);
   readonly visibleControls = signal<Record<OptionalControlId, boolean>>({
     battery: true,
     display: true,
-    screenMirroring: true,
-    sound: true,
-    stageManager: true
+    networkSpeed: true,
+    sound: true
   });
   readonly brightness = signal(78);
   readonly volume = signal(58);
   readonly batteryLevel = signal(27);
+  readonly lowPowerModeEnabled = signal(false);
+  readonly downloadRate = signal('24.8 MB/s');
+  readonly uploadRate = signal('3.2 MB/s');
 
   constructor() {
     this.applyTheme(this.darkMode());
+
+    effect((onCleanup) => {
+      const browserWindow = this.document.defaultView;
+      if (!browserWindow || !this.open() || !this.isControlVisible('networkSpeed')) {
+        return;
+      }
+
+      this.updateNetworkRates();
+      const timer = browserWindow.setInterval(() => this.updateNetworkRates(), 2400);
+      onCleanup(() => browserWindow.clearInterval(timer));
+    });
   }
 
   setDarkMode(enabled: boolean): void {
@@ -59,26 +66,6 @@ export class ControlCenterComponent {
 
   toggleBluetooth(): void {
     this.bluetoothEnabled.update((isEnabled) => !isEnabled);
-  }
-
-  toggleAirdrop(): void {
-    this.airdropEnabled.update((isEnabled) => !isEnabled);
-  }
-
-  toggleFocus(): void {
-    this.focusEnabled.update((isEnabled) => !isEnabled);
-  }
-
-  toggleStageManager(): void {
-    this.stageManagerEnabled.update((isEnabled) => !isEnabled);
-  }
-
-  toggleScreenMirroring(): void {
-    this.screenMirroringEnabled.update((isEnabled) => !isEnabled);
-  }
-
-  toggleNightShift(): void {
-    this.nightShiftEnabled.update((isEnabled) => !isEnabled);
   }
 
   toggleLowPowerMode(): void {
@@ -121,6 +108,13 @@ export class ControlCenterComponent {
 
   toggleMute(): void {
     this.volume.update((level) => (level === 0 ? 58 : 0));
+  }
+
+  private updateNetworkRates(): void {
+    const download = 18 + Math.random() * 18;
+    const upload = 1.2 + Math.random() * 5.6;
+    this.downloadRate.set(`${download.toFixed(1)} MB/s`);
+    this.uploadRate.set(`${upload.toFixed(1)} MB/s`);
   }
 
   private readStoredTheme(): boolean {

@@ -161,7 +161,7 @@ describe('TopBarComponent', () => {
     expect(window.localStorage.getItem('amseokos-color-theme')).toBe('light');
   });
 
-  it('updates quick controls, brightness, volume, and low power mode', () => {
+  it('keeps the reduced control set functional and editable', () => {
     const fixture = TestBed.createComponent(TopBarComponent);
     fixture.componentRef.setInput('activeApp', '概览');
     fixture.componentInstance.toggleControlCenter();
@@ -182,26 +182,31 @@ describe('TopBarComponent', () => {
     expect(compiled.querySelectorAll<HTMLButtonElement>('.quick-control')[1].getAttribute('aria-pressed')).toBe(
       'false'
     );
+    expect(compiled.querySelectorAll('.quick-control').length).toBe(2);
+    expect(compiled.querySelector('.network-speed-control')?.textContent).toMatch(/下载.*MB\/s.*上传.*MB\/s/s);
     expect(compiled.querySelector('.low-power-control')?.getAttribute('aria-pressed')).toBe('true');
+    expect(compiled.querySelector('.control-center')?.textContent).not.toMatch(
+      /隔空投送|专注模式|台前调度|屏幕镜像|夜览/
+    );
 
     compiled.querySelector<HTMLButtonElement>('.edit-controls')?.click();
     fixture.detectChanges();
     expect(compiled.querySelector('.edit-actions')).not.toBeNull();
     expect(compiled.querySelector('input[type="checkbox"]')).toBeNull();
 
-    compiled.querySelector<HTMLButtonElement>('[aria-label="移除台前调度"]')?.click();
+    compiled.querySelector<HTMLButtonElement>('[aria-label="移除显示"]')?.click();
     fixture.detectChanges();
-    expect(compiled.querySelector('.quick-controls')?.textContent).not.toContain('台前调度');
+    expect(compiled.querySelector('[aria-labelledby="display-controls-title"]')).toBeNull();
 
     compiled.querySelector<HTMLButtonElement>('.add-controls')?.click();
     fixture.detectChanges();
-    const restoreStageManager = Array.from(
+    const restoreDisplay = Array.from(
       compiled.querySelectorAll<HTMLButtonElement>('.control-picker button')
-    ).find((button) => button.textContent?.includes('台前调度'));
-    restoreStageManager?.click();
+    ).find((button) => button.textContent?.includes('显示'));
+    restoreDisplay?.click();
     fixture.detectChanges();
 
-    expect(compiled.querySelector('.quick-controls')?.textContent).toContain('台前调度');
+    expect(compiled.querySelector('[aria-labelledby="display-controls-title"]')).not.toBeNull();
     expect(compiled.querySelector('.control-picker')).toBeNull();
   });
 
